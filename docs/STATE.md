@@ -16,7 +16,7 @@ callback, update-in-place buffers, explicit selection/commit, origin markers,
 atomic origin-buffer commit rollback, owned window cleanup, capability-based
 child-frame backend and ordinary-window fallback, graph demo.
 
-Validation so far: 43 Emacs 29.3 local ERT tests, strict byte compilation and
+Validation so far: 44 Emacs 29.3 local ERT tests, strict byte compilation and
 checkdoc pass. Real pseudo-terminal typing/select/commit smoke now shrinks and
 expands the terminal (120x40 -> 90x30 -> 140x45) with query/cursor/selection and
 source preservation assertions. The windows backend passes locally; PR #2 CI

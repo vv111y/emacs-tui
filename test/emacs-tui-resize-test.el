@@ -138,6 +138,15 @@
     (should-not (emacs-tui--workspace-active session))
     (should (= 1 (length (window-list))))))
 
+(ert-deftest emacs-tui-resize-geometry-failure-releases-new-panel ()
+  (emacs-tui-resize-test--workspace
+    (cl-letf (((symbol-function 'emacs-tui-layout-compute)
+               (lambda (&rest _) (error "Injected geometry failure"))))
+      (should-not (emacs-tui-refresh session)))
+    (should-not (emacs-tui--workspace-active session))
+    (should (= 1 (length (window-list))))
+    (should (eq source (window-buffer)))))
+
 (ert-deftest emacs-tui-resize-preserves-preview-scroll ()
   (emacs-tui-resize-test--workspace
     (emacs-tui-update session 'b :text (make-string 300 ?x))

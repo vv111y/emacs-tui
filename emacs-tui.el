@@ -361,9 +361,10 @@ larger minimum frame size than the requested size."
                             (emacs-tui--own-window session cell))))))))
 
 (defun emacs-tui--own-window (session window)
-  "Record WINDOW as an owned resource of SESSION."
+  "Record WINDOW as an owned resource of SESSION and return WINDOW."
   (set-window-parameter window 'emacs-tui-session session)
-  (cl-pushnew window (emacs-tui--workspace-windows session)))
+  (cl-pushnew window (emacs-tui--workspace-windows session))
+  window)
 
 (defun emacs-tui--owned-window-p (session window)
   "Return non-nil if WINDOW belongs to SESSION with its content intact."
@@ -409,12 +410,12 @@ A foreign window inside the subtree makes it unsuitable for reflow."
 
 (defun emacs-tui--geometry (session)
   "Return SESSION's geometry signature, or nil for an invalid surface."
-  (when-let ((subtree (emacs-tui--subtree session)))
+  (when-let* ((subtree (emacs-tui--subtree session)))
     (list (window-edges subtree)
           (mapcar (lambda (window) (list window (window-edges window)))
                   (cl-remove-if-not #'window-live-p
                                     (emacs-tui--workspace-windows session)))
-          (when-let ((child (emacs-tui--workspace-frame session)))
+          (when-let* ((child (emacs-tui--workspace-frame session)))
             (let ((parent (emacs-tui--workspace-origin-frame session)))
               (and (frame-live-p child)
                    (list (frame-inner-width parent) (frame-inner-height parent)
@@ -451,7 +452,7 @@ A foreign window inside the subtree makes it unsuitable for reflow."
     (emacs-tui--own-window session root)
     (when (> (window-total-height root) 2)
       (let* ((window-min-height 1)
-             (panel (split-window root 2 'below))
+             (panel (emacs-tui--own-window session (split-window root 2 'below)))
              (rectangles
               (emacs-tui-layout-compute
                (mapcar #'emacs-tui--view-id (emacs-tui--workspace-views session))
