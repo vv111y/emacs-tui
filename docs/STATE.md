@@ -4,9 +4,11 @@ Updated 2026-10-23 (America/Toronto).
 
 ## Current work
 
-The foundation is implemented in [PR #1](https://github.com/vv111y/emacs-tui/pull/1).
-Read its live merge and check status before starting dependent work. The
-repository started empty; this is still an experimental development release.
+The foundation [PR #1](https://github.com/vv111y/emacs-tui/pull/1) is merged.
+Active work on `codex/resize-reflow`: automatic viewport reflow and real terminal
+resize tests. This scope is claimed by the current interactive session; inspect
+its draft PR and recent updates before starting overlapping work.
+The repository started empty; this is still an experimental development release.
 
 Implemented: pure columns/rows/grid geometry, editable temporary queries,
 independent list/text views and selection, literal filtering or custom query
@@ -33,8 +35,8 @@ the extracted test runtime has no configured native compiler toolchain.
 
 ## Next work
 
-1. Finish PR #1 integration if still open: require passing final-head CI and
-   retain the independent review record. Do not repeat completed implementation.
+1. Complete automatic resize/reflow, independent review and final-head CI on
+   `codex/resize-reflow`. Do not repeat the merged foundation implementation.
 2. Broaden TTY coverage beyond Linux pseudo-terminals, including macOS terminals,
    multiple clients and visual behavior; CI smoke alone is not complete UI QA.
 3. Add robust resize/reflow and compact-view navigation; verify narrow terminals
@@ -49,6 +51,8 @@ No stable API release, mature-use evidence, performance claim or MELPA acceptanc
 exists yet. Earliest known public-maintenance eligibility is approximately
 2026-11-23; meaningful maintenance and real human review are still needed.
 
-Continued work is scheduled Monday through Saturday at approximately 08:00,
-15:00 and 20:00 America/Toronto. Scheduled sessions are discrete work runs, not a
-continuous daemon. Each run should update this file with actual new evidence.
+Continued work is scheduled hourly, Monday through Saturday, starting at 20:00
+America/Toronto on 2026-10-23. Scheduled sessions are discrete work runs, not a
+continuous daemon. The owner expects to check in Saturday 2026-10-24 around
+09:00; that is not a stop time. Each run should checkpoint actual new evidence
+and inspect recently active draft PRs to avoid conflicting work.
