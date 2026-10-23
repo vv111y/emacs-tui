@@ -4,9 +4,11 @@ Updated 2026-10-23 (America/Toronto).
 
 ## Current work
 
-The foundation is implemented in [PR #1](https://github.com/vv111y/emacs-tui/pull/1).
-Read its live merge and check status before starting dependent work. The
-repository started empty; this is still an experimental development release.
+The foundation [PR #1](https://github.com/vv111y/emacs-tui/pull/1) is merged.
+Automatic viewport reflow and real terminal resize tests are implemented in
+[PR #2](https://github.com/vv111y/emacs-tui/pull/2). Inspect its live merge/check
+status and recent updates before starting overlapping work.
+The repository started empty; this is still an experimental development release.
 
 Implemented: pure columns/rows/grid geometry, editable temporary queries,
 independent list/text views and selection, literal filtering or custom query
@@ -14,9 +16,14 @@ callback, update-in-place buffers, explicit selection/commit, origin markers,
 atomic origin-buffer commit rollback, owned window cleanup, capability-based
 child-frame backend and ordinary-window fallback, graph demo.
 
-Validation so far: 33 Emacs 29.3 local ERT tests, strict byte compilation and
-checkdoc pass; real pseudo-terminal typing/select/commit smoke passes with the
-windows backend. Independent review found lifecycle/provider/compact-view
+Validation so far: 44 Emacs 29.3 local ERT tests, strict byte compilation and
+checkdoc pass. Real pseudo-terminal typing/select/commit smoke now shrinks and
+expands the terminal (120x40 -> 90x30 -> 140x45) with query/cursor/selection and
+source preservation assertions. The windows backend passes locally; PR #2 CI
+must verify native 31.1 child-frame resizing before integration. Initial GUI
+fitting remains unverified on an actual graphical display.
+
+Foundation independent review found lifecycle/provider/compact-view
 defects; all have fixes and regression coverage, independently retested with no
 remaining foundation blockers. CI run
 [40040890417](https://github.com/vv111y/emacs-tui/actions/runs/40040890417) passed
@@ -33,12 +40,12 @@ the extracted test runtime has no configured native compiler toolchain.
 
 ## Next work
 
-1. Finish PR #1 integration if still open: require passing final-head CI and
-   retain the independent review record. Do not repeat completed implementation.
+1. Finish PR #2 independent review and final-head CI if still open; then
+   integrate the reviewed head. Do not repeat the foundation implementation.
 2. Broaden TTY coverage beyond Linux pseudo-terminals, including macOS terminals,
    multiple clients and visual behavior; CI smoke alone is not complete UI QA.
-3. Add robust resize/reflow and compact-view navigation; verify narrow terminals
-   and lifecycle across source/window/frame deletion.
+3. Expand narrow-terminal and multiple-client coverage. Automatic reflow and
+   owned-subtree invalidation are now implemented; verify actual GUI behavior.
 4. Develop around-point layouts, traversal history and per-view state through
    the graph demo; add bounded async provider lifecycle and stale-result tests.
 5. Follow ROADMAP.md through performance, installation and release readiness.
@@ -49,6 +56,8 @@ No stable API release, mature-use evidence, performance claim or MELPA acceptanc
 exists yet. Earliest known public-maintenance eligibility is approximately
 2026-11-23; meaningful maintenance and real human review are still needed.
 
-Continued work is scheduled Monday through Saturday at approximately 08:00,
-15:00 and 20:00 America/Toronto. Scheduled sessions are discrete work runs, not a
-continuous daemon. Each run should update this file with actual new evidence.
+Continued work is scheduled hourly, Monday through Saturday, starting at 20:00
+America/Toronto on 2026-10-23. Scheduled sessions are discrete work runs, not a
+continuous daemon. The owner expects to check in Saturday 2026-10-24 around
+09:00; that is not a stop time. Each run should checkpoint actual new evidence
+and inspect recently active draft PRs to avoid conflicting work.

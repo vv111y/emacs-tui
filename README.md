@@ -57,6 +57,7 @@ and continue exploration; commitment is a separate command.
 | `emacs-tui-view` | Describe a list or text preview |
 | `emacs-tui-open` | Open views with layout, backend and callbacks |
 | `emacs-tui-update` | Replace a view's items or preview, reusing its buffer |
+| `emacs-tui-refresh` | Reflow the workspace while preserving its input and selection |
 | `emacs-tui-query` | Read the temporary query |
 | `emacs-tui-current-item` | Read the selected object |
 | `emacs-tui-select` | Invoke the selected view's exploration action |
@@ -103,9 +104,14 @@ backend uses one retained child frame containing split windows; the second
 owns a split subtree and removes its own windows on exit. It does not restore a
 stale snapshot over unrelated window changes.
 
-The first implementation provides full-workspace columns, rows and grid. The
-four-sided around-point layout, multiple floating surfaces, automatic resize
-reflow, history, per-view queries, tables and async streaming are planned in
+Columns, rows and grid reflow automatically after window or frame dimensions
+change. Query text, cursor position, logical selection and preview scroll state
+are preserved. Reflow does not rerun search providers. A modified or unusable
+workspace surface closes safely; unrelated windows and application buffers are
+preserved. `emacs-tui-refresh` is also available for an explicit reflow.
+
+The four-sided around-point layout, multiple floating surfaces,
+history, per-view queries, tables and async streaming are planned in
 [ROADMAP.md](ROADMAP.md). The initial implementation renders full view content;
 large-data performance is not yet characterized.
 
@@ -118,7 +124,8 @@ make tty-smoke
 
 ERT exercises real buffers/windows, filtering, selection, commit rollback,
 cleanup and layout invariants. The terminal smoke test starts an actual Emacs
-TTY in a pseudo-terminal, exercises typing/select/commit, and requires the
+TTY in a pseudo-terminal, exercises typing/select/commit, shrinks and expands
+the terminal using real resize signals, and requires the
 native child-frame backend when its capability is present. It is not a visual
 quality or performance benchmark.
 

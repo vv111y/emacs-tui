@@ -55,13 +55,16 @@
 
 (cl-defstruct (emacs-tui--workspace (:constructor emacs-tui--make-workspace))
   views (focus 0) layout backend on-query on-commit origin origin-window
-  origin-frame frame query-buffer root windows active origin-kill-hook)
+  origin-frame frame query-buffer root windows active origin-kill-hook geometry)
 
 (defvar-local emacs-tui--session nil
   "Workspace associated with the current ephemeral buffer.")
 
 (defvar emacs-tui--sessions nil
   "Live workspaces, used to release resources when a frame is deleted.")
+
+(defvar emacs-tui--refreshing nil
+  "Non-nil while workspace geometry is being changed.")
 
 (defvar emacs-tui-input-mode-map
   (let ((map (make-sparse-keymap)))
@@ -254,6 +257,32 @@ are unchanged.  Return SESSION."
   (and (not noninteractive)
        (or (display-graphic-p) (featurep 'tty-child-frames))))
 
+(defun emacs-tui--fit-child (session)
+  "Fit SESSION's existing child frame inside its live parent.
+Dimensions are converted from parent inner pixels to child character
+cells.  Actual dimensions are checked because a display may impose a
+larger minimum frame size than the requested size."
+  (let* ((parent (emacs-tui--workspace-origin-frame session))
+         (child (emacs-tui--workspace-frame session))
+         (width (frame-inner-width parent))
+         (height (frame-inner-height parent))
+         (cell-width (frame-char-width child))
+         (cell-height (frame-char-height child))
+         (left cell-width) (top cell-height)
+         (columns (/ (- width (* 2 left)) cell-width))
+         (rows (/ (- height (* 2 top)) cell-height)))
+    (when (or (< columns 2) (< rows 3))
+      (error "Parent frame is too small for the workspace"))
+    (unless (and (= columns (frame-width child)) (= rows (frame-height child)))
+      (let ((frame-resize-pixelwise t))
+        (set-frame-size child columns rows)))
+    (unless (and (equal left (frame-parameter child 'left))
+                 (equal top (frame-parameter child 'top)))
+      (set-frame-position child left top))
+    (when (or (> (+ left (frame-pixel-width child)) width)
+              (> (+ top (frame-pixel-height child)) height))
+      (error "Display minimum child-frame size exceeds the parent viewport"))))
+
 (defun emacs-tui--make-surface (session requested)
   "Create SESSION's owned display surface using REQUESTED backend."
   (unless (memq requested '(auto windows child-frame))
@@ -275,11 +304,13 @@ are unchanged.  Return SESSION."
                    (undecorated . t) (visibility . nil)
                    (menu-bar-lines . 0) (tool-bar-lines . 0)
                    (tab-bar-lines . 0) (internal-border-width . 0)
+                   (left-fringe . 0) (right-fringe . 0)
                    (vertical-scroll-bars . nil) (horizontal-scroll-bars . nil)))))
           (setf (emacs-tui--workspace-frame session) frame
                 (emacs-tui--workspace-root session) (frame-root-window frame)
                 (emacs-tui--workspace-backend session) 'child-frame)
-          (make-frame-visible frame))
+          (make-frame-visible frame)
+          (emacs-tui--fit-child session))
       ((error quit)
        (let ((frame (emacs-tui--workspace-frame session)))
          (setf (emacs-tui--workspace-frame session) nil
@@ -330,9 +361,67 @@ are unchanged.  Return SESSION."
                             (emacs-tui--own-window session cell))))))))
 
 (defun emacs-tui--own-window (session window)
-  "Record WINDOW as an owned resource of SESSION."
+  "Record WINDOW as an owned resource of SESSION and return WINDOW."
   (set-window-parameter window 'emacs-tui-session session)
-  (cl-pushnew window (emacs-tui--workspace-windows session)))
+  (cl-pushnew window (emacs-tui--workspace-windows session))
+  window)
+
+(defun emacs-tui--owned-window-p (session window)
+  "Return non-nil if WINDOW belongs to SESSION with its content intact."
+  (and (window-live-p window)
+       (memq window (emacs-tui--workspace-windows session))
+       (eq (window-parameter window 'emacs-tui-session) session)
+       (eq (buffer-local-value 'emacs-tui--session (window-buffer window))
+           session)))
+
+(defun emacs-tui--window-descendant-p (window ancestor)
+  "Whether WINDOW belongs to the subtree rooted at ANCESTOR."
+  (while (and window (not (eq window ancestor)))
+    (setq window (window-parent window)))
+  (eq window ancestor))
+
+(defun emacs-tui--subtree (session)
+  "Return SESSION's complete owned subtree, or nil if invalidated.
+A foreign window inside the subtree makes it unsuitable for reflow."
+  (let* ((root (emacs-tui--workspace-root session))
+         (windows (cl-remove-if-not #'window-live-p
+                                    (emacs-tui--workspace-windows session)))
+         (ancestor root))
+    (when (and (window-live-p root)
+               (window-live-p (emacs-tui--workspace-origin-window session))
+               (frame-live-p (emacs-tui--workspace-origin-frame session))
+               (buffer-live-p (marker-buffer (emacs-tui--workspace-origin session)))
+               (eq (window-buffer root) (emacs-tui--workspace-query-buffer session))
+               windows
+               (cl-every (lambda (window) (emacs-tui--owned-window-p session window))
+                         windows))
+      (while (and ancestor
+                  (not (cl-every
+                        (lambda (window)
+                          (emacs-tui--window-descendant-p window ancestor))
+                        windows)))
+        (setq ancestor (window-parent ancestor)))
+      (when ancestor
+        (let ((complete t))
+          (walk-window-subtree
+           (lambda (window)
+             (unless (memq window windows) (setq complete nil))) ancestor)
+          (and complete ancestor))))))
+
+(defun emacs-tui--geometry (session)
+  "Return SESSION's geometry signature, or nil for an invalid surface."
+  (when-let* ((subtree (emacs-tui--subtree session)))
+    (list (window-edges subtree)
+          (mapcar (lambda (window) (list window (window-edges window)))
+                  (cl-remove-if-not #'window-live-p
+                                    (emacs-tui--workspace-windows session)))
+          (when-let* ((child (emacs-tui--workspace-frame session)))
+            (let ((parent (emacs-tui--workspace-origin-frame session)))
+              (and (frame-live-p child)
+                   (list (frame-inner-width parent) (frame-inner-height parent)
+                         (frame-pixel-width child) (frame-pixel-height child)
+                         (frame-char-width child) (frame-char-height child)
+                         (frame-parameter child 'left) (frame-parameter child 'top))))))))
 
 (defun emacs-tui--reveal-focus (session)
   "Ensure SESSION's logically focused view is visible when a panel exists."
@@ -350,7 +439,8 @@ are unchanged.  Return SESSION."
 
 (defun emacs-tui--arrange (session)
   "Arrange SESSION's views inside its owned window subtree."
-  (let ((root (emacs-tui--workspace-root session)))
+  (let ((root (emacs-tui--workspace-root session))
+        (window-combination-limit t))
     (dolist (window (emacs-tui--workspace-windows session))
       (when (and (not (eq root window)) (window-live-p window)
                  (eq (window-parameter window 'emacs-tui-session) session))
@@ -362,7 +452,7 @@ are unchanged.  Return SESSION."
     (emacs-tui--own-window session root)
     (when (> (window-total-height root) 2)
       (let* ((window-min-height 1)
-             (panel (split-window root 2 'below))
+             (panel (emacs-tui--own-window session (split-window root 2 'below)))
              (rectangles
               (emacs-tui-layout-compute
                (mapcar #'emacs-tui--view-id (emacs-tui--workspace-views session))
@@ -389,6 +479,71 @@ are unchanged.  Return SESSION."
     (emacs-tui--reveal-focus session)
     (dolist (view (emacs-tui--workspace-views session))
       (emacs-tui--render-view session view))))
+
+(defun emacs-tui-refresh (&optional session)
+  "Reflow SESSION safely, preserving its query and logical selection.
+This is normally automatic after window or frame geometry changes.
+Return SESSION on success, or nil after closing an invalidated surface.
+No application provider or commit callback is invoked."
+  (interactive)
+  (setq session (emacs-tui--require-session session))
+  (unless emacs-tui--refreshing
+    (let ((emacs-tui--refreshing t) complete)
+      (unwind-protect
+          (condition-case err
+              (progn
+                (unless (emacs-tui--subtree session)
+                  (error "Workspace window subtree is no longer available"))
+                (let* ((query (emacs-tui--workspace-query-buffer session))
+                       (root (emacs-tui--workspace-root session))
+                       (point (with-current-buffer query (point)))
+                       (window-point (window-point root))
+                       (scroll
+                        (mapcar
+                         (lambda (view)
+                           (let ((window (emacs-tui--view-window view)))
+                             (when (window-live-p window)
+                               (list view (window-start window) (window-point window)
+                                     (window-hscroll window)))))
+                         (emacs-tui--workspace-views session))))
+                  (save-selected-window
+                    (when (emacs-tui--workspace-frame session)
+                      (emacs-tui--fit-child session))
+                    (emacs-tui--arrange session)
+                    (with-current-buffer query (goto-char point))
+                    (set-window-point root window-point)
+                    (dolist (entry scroll)
+                      (when entry
+                        (let* ((view (car entry))
+                               (window (emacs-tui--view-window view)))
+                          (when (window-live-p window)
+                            (set-window-start window (nth 1 entry) t)
+                            (when (emacs-tui--view-text view)
+                              (set-window-point window (nth 2 entry)))
+                            (set-window-hscroll window (nth 3 entry))))))))
+                (setf (emacs-tui--workspace-geometry session)
+                      (emacs-tui--geometry session))
+                (unless (emacs-tui--workspace-geometry session)
+                  (error "Workspace window subtree was invalidated during reflow"))
+                (setq complete t)
+                session)
+            (error (message "emacs-tui closed during reflow: %s"
+                            (error-message-string err)) nil))
+        (unless complete (emacs-tui-close session))))))
+
+(defun emacs-tui--window-state-changed ()
+  "Reflow live workspaces only when their cached geometry has changed."
+  (unless emacs-tui--refreshing
+    (dolist (session (copy-sequence emacs-tui--sessions))
+      (when (emacs-tui--workspace-active session)
+        (condition-case err
+            (when (not (equal (emacs-tui--workspace-geometry session)
+                              (emacs-tui--geometry session)))
+              (emacs-tui-refresh session))
+          (error
+           (message "emacs-tui closed after window change: %s"
+                    (error-message-string err))
+           (emacs-tui-close session)))))))
 
 (cl-defun emacs-tui-open (&key views (layout 'columns) (backend 'auto)
                               on-query on-commit)
@@ -443,8 +598,10 @@ are not modified by opening, filtering, selecting or cancelling."
               (add-hook 'kill-buffer-hook #'emacs-tui--buffer-killed nil t)))
           (emacs-tui--make-surface session backend)
           (emacs-tui--arrange session)
+          (setf (emacs-tui--workspace-geometry session) (emacs-tui--geometry session))
           (push session emacs-tui--sessions)
           (add-hook 'delete-frame-functions #'emacs-tui--frame-deleted)
+          (add-hook 'window-state-change-hook #'emacs-tui--window-state-changed)
           (let ((hook (lambda () (emacs-tui-close session))))
             (setf (emacs-tui--workspace-origin-kill-hook session) hook)
             (with-current-buffer (marker-buffer (emacs-tui--workspace-origin session))
@@ -482,26 +639,30 @@ windows are preserved."
     (let* ((origin (emacs-tui--workspace-origin session))
            (origin-window (emacs-tui--workspace-origin-window session))
            (frame (emacs-tui--workspace-frame session))
-           (owned-selection (or (eq (selected-frame) frame)
-                                (memq (selected-window)
-                                      (emacs-tui--workspace-windows session)))))
+           (owned-selection (emacs-tui--owned-window-p session (selected-window))))
       (when (buffer-live-p (marker-buffer origin))
         (with-current-buffer (marker-buffer origin)
           (remove-hook 'kill-buffer-hook
                        (emacs-tui--workspace-origin-kill-hook session) t)))
       (when (and owned-selection (window-live-p origin-window))
         (select-window origin-window))
-      (if (frame-live-p frame)
+      (if (and (frame-live-p frame)
+               (or (null (emacs-tui--workspace-windows session))
+                   (cl-every (lambda (window)
+                               (emacs-tui--owned-window-p session window))
+                             (window-list frame 'no-minibuffer))))
           (delete-frame frame t)
         (dolist (window (emacs-tui--workspace-windows session))
           (when (and (window-live-p window)
                      (eq (window-parameter window 'emacs-tui-session) session))
-            (set-window-parameter window 'emacs-tui-session nil)
-            (if (not (one-window-p t (window-frame window)))
-                (delete-window window)
-              (when (buffer-live-p (marker-buffer origin))
-                (set-window-buffer window (marker-buffer origin))
-                (set-window-point window origin))))))
+            (let ((owned (emacs-tui--owned-window-p session window)))
+              (set-window-parameter window 'emacs-tui-session nil)
+              (when owned
+                (if (not (one-window-p t (window-frame window)))
+                    (delete-window window)
+                  (when (buffer-live-p (marker-buffer origin))
+                    (set-window-buffer window (marker-buffer origin))
+                    (set-window-point window origin))))))))
       (dolist (buffer (cons (emacs-tui--workspace-query-buffer session)
                            (mapcar #'emacs-tui--view-buffer
                                    (emacs-tui--workspace-views session))))
@@ -510,7 +671,8 @@ windows are preserved."
           (kill-buffer buffer)))
       (set-marker origin nil))
     (unless emacs-tui--sessions
-      (remove-hook 'delete-frame-functions #'emacs-tui--frame-deleted)))
+      (remove-hook 'delete-frame-functions #'emacs-tui--frame-deleted)
+      (remove-hook 'window-state-change-hook #'emacs-tui--window-state-changed)))
   nil)
 
 (defun emacs-tui-next-view (&optional session delta)
@@ -583,7 +745,7 @@ the workspace open.  Applications own all persistence semantics."
   (setf (emacs-tui--workspace-layout session)
         (pcase (emacs-tui--workspace-layout session)
           ('columns 'rows) ('rows 'grid) (_ 'columns)))
-  (emacs-tui--arrange session))
+  (emacs-tui-refresh session))
 
 (provide 'emacs-tui)
 ;;; emacs-tui.el ends here
