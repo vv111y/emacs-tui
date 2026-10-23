@@ -5,9 +5,9 @@ Updated 2026-10-23 (America/Toronto).
 ## Current work
 
 The foundation [PR #1](https://github.com/vv111y/emacs-tui/pull/1) is merged.
-Active work on `codex/resize-reflow`: automatic viewport reflow and real terminal
-resize tests. This scope is claimed by the current interactive session; inspect
-its draft PR and recent updates before starting overlapping work.
+Automatic viewport reflow and real terminal resize tests are implemented in
+[PR #2](https://github.com/vv111y/emacs-tui/pull/2). Inspect its live merge/check
+status and recent updates before starting overlapping work.
 The repository started empty; this is still an experimental development release.
 
 Implemented: pure columns/rows/grid geometry, editable temporary queries,
@@ -16,9 +16,14 @@ callback, update-in-place buffers, explicit selection/commit, origin markers,
 atomic origin-buffer commit rollback, owned window cleanup, capability-based
 child-frame backend and ordinary-window fallback, graph demo.
 
-Validation so far: 33 Emacs 29.3 local ERT tests, strict byte compilation and
-checkdoc pass; real pseudo-terminal typing/select/commit smoke passes with the
-windows backend. Independent review found lifecycle/provider/compact-view
+Validation so far: 43 Emacs 29.3 local ERT tests, strict byte compilation and
+checkdoc pass. Real pseudo-terminal typing/select/commit smoke now shrinks and
+expands the terminal (120x40 -> 90x30 -> 140x45) with query/cursor/selection and
+source preservation assertions. The windows backend passes locally; PR #2 CI
+must verify native 31.1 child-frame resizing before integration. Initial GUI
+fitting remains unverified on an actual graphical display.
+
+Foundation independent review found lifecycle/provider/compact-view
 defects; all have fixes and regression coverage, independently retested with no
 remaining foundation blockers. CI run
 [40040890417](https://github.com/vv111y/emacs-tui/actions/runs/40040890417) passed
@@ -35,12 +40,12 @@ the extracted test runtime has no configured native compiler toolchain.
 
 ## Next work
 
-1. Complete automatic resize/reflow, independent review and final-head CI on
-   `codex/resize-reflow`. Do not repeat the merged foundation implementation.
+1. Finish PR #2 independent review and final-head CI if still open; then
+   integrate the reviewed head. Do not repeat the foundation implementation.
 2. Broaden TTY coverage beyond Linux pseudo-terminals, including macOS terminals,
    multiple clients and visual behavior; CI smoke alone is not complete UI QA.
-3. Add robust resize/reflow and compact-view navigation; verify narrow terminals
-   and lifecycle across source/window/frame deletion.
+3. Expand narrow-terminal and multiple-client coverage. Automatic reflow and
+   owned-subtree invalidation are now implemented; verify actual GUI behavior.
 4. Develop around-point layouts, traversal history and per-view state through
    the graph demo; add bounded async provider lifecycle and stale-result tests.
 5. Follow ROADMAP.md through performance, installation and release readiness.
