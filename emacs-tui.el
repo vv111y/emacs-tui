@@ -422,9 +422,10 @@ are not modified by opening, filtering, selecting or cancelling."
            :on-query on-query :on-commit on-commit
            :origin (copy-marker (point)) :origin-window (selected-window)
            :origin-frame (selected-frame) :active t))
-         (query (generate-new-buffer " *emacs-tui query*")))
+         (query (generate-new-buffer " *emacs-tui query*"))
+         initialized)
     (setf (emacs-tui--workspace-query-buffer session) query)
-    (condition-case err
+    (unwind-protect
         (progn
           (with-current-buffer query
             (emacs-tui-input-mode)
@@ -450,10 +451,9 @@ are not modified by opening, filtering, selecting or cancelling."
               (add-hook 'kill-buffer-hook hook nil t)))
           (select-window (emacs-tui--workspace-root session))
           (with-current-buffer query (emacs-tui--query-changed 'initial))
+          (setq initialized t)
           session)
-      ((error quit)
-       (emacs-tui-close session)
-       (signal (car err) (cdr err))))))
+      (unless initialized (emacs-tui-close session)))))
 
 (defun emacs-tui--buffer-killed ()
   "Close the workspace when an owned buffer is killed."

@@ -248,6 +248,19 @@
       (should (equal windows (window-list)))
       (should-not emacs-tui--sessions))))
 
+(ert-deftest emacs-tui-initial-provider-throw-cleans-up ()
+  (save-window-excursion
+    (delete-other-windows)
+    (let ((buffers (buffer-list)) (windows (window-list)))
+      (should (eq 'cancelled
+                  (catch 'cancel
+                    (emacs-tui-open
+                     :backend 'windows :views (list (emacs-tui-view :id 'a))
+                     :on-query (lambda (&rest _) (throw 'cancel 'cancelled))))))
+      (should (equal buffers (buffer-list)))
+      (should (equal windows (window-list)))
+      (should-not emacs-tui--sessions))))
+
 (ert-deftest emacs-tui-provider-error-does-not-disable-query-refresh ()
   (let ((calls 0))
     (emacs-tui-test--workspace
