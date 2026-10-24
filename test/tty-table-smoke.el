@@ -33,6 +33,10 @@
         (redisplay t)
         (when (and (= (frame-width parent) width)
                    (<= (- height 2) (frame-height parent) height)
+                   ;; Terminal dimensions may settle before automatic reflow.
+                   ;; Keep the original poll bound and verify both states.
+                   (equal (emacs-tui--workspace-geometry session)
+                          (emacs-tui--geometry session))
                    (or (not child)
                        (and (< (frame-width child) width) (< (frame-height child) height)
                             (or (= phase 1) (> (frame-width child) emacs-tui-test--table-small-width)))))

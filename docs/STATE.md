@@ -4,31 +4,58 @@ Updated 2026-10-24 (America/Toronto).
 
 ## Active implementation
 
+PR #30 merged at `dc086fb71117f82803c13ce3d42ec0b5ee3ba9c7` after independent
+exact-head review and all eight jobs in
+[40077079927](https://github.com/vv111y/emacs-tui/actions/runs/40077079927).
+Runtime jobs passed 263 ERT, strict compilation/checkdoc, seven PTY scripts,
+three Python regressions and both benchmark smoke modes. Linux/macOS 31.1 logs
+confirm native terminal child frames, including the persistent endpoint keys;
+the package archive built and clean-installed on 31.1/28.1.
+
+The graph application now records inspected node identities in private
+per-session Back/Forward stacks. Named actions are available in all four views
+and from native query input; application bindings C-c [ / C-c ] are available
+in view buffers. Reinspection does not duplicate visits, new branches discard
+the old forward route, and history is recorded only after successful inspection.
+History restores preview/links without taking over queries, focus or node marks.
+Link replacements retain ordinary identity-based selection/mark pruning. Explicit
+commit still uses the focused selection/marks, not a hidden history destination.
+No core history framework, Org dependency or universal navigation policy is added.
+
+Local 270 ERT, strict compilation/checkdoc, eight PTY scripts, three Python
+regressions and both benchmark modes passed on Emacs 29.3/Linux. Seven new ERT
+cases cover links/backlinks, repeats/branches, native menus/keys, query/focus/
+marks, noninspection navigation, failure/retry, independent simultaneous sessions
+and explicit commitment. The new real-PTY graph fixture exercises native history
+keys, retained query/marks, maximize/restore, automatic reflow at both existing
+resize sizes and final explicit commitment. Review caught an initial fixture
+assertion reading a timer callback's current-buffer point; it now explicitly
+reads the query buffer. That failed run is not counted as a pass. Independent
+review also passed a 300-operation traversal oracle. Exact published-head review
+and all current-head CI remain integration gates. Multi-view application updates
+are sequential, not a new cross-view transaction: a failed inspection can leave
+partially updated panes, but history stacks remain retryable and unchanged.
+
+Initial graph-history CI run
+[40081143920](https://github.com/vv111y/emacs-tui/actions/runs/40081143920)
+passed seven jobs; macOS 31.1 passed all 270 ERT then failed the existing table
+PTY fixture's geometry equality assertion. The table fixture now also waits
+for automatic cached-geometry convergence before its unchanged assertions,
+within the original 100-poll bound. No refresh is forced. A delayed-handler
+probe fails the old fixture and passes the revised fixture at both sizes;
+disabling the handler still produces a bounded failure. Independent review
+repeated all three probes. The failed CI run is not counted as passing;
+fresh exact-head review and all eight jobs are required for integration.
+
 PR #29 merged at `caffcd7a998a7c424702e022e0787e4eada84a16` after independent
-review and all eight final-head jobs in
+review and all eight jobs in
 [40075028893](https://github.com/vv111y/emacs-tui/actions/runs/40075028893).
-Layout is now a bundled helper with authoritative package metadata in the main
-library. Executable forms are unchanged; only the main-name lint warning remains.
-
-Collection navigation adds first/last-item commands on C-c < and C-c >, using
-the current filtered/sorted/tree projection without exploration or commit.
-Empty projections remain unchanged; text/input views and invalidated surfaces
-are rejected. Existing cached rows avoid reprojection, preserving marks and
-queries. Native query M-< / M-> editing stays available. Item movement now accepts
-interactive numeric prefixes; previous-item also accepts an optional backward
-count, with zero/negative/wrapping semantics matching next-item's existing delta.
-
-Local 263 ERT, strict compilation/checkdoc, seven PTY scripts, three Python
-regressions and both benchmark smoke modes passed on Emacs 29.3/Linux. Six new
-ERT cases cover cached table/Unicode behavior, no actions or text replacement,
-counted native movement, sorting/filtering/empty projections, collapsed trees,
-foreign surfaces and ephemeral query cursor/focus. The persistent PTY fixture
-now exercises both endpoint bindings. Independent exact-head review and all
-current-head CI remain integration gates; no new performance baseline is claimed.
+Layout is a bundled helper with authoritative metadata in the main library;
+executable forms are unchanged. Only the main-name lint warning remains.
 MELPA policy blobs were rechecked on 2026-10-24 and match docs/MELPA.md. Public
-maintenance and human review remain external gates. Next: consumer-driven
-navigation/controls, measured large-table rendering work and broader actual
-GUI/emulator/multiplexer/multiple-terminal validation.
+maintenance and human review remain external gates. Next: concrete consumer
+controls, measured large-table rendering work and broader actual GUI/emulator/
+multiplexer/multiple-terminal validation. No new performance baseline is claimed.
 
 PR #28 merged at `32b558f360b5c83d6c0579b36a5c8644069e6c0f` after exact-head
 independent review and all eight final-head CI jobs in
@@ -228,10 +255,10 @@ navigable. Query edits there may prune marks as its source results change.
 
 Current evidence is recorded above. Runtime CI covers Linux Emacs 28.1,
 28.2, 29.4, 30.2 and 31.1, plus ARM64 macOS 30.2 and 31.1. Each job runs ERT,
-strict compilation, checkdoc and seven real terminal scripts. Emacs 31.1 uses
+strict compilation, checkdoc and eight real terminal scripts. Emacs 31.1 uses
 native TTY child frames for ephemeral/persistent/input/tree interfaces on both
 platforms; earlier versions use windows. Embedded/table scripts borrow a
-window. Resize coverage is 120x40 -> 90x30 -> 140x45, including maximize/restore
+window. Resize coverage is 120x40 -> 90x30 -> 140x45, including maximize/restore, graph history
 and explicit action-menu invocation. A real `cat` subprocess test covers
 streaming and disposal. The separate package job builds the candidate archive
 and clean-installs the same tar on 31.1 and the declared 28.1 floor.

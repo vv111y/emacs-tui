@@ -1,0 +1,115 @@
+;;; tty-demo-smoke.el --- Traverse graph history in a real TTY -*- lexical-binding: t; -*-
+
+;; Copyright (C) 2026 Willy Rempel
+;; Assisted-by: Codex:gpt-6.1-sol-wm
+;; SPDX-License-Identifier: GPL-3.0-or-later
+(setq load-prefer-newer t)
+(require 'cl-lib)
+(require 'emacs-tui-demo (expand-file-name "examples/emacs-tui-demo.el"))
+
+(defvar emacs-tui-test--demo-session nil)
+(defvar emacs-tui-test--demo-phase 1)
+(defvar emacs-tui-test--demo-attempts 0)
+(defvar emacs-tui-test--demo-small-width nil)
+(defvar emacs-tui-test--demo-frames nil)
+
+(defun emacs-tui-test--demo-failure (err)
+  (with-temp-file (getenv "EMACS_TUI_SMOKE_REPORT")
+    (insert (format "FAIL graph history: %S\n" err)))
+  (kill-emacs 1))
+
+(defun emacs-tui-test--demo-preview (title)
+  (cl-assert
+   (string-prefix-p (concat title "\n")
+                    (emacs-tui--view-text
+                     (emacs-tui--resolve-view emacs-tui-test--demo-session 'preview)))))
+
+(defun emacs-tui-test--demo-resized ()
+  (condition-case err
+      (let* ((session emacs-tui-test--demo-session)
+             (parent (emacs-tui--workspace-origin-frame session))
+             (child (emacs-tui--workspace-frame session))
+             (backend (emacs-tui--workspace-backend session))
+             (phase emacs-tui-test--demo-phase)
+             (width (if (= phase 1) 90 140))
+             (height (if (= phase 1) 30 45)))
+        (cl-incf emacs-tui-test--demo-attempts)
+        (when (> emacs-tui-test--demo-attempts 100)
+          (error "Graph history resize phase %s did not settle" phase))
+        (redisplay t)
+        (when (and (= (frame-width parent) width)
+                   (<= (- height 2) (frame-height parent) height)
+                   (equal (emacs-tui--workspace-geometry session)
+                          (emacs-tui--geometry session))
+                   (or (not child)
+                       (and (< (frame-width child) width) (< (frame-height child) height)
+                            (or (= phase 1)
+                                (> (frame-width child) emacs-tui-test--demo-small-width)))))
+          (cl-assert (emacs-tui-live-p session))
+          (cl-assert (emacs-tui--workspace-maximized session))
+          (cl-assert (eq (emacs-tui-current-view session) 'preview))
+          (cl-assert (equal "Emacs" (emacs-tui-query session)))
+          (cl-assert (equal '("emacs" "lisp")
+                            (mapcar (lambda (item) (plist-get item :id))
+                                    (emacs-tui-marked-items session 'nodes))))
+          (cl-assert (eq (window-buffer (selected-window))
+                         (emacs-tui--workspace-query-buffer session)))
+          (cl-assert (= 6 (with-current-buffer (emacs-tui--workspace-query-buffer session)
+                            (point))))
+          (cl-assert (equal "origin:" (with-current-buffer "*Graph history source*"
+                                       (buffer-string))))
+          (if (= phase 1)
+              (progn
+                (emacs-tui-act session 'back)
+                (emacs-tui-test--demo-preview "Emacs")
+                (setq emacs-tui-test--demo-small-width (when child (frame-width child))
+                      emacs-tui-test--demo-phase 2
+                      emacs-tui-test--demo-attempts 0)
+                (with-temp-file (getenv "EMACS_TUI_SMOKE_READY") (insert "2")))
+            (emacs-tui-act session 'forward)
+            (emacs-tui-test--demo-preview "Org")
+            (emacs-tui-toggle-maximize session)
+            (emacs-tui-focus-view session 'nodes)
+            (emacs-tui-set-selection session 'nodes "lisp")
+            (emacs-tui-clear-marks session)
+            (execute-kbd-macro (kbd "C-c C-c"))
+            (cl-assert (not (emacs-tui-live-p session)))
+            (cl-assert (null emacs-tui--sessions))
+            (cl-assert (equal "origin:[[demo:lisp][Emacs Lisp]]"
+                              (with-current-buffer "*Graph history source*" (buffer-string))))
+            (cl-assert (equal emacs-tui-test--demo-frames (frame-list)))
+            (with-temp-file (getenv "EMACS_TUI_SMOKE_REPORT")
+              (insert (format "PASS Emacs %s; real TTY; backend=%s; graph-history=back/forward; query/marks=retained; commit=explicit; resize=120x40->90x30->140x45\n"
+                              emacs-version backend)))
+            (kill-emacs 0))))
+    ((error quit) (emacs-tui-test--demo-failure err))))
+
+(defun emacs-tui-test--demo-start ()
+  (condition-case err
+      (let ((source (get-buffer-create "*Graph history source*")))
+        (switch-to-buffer source)
+        (insert "origin:")
+        (setq emacs-tui-test--demo-frames (frame-list)
+              emacs-tui-test--demo-session (emacs-tui-demo))
+        (let ((session emacs-tui-test--demo-session))
+          (cl-assert (eq (emacs-tui--workspace-backend session)
+                         (if (featurep 'tty-child-frames) 'child-frame 'windows)))
+          (execute-kbd-macro (kbd "E m a c s C-c * RET"))
+          (emacs-tui-test--demo-preview "Emacs")
+          (emacs-tui-focus-view session 'links)
+          (execute-kbd-macro (kbd "RET"))
+          (emacs-tui-test--demo-preview "Org")
+          (emacs-tui-focus-view session 'preview)
+          (emacs-tui-toggle-maximize session)
+          (with-selected-window (emacs-tui--view-window
+                                 (emacs-tui--resolve-view session 'preview))
+            (execute-kbd-macro (kbd "C-c ["))
+            (emacs-tui-test--demo-preview "Emacs")
+            (execute-kbd-macro (kbd "C-c ]"))
+            (emacs-tui-test--demo-preview "Org"))
+          (with-temp-file (getenv "EMACS_TUI_SMOKE_READY") (insert "1"))
+          (run-at-time 0.05 0.05 #'emacs-tui-test--demo-resized)))
+    ((error quit) (emacs-tui-test--demo-failure err))))
+
+(add-hook 'emacs-startup-hook
+          (lambda () (run-at-time 0.1 nil #'emacs-tui-test--demo-start)))
