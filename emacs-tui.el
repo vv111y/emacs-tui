@@ -721,7 +721,12 @@ an empty answer restores source order, and a prefix requests descending order."
 Return (CONTENT POSITION ROW-RANGES).  Projection errors leave display intact."
   (if (emacs-tui--view-text view)
       (list (emacs-tui--view-text view) 1 nil)
-    (let ((columns (emacs-tui--view-columns view))
+    (let* ((window (emacs-tui--view-window view))
+           (mark-width (if (emacs-tui--view-multi-select view) 4 0))
+           (columns (emacs-tui--table-resolve-columns
+                     (emacs-tui--view-columns view)
+                     (when (window-live-p window)
+                       (- (window-body-width window) mark-width))))
           (position 1) (selected-position 1) chunks ranges)
       (when columns
         (let ((header

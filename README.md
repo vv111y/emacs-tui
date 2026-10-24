@@ -111,8 +111,10 @@ Give a view `:columns` to display its existing items as table rows:
 ```
 
 Column `:value` is a plist keyword or a pure function receiving the original
-item. Widths count display columns; wide characters are clipped at cell
-boundaries, and tabs/newlines display as spaces. Fixed-width columns can be
+item. Widths count display columns; one column may use `:width 'fill` to consume
+the live window's remaining width without mutating its description. It shrinks
+to one column when fixed columns already overflow. Wide characters are clipped
+at cell boundaries, and tabs/newlines display as spaces. Fixed overflow can be
 scrolled horizontally with ordinary Emacs commands. Headers occupy the first
 buffer line; they are not sticky while scrolling. Table rows use their columns
 instead of the list annotation. Actions still receive the original item.
@@ -134,7 +136,7 @@ The dashboard demonstrates sortable buffer sizes, modes and process metadata.
 A failed cell projection or comparator leaves the previous source, selection,
 marks and rendered content intact. Failed provider publications terminate that
 request while retaining its last valid results.
-Column editing, automatic width allocation and sticky headers are future work.
+Column editing, multiple weighted fill columns and sticky headers are future work.
 
 Text previews retain their cursor, scroll and narrowing when focus changes or
 updates repeat identical text and properties. Changed text or properties render

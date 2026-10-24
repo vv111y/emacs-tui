@@ -120,7 +120,7 @@ and all application buffer contents.
                                           (emacs-tui-column :id 'size :title "Chars"
                                                             :width 9 :value :size :align 'right)
                                           (emacs-tui-column :id 'mode :title "Mode"
-                                                            :width 20 :value :mode))
+                                                            :width 'fill :value :mode))
                                     :on-select #'emacs-tui-dashboard--inspect-buffer)
                     (emacs-tui-view :id 'processes :title "Processes"
                                     :actions
@@ -143,7 +143,7 @@ and all application buffer contents.
                                           (emacs-tui-column :id 'status :title "Status"
                                                             :width 8 :value :status)
                                           (emacs-tui-column :id 'command :title "Command"
-                                                            :width 30 :value :command))
+                                                            :width 'fill :value :command))
                                     :on-select #'emacs-tui-dashboard--inspect-process)
                     (emacs-tui-view :id 'preview :title "Preview"
                                     :text "Select a buffer or process to inspect it.")

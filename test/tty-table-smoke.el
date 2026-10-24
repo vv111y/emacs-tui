@@ -7,6 +7,7 @@
 (defvar emacs-tui-test--table-phase 1)
 (defvar emacs-tui-test--table-attempts 0)
 (defvar emacs-tui-test--table-small-width nil)
+(defvar emacs-tui-test--table-small-line-width nil)
 (defvar emacs-tui-test--table-actions 0)
 (defvar emacs-tui-test--table-closed 0)
 (defvar emacs-tui-test--table-host nil)
@@ -48,6 +49,19 @@
           (cl-assert (eq (window-buffer (selected-window))
                          (emacs-tui--view-buffer (car (emacs-tui--workspace-views session)))))
           (cl-assert (= emacs-tui-test--table-actions 1))
+          (let* ((view (car (emacs-tui--workspace-views session)))
+                 (window (emacs-tui--view-window view))
+                 (line-width
+                  (with-current-buffer (emacs-tui--view-buffer view)
+                    (save-excursion
+                      (goto-char (point-min))
+                      (string-width (buffer-substring
+                                     (line-beginning-position) (line-end-position)))))))
+            (cl-assert (= line-width (window-body-width window)))
+            (when (= phase 2)
+              (cl-assert (> line-width emacs-tui-test--table-small-line-width)))
+            (when (= phase 1)
+              (setq emacs-tui-test--table-small-line-width line-width)))
           (if (= phase 1)
               (progn
                 (setq emacs-tui-test--table-small-width (when child (frame-width child))
@@ -90,7 +104,7 @@
                :view (emacs-tui-view
                       :id 'items :items '("alpha" "beta") :multi-select t
                       :columns (list (emacs-tui-column :id 'name :title "Name"
-                                                       :width 12 :value #'identity)
+                                                       :width 'fill :value #'identity)
                                      (emacs-tui-column :id 'size :title "Size"
                                                        :width 6 :value #'length :align 'right))
                       :on-select (lambda (_app _item)
