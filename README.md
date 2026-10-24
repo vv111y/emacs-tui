@@ -11,7 +11,35 @@ a query field or origin-buffer commit. Single panels can also borrow existing
 application windows and restore their original buffer when closed.
 XOB is an intended consumer; the toolkit is not specific to XOB, Org or graphs.
 
-**Experimental foundation; not a stable release or a MELPA package yet.**
+**0.1.0 beta: ready for community testing.** The API remains experimental,
+and the package is not on MELPA yet.
+
+## Install the beta
+
+The beta tag is `v0.1.0-beta1`. With Emacs 29 or later, evaluate:
+
+```elisp
+(package-vc-install
+ '(emacs-tui :url "https://github.com/vv111y/emacs-tui.git"
+             :branch "v0.1.0-beta1"))
+```
+
+With [straight.el](https://github.com/radian-software/straight.el) on Emacs
+28.1 or later:
+
+```elisp
+(straight-use-package
+ '(emacs-tui :type git
+             :repo "https://github.com/vv111y/emacs-tui.git"
+             :branch "v0.1.0-beta1"
+             :files ("emacs-tui*.el")))
+```
+
+Then load the toolkit with `(require 'emacs-tui)`. Report beta issues with the
+Emacs version, operating system, terminal or emulator, whether
+`(featurep 'tty-child-frames)` is non-nil, and a minimal reproduction. CI covers
+Emacs 28.1 through 31.1 on Linux and 30.2/31.1 on macOS. Physical terminal
+emulators and graphical display variants still need broader community use.
 
 ## Try it
 
