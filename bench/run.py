@@ -130,9 +130,19 @@ def run(args):
             raise
         finally:
             os.close(slave)
-        print(f"benchmark: subprocess started pid={process.pid}", flush=True)
         pending = bytearray()
         roundtrips = []
+        group_retired = False
+
+        def retire_group():
+            nonlocal group_retired
+            if not group_retired:
+                # Descendants may hold the terminal after the leader exits.
+                try:
+                    os.killpg(process.pid, signal.SIGKILL)
+                except ProcessLookupError:
+                    pass
+                group_retired = True
 
         def receive(kind, case, sequence):
             deadline = time.monotonic() + 30
@@ -161,6 +171,7 @@ def run(args):
             raise RuntimeError(f"missing {kind}/{case}/{sequence}: {detail}")
 
         try:
+            print(f"benchmark: subprocess started pid={process.pid}", flush=True)
             for index, case in enumerate(cases):
                 receive("ready", index, 0)
                 print(f'benchmark: ready {index + 1}/{len(cases)} {case["kind"]} {case["size"]} rows',
@@ -178,7 +189,10 @@ def run(args):
                                        "warmup": sequence < args.warmup})
                 os.write(master, b"\x03\x02")  # C-c C-b: advance outside measured samples.
             receive("done", len(cases), 0)
-            if process.wait(timeout=30) != 0:
+            status = process.wait(timeout=30)
+            # Retire before metadata work, then never signal this group ID again.
+            retire_group()
+            if status != 0:
                 raise RuntimeError(report.read_text() if report.exists() else "Emacs failed")
             print("benchmark: collecting report metadata", flush=True)
             result = json.loads(report.read_text())
@@ -215,12 +229,8 @@ def run(args):
                       f'PTY ms p50={p["p50"]:.3f} p95={p["p95"]:.3f} p99={p["p99"]:.3f}')
         finally:
             try:
-                if process.poll() is None:
-                    try:
-                        os.killpg(process.pid, signal.SIGKILL)
-                    except ProcessLookupError:
-                        process.kill()
-                    process.wait(timeout=5)
+                retire_group()
+                process.wait(timeout=5)
             finally:
                 os.close(master)
 

@@ -28,7 +28,11 @@ step and runtime job. The library API/implementation is unchanged from main.
 Local five-workload native-input smoke, strict fixture compilation and Python
 syntax checks passed. A controlled stalled child failed in 0.539s with a stack dump, no artifact and
 no surviving child. Ignoring SIGALRM exercised the hard watchdog, which dumped
-and exited in 10.132s. Independent review and all current-head CI remain required.
+and exited in 10.132s. Independent review found group cleanup skipped descendants after the leader
+exited, and a progress print could bypass cleanup. Cleanup now retires the owned
+group even after leader exit, before metadata work, and the print is protected.
+A forked-child probe confirmed termination on deadline. Corrected independent
+review and all current-head CI remain required.
 
 The navigation pair remains under bench/results/2026-10-24-navigation and is
 limited interpreted-source evidence. Bytecompiled-library benchmark mode is
