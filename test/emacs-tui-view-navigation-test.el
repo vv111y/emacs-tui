@@ -1,6 +1,7 @@
 ;;; emacs-tui-view-navigation-test.el --- Named application navigation -*- lexical-binding: t; -*-
 
 ;; Copyright (C) 2026 Willy Rempel
+;; Author: Willy Rempel <https://github.com/vv111y>
 ;; Assisted-by: Codex:gpt-6.1-sol-wm
 ;; SPDX-License-Identifier: GPL-3.0-or-later
 
@@ -176,5 +177,67 @@
     (should-error (emacs-tui-current-item session 'a) :type 'user-error)
     (should-error (emacs-tui-focus-view session 'a) :type 'user-error)
     (should-error (emacs-tui-set-selection session 'a "one") :type 'user-error)))
+
+(ert-deftest emacs-tui-view-navigation-cycle-cannot-reclaim-repurposed-hidden-slot ()
+  (dolist (constructor '(emacs-tui-mount emacs-tui-open))
+    (save-window-excursion
+      (delete-other-windows)
+      (let ((foreign (generate-new-buffer " *Foreign hidden slot*"))
+            (session (funcall constructor :backend 'windows
+                              :views (list (emacs-tui-view :id 'a :items '("one"))
+                                           (emacs-tui-view :id 'b :text "Preview")))))
+        (unwind-protect
+            (progn
+              (emacs-tui-toggle-maximize session)
+              (let* ((a (emacs-tui--resolve-view session 'a))
+                     (b (emacs-tui--resolve-view session 'b))
+                     (window (emacs-tui--view-window a))
+                     (selected (selected-window)))
+                (should-not (emacs-tui--view-window b))
+                (with-current-buffer foreign
+                  (insert (make-string 200 ?x))
+                  (set-buffer-modified-p nil))
+                (set-window-buffer window foreign)
+                (set-window-point window 80)
+                (set-window-hscroll window 4)
+                (dolist (command '(emacs-tui-next-view emacs-tui-previous-view))
+                  (should-error (funcall command session) :type 'user-error)
+                  (should (eq (emacs-tui-current-view session) 'a))
+                  (should (eq window (emacs-tui--view-window a)))
+                  (should-not (emacs-tui--view-window b))
+                  (should (eq selected (selected-window)))
+                  (should (eq foreign (window-buffer window)))
+                  (should (= 80 (window-point window)))
+                  (should (= 4 (window-hscroll window)))
+                  (should (equal (make-string 200 ?x)
+                                 (with-current-buffer foreign (buffer-string))))
+                  (should-not (with-current-buffer foreign (buffer-modified-p))))
+                ;; The existing invalidation path still disposes the session.
+                (should-not (emacs-tui-refresh session))
+                (should-not (emacs-tui-live-p session))
+                (should (eq foreign (window-buffer window)))
+                (should (= 80 (window-point window)))))
+          (emacs-tui-close session)
+          (kill-buffer foreign))))))
+
+(ert-deftest emacs-tui-view-navigation-cycle-rejects-visible-foreign-pane ()
+  (emacs-tui-test--named-views
+      (list (emacs-tui-view :id 'a :items '("one"))
+            (emacs-tui-view :id 'b :text "Preview"))
+    (let ((foreign (generate-new-buffer " *Foreign visible pane*"))
+          (window (emacs-tui--view-window (emacs-tui--resolve-view session 'b)))
+          (selected (selected-window)))
+      (unwind-protect
+          (progn
+            (with-current-buffer foreign (insert "foreign text"))
+            (set-window-buffer window foreign)
+            (set-window-point window 6)
+            (should-error (emacs-tui-next-view session) :type 'user-error)
+            (should-error (emacs-tui-previous-view session) :type 'user-error)
+            (should (eq selected (selected-window)))
+            (should (eq (emacs-tui-current-view session) 'a))
+            (should (eq foreign (window-buffer window)))
+            (should (= 6 (window-point window))))
+        (kill-buffer foreign)))))
 
 ;;; emacs-tui-view-navigation-test.el ends here
