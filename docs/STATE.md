@@ -24,7 +24,9 @@ close callbacks, host edits and final hook/frame cleanup. The driver has one
 This is an additional required tty-smoke scenario; EMACSCLIENT selects the
 client executable when it is not on PATH.
 
-Local strict compilation passed for the fixture on Emacs 29.3/Linux. Its real
+Local 286 ERT, strict package/example compilation and checkdoc passed on
+Emacs 29.3/Linux; the new fixture also passed strict compilation/checkdoc and
+Python syntax validation. Its real
 local execution could not start the private server: this host rejects the Unix
 socket with make-network-process "Operation not permitted". This is not a
 passing two-client test. Positive runtime coverage, independent exact-head
