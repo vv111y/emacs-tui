@@ -530,6 +530,8 @@ and display performance remains to be measured.
 `make clean benchmark` measures real command-loop/PTY latency, allocations and
 controlled provider stages, retaining raw samples and p50/p95/p99. See
 [docs/PERFORMANCE.md](docs/PERFORMANCE.md) for workloads, clocks and limitations.
+Use `BENCH_ARGS='--load-mode bytecode'` for fresh isolated compilation with the
+selected Emacs. Reports verify actual loaded definitions and record the mode.
 
 ```sh
 make check

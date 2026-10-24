@@ -19,6 +19,23 @@
   (setq native-comp-jit-compilation nil))
 (require 'emacs-tui)
 
+(defvar emacs-tui-bench--libraries nil)
+(let* ((mode (getenv "EMACS_TUI_BENCH_LOAD_MODE"))
+       (suffix (if (equal mode "bytecode") ".elc" ".el"))
+       (root (file-name-as-directory (file-truename (getenv "EMACS_TUI_BENCH_LIBRARY_ROOT")))))
+  (dolist (symbol '(emacs-tui-next-item emacs-tui-layout-compute emacs-tui-column
+                                      emacs-tui--tree-project emacs-tui-action))
+    (let ((file (symbol-file symbol 'defun))
+          (definition (symbol-function symbol)))
+      (unless (and file (string-prefix-p root (file-truename file))
+                   (string-suffix-p suffix file))
+        (error "Benchmark %s loaded from unexpected file: %S (mode %s)" symbol file mode))
+      (unless (if (equal mode "bytecode") (byte-code-function-p definition)
+                (and (functionp definition) (not (byte-code-function-p definition))
+                     (not (subrp definition))))
+        (error "Benchmark %s has unexpected definition type (mode %s)" symbol mode))
+      (push (cons (symbol-name symbol) file) emacs-tui-bench--libraries))))
+
 (defvar emacs-tui-bench--session nil)
 (defvar emacs-tui-bench--cases nil)
 (defvar emacs-tui-bench--case nil)
@@ -109,7 +126,8 @@ The deliberate timer delay is recorded separately from publishing/redisplay."
         (gc_cons_threshold . ,gc-cons-threshold)
         (gc_cons_percentage . ,gc-cons-percentage)
         (deferred_native_compilation . :json-false)
-        (library . ,(locate-library "emacs-tui"))
+        (library . ,(symbol-file 'emacs-tui-next-item 'defun))
+        (loaded_libraries . ,emacs-tui-bench--libraries)
         (records . ,(vconcat (nreverse emacs-tui-bench--records))))))))
 
 (defun emacs-tui-bench--advance ()
