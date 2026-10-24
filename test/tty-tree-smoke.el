@@ -98,6 +98,12 @@
                                           (cl-incf emacs-tui-test--tree-actions)
                                           (emacs-tui-update app 'preview :text (plist-get item :label))))
                             (emacs-tui-view :id 'preview :text ""))))
+        (execute-kbd-macro (kbd "C-c +"))
+        (let ((view (emacs-tui--focused-view emacs-tui-test--tree-session)))
+          (cl-assert (= (length (emacs-tui--view-visible-items view))
+                         (length (emacs-tui--view-items view)))))
+        (execute-kbd-macro (kbd "C-c -"))
+        (cl-assert (zerop emacs-tui-test--tree-actions))
         (execute-kbd-macro (kbd "<right> <right> C-c C-m RET <left> <left>"))
         (cl-assert (= 1 (length (emacs-tui--view-visible-items
                                 (emacs-tui--focused-view emacs-tui-test--tree-session)))))
