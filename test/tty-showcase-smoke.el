@@ -1,0 +1,125 @@
+;;; tty-showcase-smoke.el --- Tour the gallery in a real terminal -*- lexical-binding: t; -*-
+
+;; Copyright (C) 2026 Willy Rempel
+;; Assisted-by: Codex:gpt-6-astra-wm
+;; SPDX-License-Identifier: GPL-3.0-or-later
+(setq load-prefer-newer t)
+(require 'cl-lib)
+(require 'emacs-tui-gallery (expand-file-name "examples/emacs-tui-gallery.el"))
+(require 'emacs-tui-layout-demo (expand-file-name "examples/emacs-tui-layout-demo.el"))
+(require 'emacs-tui-stream-demo (expand-file-name "examples/emacs-tui-stream-demo.el"))
+
+(defvar emacs-tui-showcase--app nil)
+(defvar emacs-tui-showcase--phase 1)
+(defvar emacs-tui-showcase--attempts 0)
+(defvar emacs-tui-showcase--frames nil)
+(defvar emacs-tui-showcase--backend nil)
+(defvar emacs-tui-showcase--editor nil)
+(defvar emacs-tui-showcase--poller nil)
+
+(defun emacs-tui-showcase--text (id)
+  (emacs-tui--view-text (emacs-tui--resolve-view emacs-tui-showcase--app id)))
+
+(defun emacs-tui-showcase--fail (err)
+  (with-temp-file (getenv "EMACS_TUI_SMOKE_REPORT")
+    (insert (format "FAIL showcase phase %s: %S\n" emacs-tui-showcase--phase err))
+    (insert (with-current-buffer "*Messages*" (buffer-string)))
+    (when (get-buffer "*Warnings*") (insert (with-current-buffer "*Warnings*" (buffer-string)))))
+  (kill-emacs 1))
+
+(defun emacs-tui-showcase--query (text)
+  (with-current-buffer (emacs-tui--workspace-query-buffer emacs-tui-showcase--app)
+    (erase-buffer)
+    (insert text)))
+
+(defun emacs-tui-showcase--poll ()
+  (condition-case err
+      (let* ((app emacs-tui-showcase--app)
+             (phase emacs-tui-showcase--phase)
+             (parent (emacs-tui--workspace-origin-frame app)))
+        (cl-incf emacs-tui-showcase--attempts)
+        (when (> emacs-tui-showcase--attempts 100)
+          (error "Showcase did not settle" ))
+        (redisplay t)
+        (cond
+         ((and (<= phase 2)
+               (= (frame-width parent) (if (= phase 1) 90 140))
+               (equal (emacs-tui--workspace-geometry app) (emacs-tui--geometry app)))
+          (cl-assert (emacs-tui-live-p app))
+          (cl-assert (equal emacs-tui-showcase--editor (emacs-tui-input-value app 'editor)))
+          (cl-assert (eq 'editor (emacs-tui-current-view app)))
+          (cl-assert (eq 'japan (plist-get (car (emacs-tui-marked-items app 'outline)) :id)))
+          (cl-assert (string-match-p "typed" (emacs-tui-showcase--text 'preview)))
+          (setq emacs-tui-showcase--attempts 0)
+          (if (= phase 1)
+              (progn
+                (emacs-tui-toggle-maximize app)
+                (emacs-tui-set-layout app 'columns)
+                (emacs-tui-focus-view app 'outline)
+                (execute-kbd-macro (kbd "C-c e"))
+                (setq emacs-tui-showcase--phase 2)
+                (with-temp-file (getenv "EMACS_TUI_SMOKE_READY") (insert "2")))
+            (execute-kbd-macro (kbd "C-c C-q"))
+            (cl-assert (not (emacs-tui-live-p app)))
+            (switch-to-buffer "*Showcase origin*")
+            (setq emacs-tui-showcase--app (emacs-tui-stream-demo)
+                  emacs-tui-showcase--phase 3)
+            (emacs-tui-showcase--query "!error")))
+         ((and (= phase 3) (string-prefix-p "Simulated failure"
+                                            (emacs-tui-showcase--text 'progress)))
+          (cl-assert (= 15 (length (emacs-tui--view-items
+                                   (emacs-tui--resolve-view app 'jobs)))))
+          (execute-kbd-macro (kbd "RET"))
+          (cl-assert (string-match-p "build-01" (emacs-tui-showcase--text 'preview)))
+          (emacs-tui-showcase--query "test")
+          (setq emacs-tui-showcase--phase 4 emacs-tui-showcase--attempts 0))
+         ((and (= phase 4) (string-match-p "Complete" (or (emacs-tui-showcase--text 'progress) "")))
+          (cl-assert (= 20 (length (emacs-tui--view-items
+                                   (emacs-tui--resolve-view app 'jobs)))))
+          (execute-kbd-macro (kbd "C-c C-q"))
+          (cancel-timer emacs-tui-showcase--poller)
+          (cl-assert (null emacs-tui--sessions))
+          (cl-assert (equal emacs-tui-showcase--frames (frame-list)))
+          (cl-assert (equal "Origin:" (with-current-buffer "*Showcase origin*" (buffer-string))))
+          (with-temp-file (getenv "EMACS_TUI_SMOKE_REPORT")
+            (insert (format "PASS Emacs %s; real TTY; backend=%s; gallery launch; catalog hidden marks/action; native editor; layout/resize=120->90->140; stream failure/recovery; cleanup\n"
+                            emacs-version emacs-tui-showcase--backend)))
+          (kill-emacs 0))))
+    ((error quit) (emacs-tui-showcase--fail err))))
+
+(defun emacs-tui-showcase--start ()
+  (condition-case err
+      (progn
+        (switch-to-buffer (get-buffer-create "*Showcase origin*"))
+        (insert "Origin:")
+        (setq emacs-tui-showcase--frames (frame-list))
+        (let ((gallery (emacs-tui-gallery)))
+          (execute-kbd-macro (kbd "RET C-c C-o"))
+          (cl-assert (not (emacs-tui-live-p gallery))))
+        (setq emacs-tui-showcase--app (emacs-tui-current-session))
+        (let ((app emacs-tui-showcase--app))
+          (execute-kbd-macro (kbd "N o t e TAB C-c *"))
+          (emacs-tui-focus-view app 'search)
+          (execute-kbd-macro (kbd "C-a C-k M a p TAB"))
+          (emacs-tui-act app 'collect)
+          (cl-assert (equal "Collected (session only):\n\nBirch\nFern\nCafé sketches"
+                            (emacs-tui-showcase--text 'collection)))
+          (execute-kbd-macro (kbd "C-c C-q")))
+        (switch-to-buffer "*Showcase origin*")
+        (setq emacs-tui-showcase--app (emacs-tui-layout-demo))
+        (let ((app emacs-tui-showcase--app))
+          (setq emacs-tui-showcase--backend (emacs-tui--workspace-backend app))
+          (cl-assert (eq emacs-tui-showcase--backend
+                         (if (featurep 'tty-child-frames) 'child-frame 'windows)))
+          (emacs-tui-tree-expand-all app 'outline)
+          (emacs-tui-focus-view app 'outline)
+          (emacs-tui-set-selection app 'outline 'japan)
+          (execute-kbd-macro (kbd "C-c C-m C-c e M-> RET t y p e d"))
+          (setq emacs-tui-showcase--editor (emacs-tui-input-value app 'editor))
+          (cl-assert (string-match-p "typed" emacs-tui-showcase--editor)))
+        (with-temp-file (getenv "EMACS_TUI_SMOKE_READY") (insert "1"))
+        (setq emacs-tui-showcase--poller (run-at-time 0.05 0.05 #'emacs-tui-showcase--poll)))
+    ((error quit) (emacs-tui-showcase--fail err))))
+
+(add-hook 'emacs-startup-hook
+          (lambda () (run-at-time 0.1 nil #'emacs-tui-showcase--start)))

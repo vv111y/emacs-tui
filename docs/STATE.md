@@ -4,6 +4,35 @@ Updated 2026-10-24 (America/Toronto).
 
 ## Active implementation
 
+Demo-gallery candidate adds three self-contained examples: searchable object
+catalog, deterministic streaming job search, and a layout/native-editor
+playground. The gallery exposes all ten examples with tours; `make demo` remains
+compatible and `make graph-demo` names the original graph explorer explicitly.
+`docs/DEMOS.md` maps implemented capabilities to demos, controls and effects.
+Examples remain checkout-only; the immutable beta1 ref is not moved.
+
+Local Emacs 29.3/Linux passed 316 ERT, warning-free byte compilation, checkdoc
+and the new actual-terminal showcase: gallery launch, filtered hidden-mark
+collection, native input, layout/maximize, 120->90->140-column resize, deliberate
+stream failure/recovery and final session/frame cleanup. Six new ERT journeys
+also launch every gallery entry and verify original-buffer graph commitment,
+independent collections, preserved undo/marks and timer cancellation. The first
+local PTY run failed because this extracted runtime's unavailable native compiler
+opened *Warnings* inside a demo pane, correctly causing ownership disposal.
+Rerunning with native JIT disabled in the local runtime wrapper passed; the
+fixture does not hide warnings or weaken ownership checks. Real terminal screen
+inspection and independent review caught clipped gallery tour lines; native
+word wrapping (including the partial-width-window override) now keeps tours
+readable at 80 columns, with independent screen inspection and a reflow regression. Fresh local checks and the terminal tour still pass. Independent
+review and the full exact-head CI matrix remain integration gates for this candidate.
+
+PR #42 merged at `fd976f725c2bbb111d9fe6700bcabccfab1f3774` after independent
+review and all eight jobs in run 40105488355. The public fixed branch
+`release/0.1.0-beta1` was created at that exact commit and read back through the
+GitHub API with its README recipe and five runtime libraries. It is installable
+with straight.el. Never move that branch; a future matching tag must use the
+same commit. The GitHub tag/prerelease authentication blocker remains.
+
 PR #41 merged at `46436af08bdd26fd02f43b5e0861aae79427cc7f` after independent
 exact-head review and all eight jobs in
 [40104813509](https://github.com/vv111y/emacs-tui/actions/runs/40104813509).
@@ -11,12 +40,6 @@ Every runtime passed 310 ERT, strict compilation/checkdoc, ten terminal
 scenarios and benchmark protocol smokes. Linux/macOS 31.1 and fallback runtimes
 passed actual PTY table resize with the fill column matching live width at both
 sizes. The package snapshot built and clean-installed on 31.1/28.1.
-
-The beta install-ref candidate changes straight.el from the unavailable tag to
-fixed branch `release/0.1.0-beta1`, adds responsive tables to the changelog and
-keeps the GitHub prerelease authentication blocker explicit. After exact-head
-review, full CI and merge, create that branch from the merge commit and never
-move it. A later tag/prerelease must target the same commit.
 
 PR #40 merged at `e761ac8ff3f72e652b278b13df2e4109f2289000` after independent
 exact-head review and all eight jobs in
