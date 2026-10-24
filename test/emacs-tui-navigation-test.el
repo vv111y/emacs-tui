@@ -125,6 +125,19 @@
     (emacs-tui-next-item session)
     (should (eq (plist-get (emacs-tui-current-item session) :id) 'leaf))))
 
+(ert-deftest emacs-tui-navigation-identical-preview-retires-list-display-state ()
+  (emacs-tui-test--navigation (emacs-tui-view :id 'rows :items '("alpha" "beta"))
+    (emacs-tui-next-item session)
+    (let ((text (buffer-string)) (tick (buffer-modified-tick)) (position (point)))
+      (emacs-tui-update session 'rows :text text)
+      (should-not (overlay-buffer emacs-tui--selection-overlay))
+      (should-not emacs-tui--row-ranges)
+      (should-not emacs-tui--row-items)
+      (should-not emacs-tui--row-tick)
+      (should (= tick (buffer-modified-tick)))
+      (should (= position (point)))
+      (should (equal-including-properties text (buffer-string))))))
+
 (ert-deftest emacs-tui-navigation-failed-fallback-does-not-move-selection ()
   (let (fail)
     (emacs-tui-test--navigation

@@ -693,6 +693,12 @@ Prepare application projections before changing any displayed content."
               (buffer-enable-undo))
             (when (window-live-p (emacs-tui--view-window view))
               (set-window-point (emacs-tui--view-window view) (point))))
+          ;; A list can become a preview whose text already equals the buffer.
+          ;; Retire list display state even when no character replacement is needed.
+          (when (emacs-tui--view-text view)
+            (setq emacs-tui--row-ranges nil emacs-tui--row-items nil emacs-tui--row-tick nil)
+            (when (overlayp emacs-tui--selection-overlay)
+              (delete-overlay emacs-tui--selection-overlay)))
           (setq header-line-format (emacs-tui--view-header session view)))))))
 
 (defun emacs-tui--query-changed (&rest arguments)
