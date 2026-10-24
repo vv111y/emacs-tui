@@ -33,13 +33,21 @@ Independent review found one stale-position bug: native edits to a hidden input
 moved its native point but an old cached integer overrode it on return. Native
 input changes now invalidate that cache without clearing undo. A regression
 reproduced point 500 instead of 506 before the fix and now passes, including
-undo recovery. Both reviewers also verified a 30-view compact-layout round trip
-retains point and horizontal scroll. The corrected implementation still needs
-independent re-review and current-head CI; initial 189-test CI passed but is not
-sufficient evidence for this changed head.
+undo recovery. Independent review and a local probe also verified a 30-view
+compact-layout round trip retains point and horizontal scroll.
 
-Active worker owns maximize/hidden-view position support, its regressions and
-the tree PTY extension, README and this handoff through review and CI. Next:
+Corrected implementation `5ddd8d34f45b56f11c32880c1ff85968b3453993` received
+independent approval after the reviewer repeated all 190 ERT tests, strict
+compilation, checkdoc and six PTY scripts. Its additional probes confirmed
+repeated hidden edits and later layout restoration keep native point and undo.
+Corrected implementation CI
+[40056269656](https://github.com/vv111y/emacs-tui/actions/runs/40056269656)
+passed all checks on Emacs 28.2, 29.4, 30.2 and 31.1, including the real native
+TTY child-frame maximize/resize/restore path on 31.1. Final-head CI remains
+required for the final handoff-only checkpoint.
+
+The implementation is complete and independently reviewed; this handoff-only
+checkpoint needs final-head review and CI before integration. Next:
 broader terminal/platform validation, navigation history or richer controls
 through concrete consumers. No stability or MELPA-readiness claim is made.
 
@@ -102,7 +110,7 @@ scripts use a borrowed window. Resize coverage is 120x40 -> 90x30 -> 140x45.
 A separate real `cat` subprocess test verifies streaming and process disposal.
 
 Package-lint at upstream commit `1865be780a16098f972fef50a52b21ca6ee04df9`
-was rerun against the current tree implementation. Its only findings are the two warnings
+was rerun against the current maximize implementation. Its only findings are the two warnings
 that `emacs` is redundant in the main/layout package names; the table and tree modules
 are clean. This remains a packaging question, not an overall clean lint pass.
 The extracted local runtime disables native compiler trampoline generation
