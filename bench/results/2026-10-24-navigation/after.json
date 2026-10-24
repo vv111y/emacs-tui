@@ -1,0 +1,376 @@
+{
+  "emacs": "29.3",
+  "system_configuration": "x86_64-pc-linux-gnu",
+  "features": "ACL DBUS GMP GNUTLS GPM JSON LCMS2 LIBSELINUX LIBSYSTEMD LIBXML2 MODULES NATIVE_COMP NOTIFY INOTIFY PDUMPER SECCOMP SOUND SQLITE3 THREADS TREE_SITTER XIM ZLIB",
+  "backend": "windows",
+  "terminal": "xterm-256color",
+  "frame_columns": 120,
+  "frame_rows": 39,
+  "gc_cons_threshold": 800000,
+  "gc_cons_percentage": 0.1,
+  "deferred_native_compilation": false,
+  "library": "/workspace/scratch/5a976ed71eb6/selection-performance/emacs-tui.el",
+  "schema": 1,
+  "label": "navigation-after-reviewed",
+  "source": {
+    "git_revision": null,
+    "source_dirty": null,
+    "sha256": {
+      "emacs-tui-action.el": "dc42fb41436195b228017b2fab2a823a1080c81645549fa9df4902af7e9672c0",
+      "emacs-tui-layout.el": "42ab03007a3850a55873e3fc16bff9cc7eca0ecbe3dc171c881e77d70b872f75",
+      "emacs-tui-table.el": "91326b993e7a8c99a2564dfd20bcfc0108c10c229aea40ce6f638ce66f0e7324",
+      "emacs-tui-tree.el": "e246f7ad6a0f41fbbf9fa3dbaf5ff5cf2284dce8c6743652459321602084bcf6",
+      "emacs-tui.el": "9a3751c16d3c1c1d2a1ed1a9e0e730bd0ab5cacae931891b737f1a29d6b21463",
+      "bench/run.py": "f3fc1d0a712aab90f88c6633a89b20ba33a6f861891e86d3053913680b439152",
+      "bench/interactive.el": "1866190cdad459c1cebf46bff38d0e1a294d195025ed24ae8aa97568a61bad14"
+    }
+  },
+  "cases": [
+    {
+      "kind": "navigate-list",
+      "size": 1000
+    },
+    {
+      "kind": "navigate-table",
+      "size": 1000
+    },
+    {
+      "kind": "navigate-list",
+      "size": 10000
+    },
+    {
+      "kind": "navigate-table",
+      "size": 10000
+    }
+  ],
+  "command": [
+    "/workspace/scratch/fdd5e90d3b55/emacs-runtime/emacs",
+    "-Q",
+    "-nw",
+    "-L",
+    "/workspace/scratch/5a976ed71eb6/selection-performance",
+    "-l",
+    "/workspace/scratch/5a976ed71eb6/selection-performance/bench/interactive.el"
+  ],
+  "samples": 100,
+  "warmup": 10,
+  "recorded_at_utc": "2026-10-24T05:21:29Z",
+  "host": {
+    "system": "Linux-6.18.55-x86_64-with-glibc2.39",
+    "machine": "x86_64",
+    "processor": "AMD EPYC 9V74 80-Core Processor",
+    "logical_cpus": 9,
+    "python": "3.12.14"
+  },
+  "pty": {
+    "columns": 120,
+    "rows": 40
+  },
+  "provider_fixture": {
+    "debounce_ms": 10,
+    "timer_delay_ms": 20
+  },
+  "quantile_method": "nearest-rank",
+  "summaries": [
+    {
+      "kind": "navigate-list",
+      "size": 1000,
+      "metrics": {
+        "command_redisplay_ms": {
+          "p50": 0.24649999999999997,
+          "p95": 0.434784,
+          "p99": 0.486862
+        },
+        "cons_cells": {
+          "p50": 232,
+          "p95": 362,
+          "p99": 362
+        },
+        "string_chars": {
+          "p50": 0,
+          "p95": 0,
+          "p99": 0
+        },
+        "gc_count": {
+          "p50": 0,
+          "p95": 0,
+          "p99": 0
+        },
+        "gc_ms": {
+          "p50": 0.0,
+          "p95": 0.0,
+          "p99": 0.0
+        },
+        "pty_output_ms": {
+          "p50": 0.339301,
+          "p95": 0.554534,
+          "p99": 0.706427
+        }
+      },
+      "by_command": [
+        {
+          "command": "emacs-tui-next-item",
+          "samples": 100,
+          "metrics": {
+            "command_redisplay_ms": {
+              "p50": 0.24649999999999997,
+              "p95": 0.434784,
+              "p99": 0.486862
+            },
+            "cons_cells": {
+              "p50": 232,
+              "p95": 362,
+              "p99": 362
+            },
+            "string_chars": {
+              "p50": 0,
+              "p95": 0,
+              "p99": 0
+            },
+            "gc_count": {
+              "p50": 0,
+              "p95": 0,
+              "p99": 0
+            },
+            "gc_ms": {
+              "p50": 0.0,
+              "p95": 0.0,
+              "p99": 0.0
+            },
+            "pty_output_ms": {
+              "p50": 0.339301,
+              "p95": 0.554534,
+              "p99": 0.706427
+            }
+          }
+        }
+      ]
+    },
+    {
+      "kind": "navigate-table",
+      "size": 1000,
+      "metrics": {
+        "command_redisplay_ms": {
+          "p50": 0.344758,
+          "p95": 0.580202,
+          "p99": 0.845391
+        },
+        "cons_cells": {
+          "p50": 232,
+          "p95": 352,
+          "p99": 352
+        },
+        "string_chars": {
+          "p50": 0,
+          "p95": 0,
+          "p99": 0
+        },
+        "gc_count": {
+          "p50": 0,
+          "p95": 0,
+          "p99": 0
+        },
+        "gc_ms": {
+          "p50": 0.0,
+          "p95": 0.0,
+          "p99": 0.0
+        },
+        "pty_output_ms": {
+          "p50": 0.425469,
+          "p95": 0.68489,
+          "p99": 1.034516
+        }
+      },
+      "by_command": [
+        {
+          "command": "emacs-tui-next-item",
+          "samples": 100,
+          "metrics": {
+            "command_redisplay_ms": {
+              "p50": 0.344758,
+              "p95": 0.580202,
+              "p99": 0.845391
+            },
+            "cons_cells": {
+              "p50": 232,
+              "p95": 352,
+              "p99": 352
+            },
+            "string_chars": {
+              "p50": 0,
+              "p95": 0,
+              "p99": 0
+            },
+            "gc_count": {
+              "p50": 0,
+              "p95": 0,
+              "p99": 0
+            },
+            "gc_ms": {
+              "p50": 0.0,
+              "p95": 0.0,
+              "p99": 0.0
+            },
+            "pty_output_ms": {
+              "p50": 0.425469,
+              "p95": 0.68489,
+              "p99": 1.034516
+            }
+          }
+        }
+      ]
+    },
+    {
+      "kind": "navigate-list",
+      "size": 10000,
+      "metrics": {
+        "command_redisplay_ms": {
+          "p50": 0.25843900000000003,
+          "p95": 0.492611,
+          "p99": 0.6522709999999999
+        },
+        "cons_cells": {
+          "p50": 232,
+          "p95": 362,
+          "p99": 362
+        },
+        "string_chars": {
+          "p50": 0,
+          "p95": 0,
+          "p99": 0
+        },
+        "gc_count": {
+          "p50": 0,
+          "p95": 0,
+          "p99": 0
+        },
+        "gc_ms": {
+          "p50": 0.0,
+          "p95": 0.0,
+          "p99": 0.0
+        },
+        "pty_output_ms": {
+          "p50": 0.43231,
+          "p95": 0.684599,
+          "p99": 0.824244
+        }
+      },
+      "by_command": [
+        {
+          "command": "emacs-tui-next-item",
+          "samples": 100,
+          "metrics": {
+            "command_redisplay_ms": {
+              "p50": 0.25843900000000003,
+              "p95": 0.492611,
+              "p99": 0.6522709999999999
+            },
+            "cons_cells": {
+              "p50": 232,
+              "p95": 362,
+              "p99": 362
+            },
+            "string_chars": {
+              "p50": 0,
+              "p95": 0,
+              "p99": 0
+            },
+            "gc_count": {
+              "p50": 0,
+              "p95": 0,
+              "p99": 0
+            },
+            "gc_ms": {
+              "p50": 0.0,
+              "p95": 0.0,
+              "p99": 0.0
+            },
+            "pty_output_ms": {
+              "p50": 0.43231,
+              "p95": 0.684599,
+              "p99": 0.824244
+            }
+          }
+        }
+      ]
+    },
+    {
+      "kind": "navigate-table",
+      "size": 10000,
+      "metrics": {
+        "command_redisplay_ms": {
+          "p50": 0.366451,
+          "p95": 0.6422249999999999,
+          "p99": 0.9980309999999999
+        },
+        "cons_cells": {
+          "p50": 232,
+          "p95": 352,
+          "p99": 352
+        },
+        "string_chars": {
+          "p50": 0,
+          "p95": 0,
+          "p99": 0
+        },
+        "gc_count": {
+          "p50": 0,
+          "p95": 0,
+          "p99": 0
+        },
+        "gc_ms": {
+          "p50": 0.0,
+          "p95": 0.0,
+          "p99": 0.0
+        },
+        "pty_output_ms": {
+          "p50": 0.543988,
+          "p95": 0.826413,
+          "p99": 1.194206
+        }
+      },
+      "by_command": [
+        {
+          "command": "emacs-tui-next-item",
+          "samples": 100,
+          "metrics": {
+            "command_redisplay_ms": {
+              "p50": 0.366451,
+              "p95": 0.6422249999999999,
+              "p99": 0.9980309999999999
+            },
+            "cons_cells": {
+              "p50": 232,
+              "p95": 352,
+              "p99": 352
+            },
+            "string_chars": {
+              "p50": 0,
+              "p95": 0,
+              "p99": 0
+            },
+            "gc_count": {
+              "p50": 0,
+              "p95": 0,
+              "p99": 0
+            },
+            "gc_ms": {
+              "p50": 0.0,
+              "p95": 0.0,
+              "p99": 0.0
+            },
+            "pty_output_ms": {
+              "p50": 0.543988,
+              "p95": 0.826413,
+              "p99": 1.194206
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "artifact_format": "emacs-tui-benchmark-metadata-csv-v1",
+  "raw_samples_csv": "after.csv",
+  "raw_samples_sha256": "9aa4d143396eeeb2c77096908725d78bcdd3fc94b8fb2b6c7e1b0420d43d731d",
+  "raw_record_count": 440
+}

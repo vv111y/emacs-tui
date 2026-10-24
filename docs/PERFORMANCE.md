@@ -1,5 +1,10 @@
 # Reproducing latency measurements
 
+The first [published navigation pair](../bench/results/2026-10-24-navigation/README.md)
+includes environment/provenance, raw samples, p50/p95/p99 and allocation counters
+before/after removing row reconstruction from selection movement. It covers
+interpreted Emacs 29.3 and ordinary windows on one host, not universal latency.
+
 Run `make clean benchmark` with Python 3 and a real terminal-capable Emacs.
 The driver creates its own 120x40 PTY and starts `emacs -Q -nw`; it does not
 use your current Emacs session. Results, including every warmup and measured

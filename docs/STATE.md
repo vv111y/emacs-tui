@@ -22,19 +22,31 @@ Local Emacs 29.3 passes 228 ERT tests, strict compilation, checkdoc and six
 PTY scripts. Ten new regressions cover unchanged content/properties/hooks,
 Unicode/multiline rows, projection-free table navigation, query/sort/source
 replacement, external edits, preview transitions/disposal, tree marks and
-failed-update rollback. Independent review found that a list-to-identical-text transition retained
+failed-update rollback. Independent review found that a list-to-identical-text
+transition retained
 its highlight. Successful text renders now retire list state even when no
 buffer replacement is needed; a regression retains preview point/tick while
 checking the overlay/cache are removed. Review also found narrowing could hide
 a newly selected row; cached navigation now widens, matching full-list rendering,
 with a regression asserting actual buffer/window point and unchanged characters.
-Corrected review/CI are pending.
-An interpreted-source before/after navigation baseline (1,000/10,000 rows,
-100 measured samples plus 10 warmups) is in progress; no numbers are claimed
-yet. Benchmark methodology and limits are in docs/PERFORMANCE.md.
+Corrected implementation `aefc7aa1f152e3a2d4124d04f989b20672c9044e` received
+independent agent approval and a separate repeat of all local checks. Extra
+probes cover ephemeral query point, nonlocal rollback and hidden-view updates.
 
-Next: publish raw before/after evidence, resolve review feedback, then broaden
-stress/display validation and address the next measured cost. Public-history,
+A clean interpreted-source navigation pair is published under
+bench/results/2026-10-24-navigation. Each of four workloads has 100 measured
+samples plus 10 warmups; raw CSVs retain all 440 records per run, environment,
+source/benchmark hashes, GC/allocation counters and p50/p95/p99. Files were
+compared with remote before/after commits. On this Emacs 29.3/Linux host,
+10,000-row table PTY-output p50 changed from 1465.987ms to 0.544ms; p95/p99
+changed from 1622.462/1683.763ms to 0.826/1.194ms. Median immediate command cons
+cells changed from 4,831,043 to 232 (including instrumentation). This is one
+interpreted-source pair, not a compiled/native-code, child-frame or physical
+paint claim. Source/query updates still render full contents. Methodology and
+limits are in docs/PERFORMANCE.md. Artifact/doc review and passing final-head
+CI remain integration gates.
+
+Next: broaden stress/display validation and address the next measured cost. Public-history,
 human-review and actual MELPA acceptance remain external gates.
 
 ## Implementation and handoff
@@ -124,13 +136,13 @@ because it has no configured native compiler toolchain.
    multiplexers, narrow screens, multiple clients/terminals and visual behavior.
    Linux PTY smoke is not complete UI QA.
 3. Measure large-result rendering, input-to-display latency and allocations.
-   List/table rendering currently replaces full view contents; unchanged text
-   previews avoid replacement. Async providers remain
+   Source/filter/sort/mark/tree updates replace full view contents; selection
+   navigation reuses rendered rows and unchanged text previews avoid replacement. Async providers remain
    cooperative and must return promptly; cancellation must stop their own
    processes/timers. Snapshot acquisition in the async demo is synchronous.
 4. Resolve the package-name lint question, document API/migration stability and accumulate
-   real usage. Continue through ROADMAP.md; no performance or maturity claim
-   has been established.
+   real usage. Continue through ROADMAP.md; only the limited navigation baseline is established; maturity has not
+   been established.
 
 ## External gates and continuity
 
