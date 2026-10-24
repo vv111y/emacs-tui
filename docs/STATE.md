@@ -1,53 +1,31 @@
 # Project state
 
-Updated 2026-10-23 (America/Toronto).
+Updated 2026-10-24 (America/Toronto).
 
 ## Active implementation
 
-PR #16 merged at `5747c4a1505805bd92e8fe5597bc9221a3f88983` after independent
-review, resolution of native case-folded action completion and final-head CI
-[40059656569](https://github.com/vv111y/emacs-tui/actions/runs/40059656569).
-All six Linux/macOS jobs passed 218 ERT tests, strict compilation, checkdoc and
-six real PTY scripts, including native action menus on ARM64 macOS 31.1.
+PR #17 merged at `b96f0d9c628f0fdeb52ffa1775cd594969343705` after independent
+review and final-head CI [40060803999](https://github.com/vv111y/emacs-tui/actions/runs/40060803999).
+All eight jobs passed: seven Linux/macOS runtime jobs each with 218 ERT tests,
+strict compilation, checkdoc and six PTY scripts; plus pinned real package-build
+and clean installation of the identical archive on Emacs 31.1 and 28.1.
+Recipe layout/build/install are verified, not live MELPA fetching/publication.
 
-Current work adds actual candidate-recipe/package-build and clean-install
-validation. The recipe includes all five library files and LICENSE. Pinned
-package-build/compat tools operate on an isolated clone of the tested checkout,
-with a test-only commit constraint and no-fetch mode. The source checkout is
-never reset. The tar is installed in a separate Emacs with a fresh package
-folder, empty working directory and no source/build-tool load path. Checks
-verify installed library/definition paths and exercise public APIs.
+Current work adds a reproducible interactive benchmark. Python sends native
+keys through a real 120x40 PTY, one command outstanding at a time. Emacs forces
+redisplay before acknowledging terminal output. List/table navigation, native
+input filtering and a controlled async provider are separate workloads. Raw
+samples retain command/render, PTY roundtrip, provider stages, GC and allocation
+counters, environment and source hashes. This measures terminal output rather
+than physical paint. No universal latency threshold or performance claim is
+made. See docs/PERFORMANCE.md for methodology and limitations.
 
-Local Emacs 29.3 built/installed a committed fixture containing the current
-library files and LICENSE, using the pinned real upstream tools. Archive file
-coverage, actual installed definitions, table/query/hidden action targets,
-input undo, tree navigation, maximize and disposal all passed. Python syntax
-and strict compilation of the two build/install Lisp scripts passed. This is
-local fixture evidence, not yet a CI pass for the repository commit.
-
-The new CI job builds/installs using 31.1, then installs the identical tar
-in a fresh 28.1 process with explicit version assertions. Initial CI built and
-clean-installed the exact repository artifact on 31.1, but switching versions
-through the shared Nix profile failed with a package-file collision. The older
-install now uses a pinned profile-free Nix invocation, which passed independent
-review and CI as recorded below. The ordinary matrix
-also adds Linux 28.1, matching the declared API floor.
-
-Corrected implementation `af195ba85a87e3f3ee0d9eee284811013ea9ab46` received
-independent agent approval. A repeat fixture build/install and negative probes
-verified rejection of wrong CI SHA/runtime, missing modules and checkout-path
-fallback. CI [40060507683](https://github.com/vv111y/emacs-tui/actions/runs/40060507683)
-passed all eight jobs: seven runtime jobs each with 218 ERT tests, compilation,
-checkdoc and six PTY scripts, plus real package-build and clean installation of
-the identical archive on 31.1 and 28.1. Package logs record source commit,
-artifact filename and SHA256. Final comments/documentation still require
-separate review and passing final-head CI before integration.
-This verifies recipe layout/build/install, not network fetching, a live MELPA
-archive, API stability or human review. See docs/PACKAGING.md.
-
-No other scope is claimed in this packaging PR during final-head validation. Next: measured
-input/display latency and allocations, broader display validation and API
-stability through real use. Public-history and human-review MELPA gates remain.
+The 100-row five-workload protocol passed locally on Emacs 29.3, including
+selected-identity/result-count validation. Full baseline measurement and
+independent review/CI are pending. No rendering optimization is included yet.
+Next: publish the measured baseline, then address the observed full-table
+reconstruction on selection movement with regression tests and repeat timings.
+Public-history and human-review MELPA gates remain; policy was rechecked today.
 
 ## Implementation and handoff
 
@@ -96,6 +74,8 @@ dashboard. PR #7 added borrowed-window embedding over the same primitives.
   queries and native persistent search composition without replacing sources.
 - [PR #16](https://github.com/vv111y/emacs-tui/pull/16): explicit named context
   actions over marks/current objects with native-menu target revalidation.
+- [PR #17](https://github.com/vv111y/emacs-tui/pull/17): real candidate-recipe
+  builds, clean archive installations and declared-floor Emacs 28.1 CI.
 
 API and runnable examples are in README.md. `make demo` explores an in-memory
 sample graph; `make async-demo` searches buffer snapshots. Marks are per view
@@ -125,7 +105,7 @@ because it has no configured native compiler toolchain.
 
 ## Remaining work
 
-1. Validate and integrate recipe/clean-install checks, then extend application controls
+1. Extend application controls
    through concrete consumers. Preserve ephemeral behavior. Extend layouts, history, per-view
    input, maximize/restore and tree/form controls as real consumers require them. Avoid treating every preview as navigation.
 2. Broaden actual display validation: GUI child frames, macOS terminal emulators,
@@ -136,14 +116,13 @@ because it has no configured native compiler toolchain.
    previews avoid replacement. Async providers remain
    cooperative and must return promptly; cancellation must stop their own
    processes/timers. Snapshot acquisition in the async demo is synchronous.
-4. Complete the pending recipe/clean-install CI and resolve the
-   package-name lint question, document API/migration stability and accumulate
+4. Resolve the package-name lint question, document API/migration stability and accumulate
    real usage. Continue through ROADMAP.md; no performance or maturity claim
    has been established.
 
 ## External gates and continuity
 
-MELPA guidance was rechecked on 2026-10-23: public maintenance of at least one
+MELPA guidance was rechecked on 2026-10-24: public maintenance of at least one
 month and human review expectations remain. Earliest known time eligibility is
 approximately 2026-11-23, not a promised completion date. Autonomous reviews do
 not satisfy the human-review expectation. See docs/MELPA.md for source links;

@@ -36,6 +36,8 @@ jobs:
           emacs -Q --batch --eval '(princ (format "Features: %s\n" system-configuration-features))'
       - run: make check
       - run: make tty-smoke
+      - name: Validate benchmark protocol (no timing threshold)
+        run: make clean benchmark-smoke
   package:
     name: package (build 31.1, install 31.1/28.1)
     runs-on: ubuntu-latest
