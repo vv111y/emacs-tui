@@ -32,11 +32,18 @@ provider supersession, descriptor reuse, embedding and the buffer example.
 The new PTY script expands/collapses, marks a hidden leaf, replaces its source,
 retains selection through real resizes and invokes preview actions explicitly.
 Package-lint still reports only the two existing main/layout name warnings;
-the tree module has no new findings. Independent review and four-version CI
-are pending.
+the tree module has no new findings.
 
-Active worker owns tree indexing/navigation, the buffer-tree example and tests,
-build integration and documentation through review and CI. Next: view
+Implementation `29f6bb05e4a8444c6c72302c9bbfa088b6c27e0d` passed independent
+agent review, including a repeat of the full local suite and probes for nonlocal
+children-accessor failure, ephemeral commit of hidden marked leaves and
+reparenting. Implementation CI
+[40055440294](https://github.com/vv111y/emacs-tui/actions/runs/40055440294)
+passed all checks on Emacs 28.2, 29.4, 30.2 and 31.1; the tree PTY script uses
+native terminal child frames on 31.1. The final metadata/handoff checkpoint
+still requires final-head review and CI before integration.
+
+No other scope is claimed during final-head validation. Next: view
 maximize/restore, navigation history or richer form controls through concrete
 applications, plus broader terminal validation. No maturity or MELPA claim.
 

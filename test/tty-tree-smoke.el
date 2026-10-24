@@ -1,4 +1,14 @@
 ;;; tty-tree-smoke.el --- Exercise real TTY tree interaction -*- lexical-binding: t; -*-
+
+;; Copyright (C) 2026 Willy Rempel
+;; Author: Willy Rempel <https://github.com/vv111y>
+;; Assisted-by: Codex:gpt-6.1-sol-wm
+;; SPDX-License-Identifier: GPL-3.0-or-later
+
+;;; Commentary:
+;; Verify native tree navigation, source identity and terminal resizing.
+
+;;; Code:
 (setq load-prefer-newer t)
 (require 'cl-lib)
 (require 'emacs-tui)
@@ -79,3 +89,5 @@
     ((error quit) (emacs-tui-test--tree-failure err))))
 
 (add-hook 'emacs-startup-hook (lambda () (run-at-time 0.1 nil #'emacs-tui-test--tree-start)))
+
+;;; tty-tree-smoke.el ends here
