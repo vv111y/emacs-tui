@@ -36,11 +36,18 @@ Independent review found accepted case-insensitive menu input was looked up
 with exact `assoc`, causing a valid lowercase answer to fail dispatch. The
 fix canonicalizes accepted names, prefers exact spelling and rejects ambiguous
 case-folded choices. Three new regressions and actual lowercase full-name
-completion in the real TTY scenario pass. The corrected head still requires
-independent re-review and current-head Linux/macOS CI before integration.
+completion in the real TTY scenario pass.
 
-Active worker owns action descriptions/dispatch, the tree demo and regressions,
-build integration and documentation through review and CI. Next: actual
+Corrected implementation `a9646693b38c506cdbac23fb60e9397dec9150ee` received
+independent approval after a repeat of all 218 ERT tests, strict compilation,
+checkdoc and six PTY scripts. Additional probes covered native lowercase and
+minibuffer-local case folding, exact preference, ambiguity and fresh objects.
+CI [40059462593](https://github.com/vv111y/emacs-tui/actions/runs/40059462593)
+passed all six Linux/macOS jobs, including native 31.1 terminal child-frame
+menu interaction on ARM64 macOS. This final handoff-only checkpoint still
+requires separate review and passing current-head CI before integration.
+
+No other scope is claimed in this action PR during final-head validation. Next: actual
 package-build recipe/clean-install validation and measured performance, plus
 richer controls through concrete applications. No stability or MELPA claim.
 
