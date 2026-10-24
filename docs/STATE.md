@@ -29,8 +29,8 @@ The new CI job builds/installs using 31.1, then installs the identical tar
 in a fresh 28.1 process with explicit version assertions. Initial CI built and
 clean-installed the exact repository artifact on 31.1, but switching versions
 through the shared Nix profile failed with a package-file collision. The older
-install now uses a pinned profile-free Nix invocation; this correction still
-needs review and a passing CI run. The ordinary matrix
+install now uses a pinned profile-free Nix invocation, which passed independent
+review and CI as recorded below. The ordinary matrix
 also adds Linux 28.1, matching the declared API floor.
 
 Corrected implementation `af195ba85a87e3f3ee0d9eee284811013ea9ab46` received
