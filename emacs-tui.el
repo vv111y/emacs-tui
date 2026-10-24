@@ -104,6 +104,8 @@
     (define-key map (kbd "RET") #'emacs-tui-select)
     (define-key map (kbd "C-c C-c") #'emacs-tui-commit)
     (define-key map (kbd "C-c C-m") #'emacs-tui-toggle-mark)
+    (define-key map (kbd "C-c *") #'emacs-tui-mark-all)
+    (define-key map (kbd "C-c C-t") #'emacs-tui-invert-marks)
     (define-key map (kbd "C-c C-u") #'emacs-tui-clear-marks)
     (define-key map (kbd "C-c C-l") #'emacs-tui-cycle-layout)
     (define-key map (kbd "C-c C-a") #'emacs-tui-act)
@@ -453,6 +455,46 @@ current buffer's workspace.  If rendering fails, retain the prior marks."
       (if marked (puthash id t marks) (remhash id marks))
       (emacs-tui--set-marks session view marks)
       marked)))
+
+(defun emacs-tui--mark-projection (session id invert)
+  "Mark SESSION's view ID projection, or toggle it when INVERT is non-nil."
+  (setq session (emacs-tui--require-session session))
+  (let ((view (emacs-tui--resolve-view session id)))
+    (unless (and (emacs-tui--view-multi-select view)
+                 (not (emacs-tui--view-text view)))
+      (user-error "This view does not support marks"))
+    (when (emacs-tui--view-visible-items view)
+      (let ((table (if (emacs-tui--view-marks view)
+                       (copy-hash-table (emacs-tui--view-marks view))
+                     (make-hash-table :test #'equal))))
+        (dolist (item (emacs-tui--view-visible-items view))
+          (let ((identity (emacs-tui--item-id item)))
+            (if (and invert (gethash identity table))
+                (remhash identity table)
+              (puthash identity t table))))
+        (emacs-tui--set-marks session view table))))
+  nil)
+
+(defun emacs-tui-mark-all (&optional session id)
+  "Mark every projected item in SESSION's multi-select view ID.
+SESSION defaults to the current interface, and ID to its focused view.
+Include off-screen rows in the current list/table/tree projection, but exclude
+filtered items and collapsed descendants.  Retain their existing marks.
+A named hidden panel uses its current projection without taking focus.
+Preserve selection and queries; invoke no application action or commit.
+Render once after staging all changes; a rendering error retains prior marks.
+An empty projection is unchanged.  Return nil."
+  (interactive)
+  (emacs-tui--mark-projection session id nil))
+
+(defun emacs-tui-invert-marks (&optional session id)
+  "Toggle every projected item's mark in SESSION's multi-select view ID.
+SESSION and ID default to the current interface and its focused view.
+Use the same projection and failure behavior as `emacs-tui-mark-all': retain
+marks on filtered items and collapsed descendants, and leave selection,
+queries, focus and application data unchanged.  Return nil."
+  (interactive)
+  (emacs-tui--mark-projection session id t))
 
 (defun emacs-tui-clear-marks (&optional session id)
   "Clear the marked state of SESSION's view ID, including hidden items.

@@ -4,6 +4,36 @@ Updated 2026-10-24 (America/Toronto).
 
 ## Active implementation
 
+PR #27 merged at `b532d7bcd73fbaa342bde5271e1ce94a054ed75e` after exact-head
+independent review and all eight CI jobs in
+[40074067095](https://github.com/vv111y/emacs-tui/actions/runs/40074067095).
+Runtime jobs passed 249 ERT, strict compilation/checkdoc, seven PTY scripts,
+three Python regressions and all five source/fresh-bytecode benchmark smoke
+workloads; package build and clean installs passed on 31.1/28.1. This closes the
+focus-cycling ownership hole described below.
+
+Bulk marking adds `emacs-tui-mark-all` and `emacs-tui-invert-marks`, accepting
+optional session/view ID. They operate on the current list/table/tree projection,
+including off-screen rows while preserving marks on filtered items/collapsed
+descendants. Operations on named hidden panels preserve current focus. Each command stages a copied
+identity table and renders once; empty projections are unchanged. Native keys
+are C-c * and C-c C-t; ordinary query characters remain editable. No exploration,
+context-action or commit callback runs implicitly. The graph example documents
+the keys and tests bulk selection followed by explicit ordered commitment.
+
+Local 257 ERT, strict compilation/checkdoc, seven PTY scripts, three Python
+regressions and both benchmark modes passed on Emacs 29.3/Linux. Eight new ERT
+cases cover hidden marks/panels, tree collapse, source order with descending
+sort, unchanged selection, 200 projected cells once per bulk operation, failure
+rollback/retry, invalid targets, native editing/keys and explicit graph commit.
+The real ephemeral PTY fixture now exercises both bulk bindings before its
+original selection/resize/commit sequence. Independent review and all eight
+published-head jobs remain integration gates. Preliminary independent review
+passed 257 ERT and the updated real-PTY bulk bindings, plus an insertion-hook
+failure probe preserving marks, properties, highlight bounds and recovery. Next: consumer-driven controls,
+actual GUI/emulator/multiplexer and multiple-terminal validation, real usage
+and measured remaining rendering bottlenecks. No new latency claim is made.
+
 PR #26 merged at `c9871bc591295b2c640c63d9e606f7f7099a9cec` after independent
 implementation/fixture review and all eight final-head CI jobs in
 [40073781778](https://github.com/vv111y/emacs-tui/actions/runs/40073781778).
@@ -11,7 +41,7 @@ Runtime jobs passed 247 ERT, strict compilation/checkdoc, seven PTY scripts,
 three Python regressions and all five source/fresh-bytecode benchmark smoke
 workloads; package build and clean installs passed on 31.1/28.1.
 
-Focus cycling now rejects invalidated surfaces before logical focus changes or
+PR #27 makes focus cycling reject invalidated surfaces before logical focus changes or
 hidden-panel reuse. The named focus API already had this guard. Without it, a
 maximized session whose visible pane was repurposed could replace an unrelated
 buffer when cycling to a hidden panel; a visible foreign pane could also acquire
@@ -20,9 +50,8 @@ cover ephemeral/persistent maximized cases and visible foreign panes, both
 cycling directions, logical/native focus, pane mapping, buffer content/cursor/
 scroll and normal disposal. Local 249 ERT, strict compilation/checkdoc, seven
 PTY scripts, three Python regressions and both benchmark modes passed on Emacs
-29.3/Linux. Preliminary independent review also confirmed valid deleted-window
-reveal and preservation of unrelated windows outside the owned subtree. Exact
-published-head review and all eight current-head jobs remain integration gates.
+29.3/Linux. Independent review also confirmed valid deleted-window
+reveal and preservation of unrelated windows outside the owned subtree. Its final-head CI run is linked above.
 
 Recent integrated behavior:
 
@@ -133,6 +162,8 @@ dashboard. PR #7 added borrowed-window embedding over the same primitives.
   indicators remain consistent after projection or native editing failures.
 - [PR #26](https://github.com/vv111y/emacs-tui/pull/26): late view updates
   preserve repurposed-window cursors; bounded automatic resize synchronization.
+- [PR #27](https://github.com/vv111y/emacs-tui/pull/27): view cycling validates
+  ownership before changing focus or revealing hidden panels.
 
 API and runnable examples are in README.md. `make demo` explores an in-memory
 sample graph; `make async-demo` searches buffer snapshots. Marks are per view

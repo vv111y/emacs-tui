@@ -387,6 +387,8 @@ and continue exploration; commitment is a separate command.
 | `emacs-tui-set-query` | Set or clear a local list/table/tree filter |
 | `emacs-tui-current-item` | Read the focused or named view's selected source object |
 | `emacs-tui-toggle-mark` | Toggle the current item in a multi-select view |
+| `emacs-tui-mark-all` | Mark the focused or named view’s projected rows |
+| `emacs-tui-invert-marks` | Invert marks in that projection, preserving hidden marks |
 | `emacs-tui-marked-items` | Read marked objects in source order |
 | `emacs-tui-clear-marks` | Clear the focused or named view's marks |
 | `emacs-tui-select` | Invoke the selected view's exploration action |
@@ -410,6 +412,8 @@ functions; interactive commands infer it from the workspace buffer. Internal
 | `C-c C-f` | Maximize the focused view / restore layout |
 | `C-c C-a` | Choose a named context action |
 | `C-c C-m` | Toggle the current item's mark in a multi-select view |
+| `C-c *` | Mark every projected row in the focused multi-select view |
+| `C-c C-t` | Invert marks on those rows |
 | `C-c C-u` | Clear marks in the focused view |
 | `C-g` / `C-c C-q` | Close without committing |
 
@@ -461,7 +465,17 @@ Add `:multi-select t` to a list view to enable independent marks:
 
 `C-c C-m` toggles a mark without changing the query or invoking selection or
 commit callbacks. `[x]` / `[ ]` indicators and a count in the view title make
-marks visible without relying on color. `C-c C-u` clears the focused view.
+marks visible without relying on color. `C-c *` marks every row in the current
+projection; `C-c C-t` inverts those marks. Include off-screen rows but exclude
+filtered items and collapsed descendants, retaining their existing marks.
+`C-c C-u` clears all marks in the focused view, including hidden ones.
+
+`emacs-tui-mark-all` and `emacs-tui-invert-marks` accept optional session and
+view ID arguments. A named hidden panel uses its current projection without
+revealing it or taking focus. Both operations preserve selection and queries,
+perform one staged render and invoke no application action. An empty projection
+is unchanged. The graph demo can bulk-mark filtered node results and commit
+them explicitly in source order.
 
 Marks belong to individual views. `emacs-tui-marked-items` accepts optional
 session and view ID arguments; by default it reads the focused view. It returns

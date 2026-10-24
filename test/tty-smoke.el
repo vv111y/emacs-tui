@@ -1,4 +1,9 @@
 ;;; tty-smoke.el --- Exercise typing and resizing in a real TTY -*- lexical-binding: t; -*-
+
+;; Copyright (C) 2026 Willy Rempel
+;; Author: Willy Rempel <https://github.com/vv111y>
+;; Assisted-by: Codex:gpt-6.1-sol-wm
+;; SPDX-License-Identifier: GPL-3.0-or-later
 (setq load-prefer-newer t)
 (require 'cl-lib)
 (require 'emacs-tui)
@@ -77,6 +82,12 @@
           (cancel-timer emacs-tui-test--smoke-result-timer)
           (cl-assert (equal (emacs-tui-query session) "a"))
           (cl-assert (equal (emacs-tui-current-item session) "alpha"))
+          (execute-kbd-macro (kbd "C-c *"))
+          (cl-assert (equal (emacs-tui-marked-items session) '("alpha" "beta")))
+          (execute-kbd-macro (kbd "C-c C-t"))
+          (cl-assert (null (emacs-tui-marked-items session)))
+          (cl-assert (equal (emacs-tui--view-text (cadr (emacs-tui--workspace-views session))) "pending"))
+          (cl-assert (equal (emacs-tui-query session) "a"))
           (execute-kbd-macro (kbd "C-c C-m M-n C-c C-m RET C-a"))
           (cl-assert (equal (emacs-tui-current-item session) "beta"))
           (cl-assert (equal (emacs-tui--view-text (cadr (emacs-tui--workspace-views session))) "beta"))

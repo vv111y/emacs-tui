@@ -3,6 +3,7 @@
 ;; Copyright (C) 2026 Willy Rempel
 ;; Author: Willy Rempel <https://github.com/vv111y>
 ;; Assisted-by: Codex:GPT-6
+;; Assisted-by: Codex:gpt-6.1-sol-wm
 ;; SPDX-License-Identifier: GPL-3.0-or-later
 
 ;;; Commentary:
@@ -52,6 +53,8 @@ in the results.  Traversing a node can similarly replace its link lists.
 \\[emacs-tui-next-item]/\\[emacs-tui-previous-item] navigate items.
 \\[emacs-tui-toggle-mark] toggles a mark; \\[emacs-tui-clear-marks] clears marks
 in the focused view.  Marks are independent in each list.
+\\[emacs-tui-mark-all] marks its projected items;
+\\[emacs-tui-invert-marks] inverts their marks.
 \\[emacs-tui-cycle-layout] changes layout; \\[emacs-tui-close] cancels.
 \\[emacs-tui-commit] inserts the focused view's marked demo links at the original
 point, one per line in source order.
