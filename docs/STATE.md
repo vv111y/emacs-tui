@@ -36,6 +36,17 @@ and all current-head CI remain integration gates. Multi-view application updates
 are sequential, not a new cross-view transaction: a failed inspection can leave
 partially updated panes, but history stacks remain retryable and unchanged.
 
+Initial graph-history CI run
+[40081143920](https://github.com/vv111y/emacs-tui/actions/runs/40081143920)
+passed seven jobs; macOS 31.1 passed all 270 ERT then failed the existing table
+PTY fixture's geometry equality assertion. The table fixture now also waits
+for automatic cached-geometry convergence before its unchanged assertions,
+within the original 100-poll bound. No refresh is forced. A delayed-handler
+probe fails the old fixture and passes the revised fixture at both sizes;
+disabling the handler still produces a bounded failure. Independent review
+repeated all three probes. The failed CI run is not counted as passing;
+fresh exact-head review and all eight jobs are required for integration.
+
 PR #29 merged at `caffcd7a998a7c424702e022e0787e4eada84a16` after independent
 review and all eight jobs in
 [40075028893](https://github.com/vv111y/emacs-tui/actions/runs/40075028893).
