@@ -5,9 +5,12 @@ Updated 2026-10-23 (America/Toronto).
 ## Current work
 
 The foundation [PR #1](https://github.com/vv111y/emacs-tui/pull/1) is merged.
-Automatic viewport reflow and real terminal resize tests are implemented in
-[PR #2](https://github.com/vv111y/emacs-tui/pull/2). Inspect its live merge/check
-status and recent updates before starting overlapping work.
+Automatic viewport reflow and real terminal resize tests shipped in merged
+[PR #2](https://github.com/vv111y/emacs-tui/pull/2), commit `80e552d`.
+The active next scope is bounded asynchronous query providers: debounce,
+cancellation, generation-checked streaming updates and lifecycle regression
+tests. The current worker owns core, provider tests, examples and README;
+inspect open drafts before starting overlapping work.
 The repository started empty; this is still an experimental development release.
 
 Implemented: pure columns/rows/grid geometry, editable temporary queries,
@@ -19,9 +22,12 @@ child-frame backend and ordinary-window fallback, graph demo.
 Validation so far: 44 Emacs 29.3 local ERT tests, strict byte compilation and
 checkdoc pass. Real pseudo-terminal typing/select/commit smoke now shrinks and
 expands the terminal (120x40 -> 90x30 -> 140x45) with query/cursor/selection and
-source preservation assertions. The windows backend passes locally; PR #2 CI
-must verify native 31.1 child-frame resizing before integration. Initial GUI
-fitting remains unverified on an actual graphical display.
+source preservation assertions. Final-head PR #2 CI
+[40042620243](https://github.com/vv111y/emacs-tui/actions/runs/40042620243)
+passed all 44 tests, strict compilation, checkdoc and PTY smoke on Emacs 28.2,
+29.4, 30.2 and 31.1. The 31.1 job explicitly used native TTY child frames and
+passed both actual resize transitions. Initial GUI fitting remains unverified
+on an actual graphical display.
 
 Foundation independent review found lifecycle/provider/compact-view
 defects; all have fixes and regression coverage, independently retested with no
@@ -40,8 +46,8 @@ the extracted test runtime has no configured native compiler toolchain.
 
 ## Next work
 
-1. Finish PR #2 independent review and final-head CI if still open; then
-   integrate the reviewed head. Do not repeat the foundation implementation.
+1. Implement bounded async query providers with debounce, cancellation and
+   stale-result suppression. Publish only after independent review and CI.
 2. Broaden TTY coverage beyond Linux pseudo-terminals, including macOS terminals,
    multiple clients and visual behavior; CI smoke alone is not complete UI QA.
 3. Expand narrow-terminal and multiple-client coverage. Automatic reflow and
