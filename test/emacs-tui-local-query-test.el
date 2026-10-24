@@ -97,6 +97,29 @@
       (should (equal "beta" (emacs-tui-query session 'a)))
       (should (equal "renamed" (plist-get (car (emacs-tui-marked-items session)) :label))))))
 
+(ert-deftest emacs-tui-local-query-empty-and-whitespace-retain-source-order-and-marks ()
+  (let* ((a (list :id 'a :label "Alpha" :rank 3))
+         (b (list :id 'b :label "Beta" :rank 1))
+         (c (list :id 'c :label "Gamma" :rank 2))
+         (source (list a b c)))
+    (emacs-tui-local-query-test--with
+        (list (emacs-tui-view :id 'a :items source :multi-select t
+                              :columns (list (emacs-tui-column :id 'rank :value :rank))))
+      (emacs-tui-set-query session 'a "Alpha")
+      (emacs-tui-toggle-mark session)
+      (emacs-tui-set-query session 'a " \t\n\r ")
+      (should (eq a (emacs-tui-current-item session)))
+      (should (equal source (list a b c)))
+      (emacs-tui-sort session 'a 'rank)
+      (emacs-tui-set-query session 'a "Beta")
+      (emacs-tui-set-query session 'a "")
+      (should (eq b (emacs-tui-current-item session)))
+      (should (equal (list b c a)
+                     (emacs-tui--view-visible-items (emacs-tui--focused-view session))))
+      (should (equal source (list a b c)))
+      (should (equal (list a) (emacs-tui-marked-items session)))
+      (should (eq a (car (emacs-tui-marked-items session)))))))
+
 (ert-deftest emacs-tui-local-query-tree-reveals-context-and-restores-expansion ()
   (emacs-tui-local-query-test--with
       (list (emacs-tui-tree :id 'a :items '((:id root :label "Root"

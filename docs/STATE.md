@@ -4,53 +4,39 @@ Updated 2026-10-24 (America/Toronto).
 
 ## Active implementation
 
-PR #19 merged at `2215a195153515cb55f8c02cf5397c814bab9275` after independent
-implementation/evidence review and all eight final-head jobs in
-[40066062902](https://github.com/vv111y/emacs-tui/actions/runs/40066062902).
-Seven runtime jobs passed 228 ERT tests, strict compilation/checkdoc, six PTY
-scripts and benchmark smoke; package build/clean-install passed on 31.1/28.1.
+PR #21 merged at `132b9fe7c45919065b45670ca2142a048e9559f8` after independent
+review and all eight final-head jobs in
+[40069047213](https://github.com/vv111y/emacs-tui/actions/runs/40069047213).
+Both macOS versions now pass the benchmark. Runtime jobs each passed 228 ERT,
+strict compilation/checkdoc, six PTY scripts, two Python regressions and all
+five benchmark workloads; package build/clean-install also passed. Diagnostic
+logs located the earlier failures in post-protocol timed waits on Python 3.15.
+The driver now drains PTY output and polls exit status, bounds its lifecycle
+and terminates owned descendants. Exact underlying OS causality is not asserted.
 
-PR #20 is reviewed but remains a draft. Its empty-query optimization and paired
-source-mode data passed independent review and local 229 ERT/compile/checkdoc/6PTY.
-Two macOS 31.1 jobs repeatedly stalled in the Python benchmark after compilation,
-while all functional/PTY checks and other platform jobs passed. Earlier stalled
-job 120790991646 produced no driver output between 05:32:59Z and cancellation
-05:39:06Z. The current run 40066995736 remains an integration blocker. The exact
-blocked call is unknown; a missing acknowledgement should already fail in 30s.
-Never merge that PR on seven passing jobs or treat cancellation as a pass.
+PR #20 is being rebased onto that merged fix using an expected-head lease.
+Its library change still only skips per-item predicates when there are no
+literal search terms; trees retain expansion projection and sorting copies
+the source list. The source-order/identity/selection/marks regression is retained.
+Local validation of this combination passed 229 ERT tests, strict compilation,
+checkdoc, six PTY scripts, both Python regressions and five-workload benchmark
+smoke. Fresh independent review and all eight current-head CI jobs gate merge;
+the old stalled run/cancelled jobs are not passing evidence.
 
-Current work hardens the benchmark before rebasing/revalidating PR #20. Terminal
-attachment runs in a fresh Python interpreter with a new session, avoiding
-Python preexec callbacks. The whole driver has a stack-dumping deadline and
-hard watchdog; metadata commands and cleanup waits are bounded. Flushed stage
-logs identify launch, workload and metadata progress. CI also bounds the smoke
-step and runtime job. The library API/implementation is unchanged from main.
-Local five-workload native-input smoke, strict fixture compilation and Python
-syntax checks passed. A controlled stalled child failed in 0.539s with a stack dump, no artifact and
-no surviving child. Ignoring SIGALRM exercised the hard watchdog, which dumped
-and exited in 10.132s. Independent review found group cleanup skipped descendants after the leader
-exited, and a progress print could bypass cleanup. Cleanup now retires the owned
-group even after leader exit, before metadata work, and the print is protected.
-A forked-child probe confirmed termination on deadline. Initial bounded CI then located both macOS failures in Python 3.15 timed
-process waits after the final protocol marker (30s normal wait, then 5s cleanup).
-The driver now drains the terminal and polls status through exit, matching the
-existing TTY runner. This avoids both queued-output blocking and timed-wait
-notification dependency; exact OS/runtime causality is not asserted. Two
-portable real-PTY regressions cover a 2 MiB tail and EOF with a live leader.
-Independent probes also passed dead-leader descendant cleanup and real native
-input. Corrected implementation `e9dd4f5d39743c1b8a43df822ada27b1938f82e9` received
-independent approval; all eight jobs passed in
-[40068830097](https://github.com/vv111y/emacs-tui/actions/runs/40068830097).
-Both macOS versions now complete benchmark validation; Linux/runtime/package
-checks also passed. The final EOF-test handshake and this documentation delta
-still require review and passing final-head CI. The handshake confirms actual
-terminal EOF before testing a live process, avoiding a startup-timing assumption.
+Reviewed native-input data is under bench/results/2026-10-24-query-clear.
+All 440 raw records per run and pooled/per-command summaries remain unchanged.
+The historical source/benchmark hashes refer to the exact original experiments,
+including their older coordinator. On interpreted Emacs 29.3/Linux,
+10,000-row list clearing p50 changed 654.340ms -> 61.093ms; p95/p99 changed
+740.079/753.666ms -> 76.158/86.183ms. Median cons cells changed
+2,420,932 -> 90,466. Full table clearing still costs 1604.862ms p50 and nonempty
+matching remains expensive. Each operation has 50 samples, making p99 the
+maximum and weak tail evidence. This is one ordinary-window source-mode pair,
+not bytecompiled/native-code or physical-paint performance evidence.
 
-The navigation pair remains under bench/results/2026-10-24-navigation and is
-limited interpreted-source evidence. Bytecompiled-library benchmark mode is
-prepared separately but will follow this CI reliability fix. Next: verify the
-new macOS checks, integrate this fix, rebase/review/retest PR #20 using expected-head
-leases, then finish bytecode measurements and resource/display stress work.
+Next: add bytecode benchmark mode on top of the final bounded driver, then
+measure compiled costs before further rendering changes. Broaden resource
+stress/display validation and continue concrete application capabilities.
 Public-history, human-review and actual MELPA acceptance remain external gates.
 
 ## Implementation and handoff
@@ -104,6 +90,10 @@ dashboard. PR #7 added borrowed-window embedding over the same primitives.
   builds, clean archive installations and declared-floor Emacs 28.1 CI.
 - [PR #18](https://github.com/vv111y/emacs-tui/pull/18): real native-key/PTY
   benchmark with separate command/render/provider stages and source provenance.
+- [PR #19](https://github.com/vv111y/emacs-tui/pull/19): cached selection
+  navigation with raw measured latency/allocation evidence and edge-case fixes.
+- [PR #21](https://github.com/vv111y/emacs-tui/pull/21): bounded benchmark
+  lifecycle, PTY exit drainage, diagnostics and descendant cleanup.
 
 API and runnable examples are in README.md. `make demo` explores an in-memory
 sample graph; `make async-demo` searches buffer snapshots. Marks are per view
