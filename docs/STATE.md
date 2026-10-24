@@ -17,22 +17,41 @@ now preserve previous source, selection, marks, sort and displayed content by
 staging new state and rendered content. Independent review repeated the complete
 suite on Emacs 29.3 and reproduced failing-update/nonlocal-exit cases.
 
-PR #10 implementation `1c0c34a490cbea3c37c1b9645d756eee5b5a9f7b` preserves
-text-preview reading position across focus changes and identical updates,
-including properties and narrowing. Changed content retains its reset behavior.
-The pre-fix regression suite reproduced three failures. Independent review
-approved the implementation and repeated 149 ERT tests, strict compilation,
-checkdoc and four real PTY scripts on Emacs 29.3. Additional probes covered an
-inactive narrowed preview without disturbing selection in another view.
+PR #10 merged at `c8895c2775503e64d1866b9984ea2129deae07b3` after independent
+review and final-head CI
+[40052013584](https://github.com/vv111y/emacs-tui/actions/runs/40052013584).
+All four versions passed 149 ERT tests and four PTY scripts. Unchanged text
+previews now retain point, scroll, narrowing and buffer-change state across
+focus and repeated updates. Changed content still starts at the beginning.
 
-Implementation CI [40051880355](https://github.com/vv111y/emacs-tui/actions/runs/40051880355)
-passed all checks on Emacs 28.2, 29.4, 30.2 and 31.1. The persistent PTY script
-verifies preview point across focus round trips and real terminal resizes.
-This handoff-only checkpoint still requires final-head review and CI before
-integration. No other scope is claimed. Next: application input widgets or tree
-controls proved through a concrete example; retain the shared lifecycle API.
-Package-lint still has only the two known package-name warnings. No stability
-or MELPA-readiness claim is made.
+PR #11 implementation `aad86cff25f8e98f1dda23d492834d50b99fef1d` adds editable views
+through `emacs-tui-input`
+and `emacs-tui-input-value`, with application-owned change callbacks. Inputs
+share mount/embed lifecycle, focus, layout and keymap composition. The persistent
+composer demonstrates two fields, a preview and explicit copying to the kill
+ring without closing or requiring an origin buffer. The dedicated-query
+`emacs-tui-open` workflow rejects editable views for now. Programmatic updates
+are quiet; changed values reset undo, while identical values preserve it.
+
+Local Emacs 29.3 passes 165 ERT tests, strict compilation, checkdoc and five real
+PTY scripts. New regressions cover native Unicode/multiline editing, undo,
+callback errors/closure/self-normalization, narrowing, focus/reflow, embedding
+and the explicit copy action. The new input PTY script types multiline text,
+undoes an edit, updates a preview, switches focus and verifies state over real
+terminal resizes. Separate agent review approved this exact implementation,
+repeated the full local suite and probed sibling-field updates, callback quits,
+undo and continued editing. A local Latin-prefix input-method probe produced
+`ä` through native key translation with the interface remaining live.
+
+Implementation CI [40052594921](https://github.com/vv111y/emacs-tui/actions/runs/40052594921)
+passed 165 ERT tests, compilation, checkdoc and all five PTY scripts on Emacs
+28.2, 29.4, 30.2 and 31.1. Native child frames passed the input script on 31.1.
+Package-lint was rerun: only the two known main/layout package-name warnings.
+
+This documentation-only checkpoint still requires final-head review and CI
+before integration. No other scope is claimed. Next: trees or richer form
+controls through a concrete consumer; preserve existing ephemeral behavior.
+No stability or MELPA-readiness claim is made.
 
 ## Implementation and handoff
 
@@ -59,6 +78,16 @@ dashboard. PR #7 added borrowed-window embedding over the same primitives.
   batch commits. Final-head CI also passed on all four supported test versions.
 - [PR #5](https://github.com/vv111y/emacs-tui/pull/5): merged by the owner;
   general-purpose toolkit scope and lifecycle priorities are now on main.
+- [PR #6](https://github.com/vv111y/emacs-tui/pull/6): persistent lifecycle,
+  dashboard, explicit actions and application cleanup.
+- [PR #7](https://github.com/vv111y/emacs-tui/pull/7): borrowed-window embedding
+  and host restoration without changing host buffer contents.
+- [PR #8](https://github.com/vv111y/emacs-tui/pull/8): composed application/view
+  keymaps and a public current-session accessor.
+- [PR #9](https://github.com/vv111y/emacs-tui/pull/9): sortable table columns,
+  structured dashboard rows and failure-safe updates.
+- [PR #10](https://github.com/vv111y/emacs-tui/pull/10): preview reading position
+  survives focus changes and unchanged updates.
 
 API and runnable examples are in README.md. `make demo` explores an in-memory
 sample graph; `make async-demo` searches buffer snapshots. Marks are per view
@@ -71,15 +100,15 @@ navigable. Query edits there may prune marks as its source results change.
 
 Current evidence is recorded above. The suite covers persistent, embedded and
 ephemeral presentations, async cancellation/streaming, stable selection and
-marks, tables, callback failure rollback and preview position. All four CI
-versions run strict package/example byte compilation, checkdoc and four actual
-terminal smoke scripts. Emacs 31.1 uses native TTY child frames in the ephemeral
+marks, tables, callback failure rollback and preview position. The merged four-version CI suite runs strict package/example byte compilation,
+checkdoc and four actual terminal smoke scripts; the pending input change adds
+a fifth script. Emacs 31.1 uses native TTY child frames in the ephemeral
 and persistent scripts; earlier versions use ordinary windows. Embedded/table
 scripts use a borrowed window. Resize coverage is 120x40 -> 90x30 -> 140x45.
 A separate real `cat` subprocess test verifies streaming and process disposal.
 
 Package-lint at upstream commit `1865be780a16098f972fef50a52b21ca6ee04df9`
-was rerun against the PR #9 sources. Its only findings are the two warnings
+was rerun against the current input implementation. Its only findings are the two warnings
 that `emacs` is redundant in the main/layout package names; the new table module
 is clean. This remains a packaging question, not an overall clean lint pass.
 The extracted local runtime disables native compiler trampoline generation
@@ -87,8 +116,8 @@ because it has no configured native compiler toolchain.
 
 ## Remaining work
 
-1. After PR #10 final-head checks and integration, extend application input/action
-   composition. Preserve ephemeral behavior. Extend layouts, history, per-view
+1. After PR #11 final-head review/CI and integration, extend application controls
+   with a concrete tree or form consumer. Preserve ephemeral behavior. Extend layouts, history, per-view
    input, maximize/restore and tree/form controls as real consumers require them. Avoid treating every preview as navigation.
 2. Broaden actual display validation: GUI child frames, macOS terminal emulators,
    multiplexers, narrow screens, multiple clients/terminals and visual behavior.
