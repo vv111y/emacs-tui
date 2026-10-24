@@ -4,6 +4,30 @@ Updated 2026-10-24 (America/Toronto).
 
 ## Active implementation
 
+PR #28 merged at `32b558f360b5c83d6c0579b36a5c8644069e6c0f` after exact-head
+independent review and all eight final-head CI jobs in
+[40074519434](https://github.com/vv111y/emacs-tui/actions/runs/40074519434).
+Runtime jobs passed 257 ERT, strict compilation/checkdoc, seven PTY scripts,
+three Python regressions and all five source/fresh-bytecode benchmark smoke
+workloads. The actual recipe built and the resulting archive clean-installed
+on 31.1/28.1. Linux/macOS 31.1 logs explicitly confirm native child frames for
+ephemeral/persistent/input/tree and repeated-lifetime fixtures, including new
+bulk keys in the ephemeral fixture. Agent review additionally verified native
+bulk bindings and insertion-hook rollback with properties/highlight retained.
+
+Packaging cleanup makes the layout file an explicit helper of emacs-tui, like
+the table/tree/action modules, instead of repeating standalone version/dependency
+metadata. `package-lint-main-file` now points to the actual main library, and
+the header describes general text interfaces. All executable Lisp forms are
+unchanged. Latest upstream package-lint reports only the remaining main package
+name warning; the layout warning is resolved through correct package ownership,
+not suppression. Local 257 ERT, strict compilation and checkdoc passed on Emacs
+29.3/Linux. Independent review and fresh current-head recipe/installation and
+runtime CI remain integration gates. Preliminary independent review confirmed
+all executable forms match, metadata ownership is appropriate and only the
+main-name lint warning remains. The remaining naming warning and external
+MELPA gates are not waived.
+
 PR #27 merged at `b532d7bcd73fbaa342bde5271e1ce94a054ed75e` after exact-head
 independent review and all eight CI jobs in
 [40074067095](https://github.com/vv111y/emacs-tui/actions/runs/40074067095).
@@ -15,8 +39,8 @@ focus-cycling ownership hole described below.
 Bulk marking adds `emacs-tui-mark-all` and `emacs-tui-invert-marks`, accepting
 optional session/view ID. They operate on the current list/table/tree projection,
 including off-screen rows while preserving marks on filtered items/collapsed
-descendants. Operations on named hidden panels preserve current focus. Each command stages a copied
-identity table and renders once; empty projections are unchanged. Native keys
+descendants. Operations on named hidden panels preserve current focus. Each
+command stages a copied identity table and renders once; empty projections are unchanged. Native keys
 are C-c * and C-c C-t; ordinary query characters remain editable. No exploration,
 context-action or commit callback runs implicitly. The graph example documents
 the keys and tests bulk selection followed by explicit ordered commitment.
@@ -27,11 +51,11 @@ cases cover hidden marks/panels, tree collapse, source order with descending
 sort, unchanged selection, 200 projected cells once per bulk operation, failure
 rollback/retry, invalid targets, native editing/keys and explicit graph commit.
 The real ephemeral PTY fixture now exercises both bulk bindings before its
-original selection/resize/commit sequence. Independent review and all eight
-published-head jobs remain integration gates. Preliminary independent review
+original selection/resize/commit sequence. Exact-head independent review and
+all eight final-head CI jobs passed as recorded above. Independent review
 passed 257 ERT and the updated real-PTY bulk bindings, plus an insertion-hook
-failure probe preserving marks, properties, highlight bounds and recovery. Next: consumer-driven controls,
-actual GUI/emulator/multiplexer and multiple-terminal validation, real usage
+failure probe preserving marks, properties, highlight bounds and recovery.
+Next: consumer-driven controls, actual GUI/emulator/multiplexer and multiple-terminal validation, real usage
 and measured remaining rendering bottlenecks. No new latency claim is made.
 
 PR #26 merged at `c9871bc591295b2c640c63d9e606f7f7099a9cec` after independent
@@ -89,7 +113,7 @@ These are historical measurements with interpreted fixture callbacks and native
 JIT off, not new measurements of this ownership change. Full table rebuilds and
 nonempty matching remain measured bottlenecks for later work.
 
-Latest upstream package-lint still reports the two documented naming warnings.
+Latest upstream package-lint now reports the one documented main-name warning.
 The package remains experimental. GUI/emulator/multiplexer, physical macOS and
 multi-terminal validation and substantive real usage remain incomplete. Repeated
 bounded stress and hosted PTYs do not establish all display combinations or
@@ -164,6 +188,8 @@ dashboard. PR #7 added borrowed-window embedding over the same primitives.
   preserve repurposed-window cursors; bounded automatic resize synchronization.
 - [PR #27](https://github.com/vv111y/emacs-tui/pull/27): view cycling validates
   ownership before changing focus or revealing hidden panels.
+- [PR #28](https://github.com/vv111y/emacs-tui/pull/28): bulk projection marking
+  and inversion, hidden-mark retention and explicit graph batch commitment.
 
 API and runnable examples are in README.md. `make demo` explores an in-memory
 sample graph; `make async-demo` searches buffer snapshots. Marks are per view
@@ -185,10 +211,10 @@ streaming and disposal. The separate package job builds the candidate archive
 and clean-installs the same tar on 31.1 and the declared 28.1 floor.
 
 Package-lint at upstream commit `1865be780a16098f972fef50a52b21ca6ee04df9`
-was confirmed as the latest upstream main and rerun against the mark-consistency
-implementation on 2026-10-24. Its only findings are the two warnings
-that `emacs` is redundant in the main/layout package names; the table and tree modules
-are clean. This remains a packaging question, not an overall clean lint pass.
+was confirmed as the latest upstream main and rerun on 2026-10-24. With the
+layout helper metadata corrected, its only finding is that `emacs` is redundant
+in the main package name. All four helper modules are clean. The remaining name
+question prevents an overall clean lint claim; no warning is suppressed.
 The extracted local runtime disables native compiler trampoline generation
 because it has no configured native compiler toolchain.
 
