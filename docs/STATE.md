@@ -31,13 +31,21 @@ clean-installed the exact repository artifact on 31.1, but switching versions
 through the shared Nix profile failed with a package-file collision. The older
 install now uses a pinned profile-free Nix invocation; this correction still
 needs review and a passing CI run. The ordinary matrix
-also adds Linux 28.1, matching the declared API floor. All seven runtime jobs
-and the package job must pass; independent review and actual CI are pending.
+also adds Linux 28.1, matching the declared API floor.
+
+Corrected implementation `af195ba85a87e3f3ee0d9eee284811013ea9ab46` received
+independent agent approval. A repeat fixture build/install and negative probes
+verified rejection of wrong CI SHA/runtime, missing modules and checkout-path
+fallback. CI [40060507683](https://github.com/vv111y/emacs-tui/actions/runs/40060507683)
+passed all eight jobs: seven runtime jobs each with 218 ERT tests, compilation,
+checkdoc and six PTY scripts, plus real package-build and clean installation of
+the identical archive on 31.1 and 28.1. Package logs record source commit,
+artifact filename and SHA256. Final comments/documentation still require
+separate review and passing final-head CI before integration.
 This verifies recipe layout/build/install, not network fetching, a live MELPA
 archive, API stability or human review. See docs/PACKAGING.md.
 
-Active worker owns package recipe/runner/install smoke, CI/build integration,
-packaging documentation and this handoff through review and CI. Next: measured
+No other scope is claimed in this packaging PR during final-head validation. Next: measured
 input/display latency and allocations, broader display validation and API
 stability through real use. Public-history and human-review MELPA gates remain.
 
@@ -98,14 +106,15 @@ navigable. Query edits there may prune marks as its source results change.
 
 ## Validation
 
-Current evidence is recorded above. The suite covers persistent, embedded and
-ephemeral presentations, async cancellation/streaming, stable selection and
-marks, tables, editable inputs, callback failure rollback and preview position. The merged four-version CI suite runs strict package/example byte compilation,
-checkdoc and six real terminal smoke scripts, including maximize/restore
-through terminal resizes. ARM64 macOS 30.2 and 31.1 also passed that suite in the implementation CI above. Emacs 31.1 uses native TTY child frames in the ephemeral
-persistent and input scripts; earlier versions use ordinary windows. Embedded/table
-scripts use a borrowed window. Resize coverage is 120x40 -> 90x30 -> 140x45.
-A separate real `cat` subprocess test verifies streaming and process disposal.
+Current evidence is recorded above. Runtime CI covers Linux Emacs 28.1,
+28.2, 29.4, 30.2 and 31.1, plus ARM64 macOS 30.2 and 31.1. Each job runs ERT,
+strict compilation, checkdoc and six real terminal scripts. Emacs 31.1 uses
+native TTY child frames for ephemeral/persistent/input/tree interfaces on both
+platforms; earlier versions use windows. Embedded/table scripts borrow a
+window. Resize coverage is 120x40 -> 90x30 -> 140x45, including maximize/restore
+and explicit action-menu invocation. A real `cat` subprocess test covers
+streaming and disposal. The separate package job builds the candidate archive
+and clean-installs the same tar on 31.1 and the declared 28.1 floor.
 
 Package-lint at upstream commit `1865be780a16098f972fef50a52b21ca6ee04df9`
 was rerun against the current action implementation. Its only findings are the two warnings

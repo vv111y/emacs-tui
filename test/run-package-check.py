@@ -1,3 +1,8 @@
+# Copyright (C) 2026 Willy Rempel
+# Author: Willy Rempel <https://github.com/vv111y>
+# Assisted-by: Codex:gpt-6.1-sol-wm
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 """Build the real candidate recipe and test installation outside the checkout."""
 import hashlib
 import os
