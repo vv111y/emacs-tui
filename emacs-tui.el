@@ -58,7 +58,10 @@
 (cl-defstruct (emacs-tui--workspace (:constructor emacs-tui--make-workspace))
   views (focus 0) layout backend on-query on-commit origin origin-window
   origin-frame frame query-buffer root windows active origin-kill-hook geometry
-  provider debounce request provider-views on-close)
+  provider debounce request provider-views on-close host)
+
+(cl-defstruct (emacs-tui--host (:constructor emacs-tui--make-host))
+  window buffer point start hscroll vscroll)
 
 (cl-defstruct (emacs-tui--request (:constructor emacs-tui--make-request))
   session query timer cancel (active t))
@@ -853,17 +856,39 @@ use `emacs-tui-update'.  ON-CLOSE receives the closed session once and
 may release application resources.  Use `emacs-tui-live-p' to check a
 retained handle.  Close explicitly with `emacs-tui-close'.
 
-This entry point creates owned windows or a child frame; embedding in
-application-owned surfaces is not yet implemented."
+This entry point creates owned windows or a child frame.  To borrow an
+application-owned window for one panel, use `emacs-tui-embed'."
   (emacs-tui--create :views views :layout layout :backend backend
                      :provider provider :debounce debounce :on-close on-close))
 
+(cl-defun emacs-tui-embed (&key view (window (selected-window))
+                              provider (debounce 0.08) on-close)
+  "Display VIEW in application-owned WINDOW and return a session handle.
+WINDOW defaults to the selected window and becomes selected.  It must be
+live, non-minibuffer, non-dedicated and not already claimed by a TUI.
+The toolkit owns its new view buffer, but never deletes WINDOW or modifies
+its previous buffer.  Closing restores the previous buffer, point and scroll
+if WINDOW still displays the panel.  Host positions track intervening edits.
+A repurposed window is left alone; a deleted window closes the session.
+
+PROVIDER, DEBOUNCE and ON-CLOSE follow `emacs-tui-mount'.  Explicit actions
+keep the panel open.  This entry point embeds one list or text view; use
+separate sessions for independently owned panels."
+  (unless (and (window-live-p window) (not (window-minibuffer-p window))
+               (not (window-dedicated-p window))
+               (not (emacs-tui-live-p (window-parameter window 'emacs-tui-session)))
+               (not (emacs-tui-live-p
+                     (buffer-local-value 'emacs-tui--session (window-buffer window)))))
+    (user-error "Embedding requires a live, unclaimed, non-dedicated window"))
+  (emacs-tui--create :views (list view) :layout 'columns :host-window window
+                     :provider provider :debounce debounce :on-close on-close))
+
 (cl-defun emacs-tui--create (&key views layout backend on-query on-commit
-                                  provider debounce on-close ephemeral)
+                                  provider debounce on-close ephemeral host-window)
   "Create views and resources shared by both interface lifecycles.
 VIEWS, LAYOUT, BACKEND, ON-QUERY, ON-COMMIT, PROVIDER, DEBOUNCE and
 ON-CLOSE specify configuration.  EPHEMERAL enables query input and
-origin-buffer commit policy."
+origin-buffer commit policy.  HOST-WINDOW borrows an existing window."
   (unless (and (proper-list-p views) views
                (cl-every #'emacs-tui--view-p views))
     (error "VIEWS must be a nonempty list of emacs-tui-view descriptions"))
@@ -885,8 +910,10 @@ origin-buffer commit policy."
            :views (mapcar #'copy-emacs-tui--view views) :layout layout
            :on-query on-query :on-commit on-commit
            :provider provider :debounce debounce :on-close on-close
-           :origin (when ephemeral (copy-marker (point))) :origin-window (selected-window)
-           :origin-frame (selected-frame) :active t))
+           :origin (when ephemeral (copy-marker (point)))
+           :origin-window (or host-window (selected-window))
+           :origin-frame (if host-window (window-frame host-window) (selected-frame))
+           :active t))
          (query (when ephemeral (generate-new-buffer " *emacs-tui query*")))
          initialized)
     (setf (emacs-tui--workspace-query-buffer session) query)
@@ -910,7 +937,19 @@ origin-buffer commit policy."
               (add-hook 'kill-buffer-hook #'emacs-tui--buffer-killed nil t)
               (unless query
                 (add-hook 'post-command-hook #'emacs-tui--sync-view-focus nil t))))
-          (emacs-tui--make-surface session backend)
+          (if host-window
+              (let ((buffer (window-buffer host-window)))
+                (setf (emacs-tui--workspace-host session)
+                      (with-current-buffer buffer
+                        (emacs-tui--make-host
+                         :window host-window :buffer buffer
+                         :point (copy-marker (window-point host-window))
+                         :start (copy-marker (window-start host-window))
+                         :hscroll (window-hscroll host-window)
+                         :vscroll (window-vscroll host-window t)))
+                      (emacs-tui--workspace-root session) host-window
+                      (emacs-tui--workspace-backend session) 'embedded))
+            (emacs-tui--make-surface session backend))
           (emacs-tui--arrange session)
           (setf (emacs-tui--workspace-geometry session) (emacs-tui--geometry session))
           (push session emacs-tui--sessions)
@@ -944,6 +983,37 @@ origin-buffer commit policy."
       (setf (emacs-tui--workspace-frame session) nil)
       (emacs-tui-close session))))
 
+(defun emacs-tui--restore-host (session)
+  "Release SESSION's borrowed window and restore its untouched host state."
+  (when-let* ((host (emacs-tui--workspace-host session)))
+    (let ((window (emacs-tui--host-window host)))
+      (unwind-protect
+          (when (and (window-live-p window)
+                     (eq (window-parameter window 'emacs-tui-session) session))
+            (let ((owned (emacs-tui--owned-window-p session window)))
+              (set-window-parameter window 'emacs-tui-session nil)
+              (when owned
+                (let ((buffer (emacs-tui--host-buffer host))
+                      (dedicated (window-dedicated-p window)))
+                  (unwind-protect
+                      (progn
+                        (set-window-dedicated-p window nil)
+                        (if (buffer-live-p buffer)
+                            (progn
+                              (set-window-buffer window buffer)
+                              (set-window-point window (emacs-tui--host-point host))
+                              (set-window-start window (emacs-tui--host-start host) t)
+                              (set-window-hscroll window (emacs-tui--host-hscroll host))
+                              (set-window-vscroll window (emacs-tui--host-vscroll host) t))
+                          (set-window-buffer window (other-buffer (window-buffer window) t))))
+                    (when (window-live-p window)
+                      (set-window-dedicated-p window dedicated)))))))
+        (set-marker (emacs-tui--host-point host) nil)
+        (set-marker (emacs-tui--host-start host) nil)
+        (setf (emacs-tui--workspace-host session) nil
+              (emacs-tui--workspace-windows session)
+              (delq window (emacs-tui--workspace-windows session)))))))
+
 (defun emacs-tui-close (&optional session)
   "Close SESSION, discarding interface state and releasing owned resources.
 It is safe to close an already-closed session.  Source text and other
@@ -965,6 +1035,7 @@ windows are preserved."
 			   (emacs-tui--workspace-origin-kill-hook session) t)))
 	  (when (and owned-selection (window-live-p origin-window))
             (select-window origin-window))
+          (emacs-tui--restore-host session)
 	  (if (and (frame-live-p frame)
 		   (or (null (emacs-tui--workspace-windows session))
                        (cl-every (lambda (window)

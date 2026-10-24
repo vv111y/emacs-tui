@@ -2,36 +2,28 @@
 
 Updated 2026-10-23 (America/Toronto).
 
-## Ready for review
+## Active implementation
 
-[PR #6](https://github.com/vv111y/emacs-tui/pull/6) adds shared construction and
-disposal, queryless `emacs-tui-mount`, native view navigation, `emacs-tui-live-p`,
-and an `:on-close` callback for application resources. A persistent buffer and
-process dashboard demonstrates periodic refresh and actions that keep the UI
-open. Existing ephemeral behavior remains covered by its original regressions.
+PR #6 is merged at `0d181ea9c48af1a5df3bfd4e0404a130e326001f` after separate
+agent review of `a65432bfe04ef1aa91e8400efb817cb6923b4b32`. The reviewer reran
+106 ERT tests, compilation, checkdoc, both real Emacs 29.3 TTY scripts and
+50 additional lifecycle cycles without retained sessions or owned buffers.
+All four CI jobs passed in
+[run 40048314834](https://github.com/vv111y/emacs-tui/actions/runs/40048314834).
+This was agent review, not human/MELPA review.
 
-The owner merged scope clarification PR #5 at
-`040894331b38a6797ff006d5c2f7fbc7a710f11b`. PR #6 now targets main.
-The merged base tree exactly matches the previous scope branch, so integrating
-main into #6 changes no implementation files. The handoff records the new base;
-verify the resulting head and CI before integration. PR #6 still needs independent
-review; author testing does not satisfy that gate. Inspect the latest remote
-head before resuming changes.
+The next increment adds `emacs-tui-embed` for one panel in a borrowed application
+window, restoring the original buffer and tracked point/scroll on close. It
+preserves repurposed windows, supports async providers and explicit actions,
+and never deletes the borrowed host window. A buffer browser demonstrates it.
+A dedicated real TTY script checks keyboard actions, marks, resizing and host
+restoration. Region-level embedding is outside this increment.
 
-Local evidence for #6: 106 ERT tests, strict package/example compilation,
-checkdoc and both real Emacs 29.3 TTY smoke scripts pass. The new script tests
-native view focus, actions without closing, survival of launcher-buffer death,
-marks and resize, and explicit disposal. The additional regression covers a
-queryless mount from a four-row launcher window. Python harness compiles.
-
-Implementation commit `4a4449e31437de628895f4fc9e1ce7210d6e7d1a` passes
-106 ERT tests, strict compilation, checkdoc and both real TTY scripts on Emacs
-28.2, 29.4, 30.2 and 31.1 in
-[CI run 40047094457](https://github.com/vv111y/emacs-tui/actions/runs/40047094457).
-Emacs 31.1 exercised native TTY child frames in both scripts; earlier versions
-used ordinary windows. This handoff update changes documentation only; verify
-the latest head and CI when reviewing. PR #6 has no recorded independent review yet.
-Package-lint was rerun for #6 with only the same two package-name warnings.
+Active worker owns core, embed tests/example/smoke, Makefile, README and this
+handoff. Independent review and current-head CI are required before integration.
+Local validation passed 118 ERT tests, strict compilation, checkdoc and all
+three real TTY scripts on Emacs 29.3. Do not treat these author checks as
+independent review.
 
 ## Implementation and handoff
 
@@ -41,8 +33,8 @@ Scope clarification from the owner, 2026-10-23: build a general-purpose TUI
 toolkit for Emacs. The ephemeral XOB-style workflow is one supported application
 pattern. Persistent applications and embedded panels must not require query
 input, an origin marker, or commit-then-close. See docs/DESIGN.md and the new
-immediate priorities in ROADMAP.md. PR #6 implements the first persistent lifecycle; embedding remains planned.
-Check its live review and CI state before treating it as integrated.
+immediate priorities in ROADMAP.md. PR #6 merged the persistent lifecycle and dashboard. The current increment
+proves a borrowed-window embedding policy over the same primitives.
 
 - [PR #1](https://github.com/vv111y/emacs-tui/pull/1): merged foundation with
   editable temporary queries, independent list/text views, explicit selection
@@ -89,9 +81,7 @@ trampoline generation because it has no configured native compiler toolchain.
 
 ## Remaining work
 
-1. Independently review open PR #6. PR #5 was merged by the owner. The shared lifecycle
-   and persistent dashboard are implemented in #6, pending review and CI. Next
-   prove embedding with explicit ownership of host buffers/windows and add
+1. Review and integrate the borrowed-window embedding increment, then add
    application input/action composition. Preserve ephemeral behavior. Extend
    layouts, history, per-view input, maximize/restore and tables as real consumers
    require them. Avoid treating every preview as navigation.
