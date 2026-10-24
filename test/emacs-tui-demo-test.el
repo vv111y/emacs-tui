@@ -3,6 +3,7 @@
 ;; Copyright (C) 2026 Willy Rempel
 ;; Author: Willy Rempel <https://github.com/vv111y>
 ;; Assisted-by: Codex:GPT-6
+;; Assisted-by: Codex:gpt-6.1-sol-wm
 ;; SPDX-License-Identifier: GPL-3.0-or-later
 
 ;;; Commentary:
@@ -49,6 +50,23 @@
     (emacs-tui-next-item session)
     (should (equal (plist-get (emacs-tui-current-item session) :id) "lisp"))
     (should (equal (with-current-buffer source (buffer-string)) "Origin:"))))
+
+(ert-deftest emacs-tui-demo-bulk-marks-commit-filtered-graph-results-explicitly ()
+  (emacs-tui-demo-test--workspace
+    (execute-kbd-macro (kbd "E m a c s C-c *"))
+    (should (equal "Emacs" (emacs-tui-query session)))
+    (should (equal '("emacs" "lisp")
+                   (mapcar (lambda (item) (plist-get item :id))
+                           (emacs-tui-marked-items session 'nodes))))
+    (should (equal "RET to inspect a node"
+                   (emacs-tui--view-text (emacs-tui--resolve-view session 'preview))))
+    (execute-kbd-macro (kbd "C-c C-t"))
+    (should-not (emacs-tui-marked-items session 'nodes))
+    (execute-kbd-macro (kbd "C-c * RET"))
+    (should (equal "Origin:" (with-current-buffer source (buffer-string))))
+    (emacs-tui-commit session)
+    (should (equal "Origin:[[demo:emacs][Emacs]]\n[[demo:lisp][Emacs Lisp]]"
+                   (with-current-buffer source (buffer-string))))))
 
 (provide 'emacs-tui-demo-test)
 ;;; emacs-tui-demo-test.el ends here

@@ -374,5 +374,123 @@
       (emacs-tui-next-item session)
       (should (equal "beta" (emacs-tui-current-item session))))))
 
+(ert-deftest emacs-tui-mark-bulk-projection-retains-hidden-marks-and-selection ()
+  (emacs-tui-mark-test--workspace
+      (:views (list (emacs-tui-view :id 'a :multi-select t
+                                    :items '("alpha" "beta" "gamma"))))
+    (emacs-tui-toggle-mark session)
+    (emacs-tui-set-query session 'a "beta")
+    (should-not (emacs-tui-mark-all session))
+    (should (equal '("alpha" "beta") (emacs-tui-marked-items session)))
+    (should (equal "beta" (emacs-tui-current-item session)))
+    (should-not (emacs-tui-invert-marks session))
+    (should (equal '("alpha") (emacs-tui-marked-items session)))
+    (should (equal "beta" (emacs-tui-query session 'a)))
+    (emacs-tui-set-query session 'a "nothing")
+    (emacs-tui-mark-all session)
+    (emacs-tui-invert-marks session)
+    (should (equal '("alpha") (emacs-tui-marked-items session)))
+    (emacs-tui-set-query session 'a "")
+    (emacs-tui-invert-marks session)
+    (should (equal '("beta" "gamma") (emacs-tui-marked-items session)))
+    (emacs-tui-mark-all session)
+    (emacs-tui-mark-all session)
+    (should (equal '("alpha" "beta" "gamma") (emacs-tui-marked-items session)))))
+
+(ert-deftest emacs-tui-mark-bulk-hidden-named-panel-does-not-take-focus ()
+  (emacs-tui-mark-test--workspace
+      (:views (list (emacs-tui-view :id 'a :items '("ordinary"))
+                    (emacs-tui-view :id 'b :multi-select t :items '("one" "two"))))
+    (emacs-tui-toggle-maximize session)
+    (let ((window (selected-window)))
+      (emacs-tui-mark-all session 'b)
+      (should (equal '("one" "two") (emacs-tui-marked-items session 'b)))
+      (emacs-tui-invert-marks session 'b)
+      (should-not (emacs-tui-marked-items session 'b))
+      (should-not (emacs-tui-marked-items session 'a))
+      (should (eq 'a (emacs-tui-current-view session)))
+      (should (eq window (selected-window)))
+      (should-not (emacs-tui--view-window (emacs-tui--resolve-view session 'b))))))
+
+(ert-deftest emacs-tui-mark-bulk-tree-preserves-collapsed-descendant-marks ()
+  (let* ((leaf (list :id 'leaf :label "Leaf"))
+         (root (list :id 'root :label "Root" :children (list leaf))))
+    (emacs-tui-mark-test--workspace
+        (:views (list (emacs-tui-tree :id 'tree :items (list root) :multi-select t)))
+      (emacs-tui-tree-expand session)
+      (emacs-tui-set-selection session 'tree 'leaf)
+      (emacs-tui-toggle-mark session)
+      (emacs-tui-set-selection session 'tree 'root)
+      (emacs-tui-tree-collapse session)
+      (emacs-tui-mark-all session)
+      (should (equal (list root leaf) (emacs-tui-marked-items session)))
+      (emacs-tui-invert-marks session)
+      (should (equal (list leaf) (emacs-tui-marked-items session)))
+      (emacs-tui-tree-expand session)
+      (emacs-tui-invert-marks session)
+      (should (equal (list root) (emacs-tui-marked-items session))))))
+
+(ert-deftest emacs-tui-mark-bulk-projects-table-once-without-actions ()
+  (let ((projections 0) (actions 0)
+        (items (cl-loop for i below 200 collect (list :id i :label (format "Row %03d" i) :rank i))))
+    (emacs-tui-mark-test--workspace
+        (:views (list (emacs-tui-view
+                       :id 'a :multi-select t :items items
+                       :columns (list (emacs-tui-column
+                                       :id 'rank :value
+                                       (lambda (item) (cl-incf projections) (plist-get item :rank))))
+                       :on-select (lambda (&rest _) (cl-incf actions))))
+         :on-commit (lambda (&rest _) (cl-incf actions)))
+      (emacs-tui-sort session 'a 'rank t)
+      (emacs-tui-set-selection session 'a 99)
+      (dolist (command '(emacs-tui-mark-all emacs-tui-invert-marks))
+        (setq projections 0)
+        (funcall command session)
+        (should (= 200 projections))
+        (should (= 99 (plist-get (emacs-tui-current-item session) :id))))
+      (emacs-tui-mark-all session)
+      (should (equal items (emacs-tui-marked-items session)))
+      (should (eq (car items) (car (emacs-tui-marked-items session))))
+      (should (zerop actions))
+      (should (equal "origin" (with-current-buffer source (buffer-string)))))))
+
+(ert-deftest emacs-tui-mark-bulk-projection-errors-preserve-state-and-recover ()
+  (let (fail)
+    (emacs-tui-mark-test--workspace
+        (:views (list (emacs-tui-view
+                       :id 'a :multi-select t :items '("alpha" "beta")
+                       :columns (list (emacs-tui-column
+                                       :id 'name :value
+                                       (lambda (item) (if fail (error "Projection failed") item)))))))
+      (dolist (command '(emacs-tui-mark-all emacs-tui-invert-marks))
+        (let ((before (emacs-tui-mark-test--snapshot session)))
+          (setq fail t)
+          (should-error (funcall command session))
+          (should (equal before (emacs-tui-mark-test--snapshot session)))
+          (setq fail nil)
+          (funcall command session)))
+      (should-not (emacs-tui-marked-items session)))))
+
+(ert-deftest emacs-tui-mark-bulk-validates-opt-in-and-view-id ()
+  (emacs-tui-mark-test--workspace
+      (:views (list (emacs-tui-view :id 'ordinary :items '("alpha"))
+                    (emacs-tui-view :id 'text :text "Preview" :multi-select t)))
+    (dolist (command '(emacs-tui-mark-all emacs-tui-invert-marks))
+      (should-error (funcall command session 'ordinary) :type 'user-error)
+      (should-error (funcall command session 'text) :type 'user-error)
+      (should-error (funcall command session 'missing))
+      (should (eq 'ordinary (emacs-tui-current-view session))))))
+
+(ert-deftest emacs-tui-mark-bulk-native-bindings-preserve-query-editing ()
+  (emacs-tui-mark-test--workspace
+      (:views (list (emacs-tui-view :id 'a :multi-select t :items '("alpha" "beta"))))
+    (execute-kbd-macro (kbd "a C-c *"))
+    (should (equal "a" (emacs-tui-query session)))
+    (should (equal '("alpha" "beta") (emacs-tui-marked-items session)))
+    (execute-kbd-macro (kbd "C-c C-t"))
+    (should-not (emacs-tui-marked-items session))
+    (execute-kbd-macro (kbd "t *"))
+    (should (equal "at*" (emacs-tui-query session)))))
+
 (provide 'emacs-tui-mark-test)
 ;;; emacs-tui-mark-test.el ends here
