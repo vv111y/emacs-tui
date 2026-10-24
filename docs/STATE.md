@@ -4,50 +4,38 @@ Updated 2026-10-24 (America/Toronto).
 
 ## Active implementation
 
-PR #18 merged at `ee7066847518c36c639b76ad6d9bac5ac977fdb1` after independent
-review and final-head CI [40065371481](https://github.com/vv111y/emacs-tui/actions/runs/40065371481).
-All eight jobs passed. Seven runtime jobs each ran 218 ERT tests, strict
-compilation/checkdoc, six PTY scripts and five-workload benchmark protocol
-smoke; the package job built/clean-installed on 31.1 and 28.1.
+PR #19 merged at `2215a195153515cb55f8c02cf5397c814bab9275` after independent
+implementation/evidence review and all eight final-head jobs in
+[40066062902](https://github.com/vv111y/emacs-tui/actions/runs/40066062902).
+Seven runtime jobs passed 228 ERT tests, strict compilation/checkdoc, six PTY
+scripts and benchmark smoke; package build/clean-install passed on 31.1/28.1.
 
-Current work removes full row reconstruction from selection navigation. Full
-renders prepare item bounds, then a buffer-local overlay supplies selection
-highlighting without altering application text properties. Navigation reuses
-valid bounds and updates native point/window point. External character edits
-invalidate the cache; fallback rendering stages selection before committing.
-Full source/query/sort/mark/tree updates still prepare and replace contents.
-Overlay positions are restored if an atomic buffer edit fails.
+PR #20 is reviewed but remains a draft. Its empty-query optimization and paired
+source-mode data passed independent review and local 229 ERT/compile/checkdoc/6PTY.
+Two macOS 31.1 jobs repeatedly stalled in the Python benchmark after compilation,
+while all functional/PTY checks and other platform jobs passed. Earlier stalled
+job 120790991646 produced no driver output between 05:32:59Z and cancellation
+05:39:06Z. The current run 40066995736 remains an integration blocker. The exact
+blocked call is unknown; a missing acknowledgement should already fail in 30s.
+Never merge that PR on seven passing jobs or treat cancellation as a pass.
 
-Local Emacs 29.3 passes 228 ERT tests, strict compilation, checkdoc and six
-PTY scripts. Ten new regressions cover unchanged content/properties/hooks,
-Unicode/multiline rows, projection-free table navigation, query/sort/source
-replacement, external edits, preview transitions/disposal, tree marks and
-failed-update rollback. Independent review found that a list-to-identical-text
-transition retained
-its highlight. Successful text renders now retire list state even when no
-buffer replacement is needed; a regression retains preview point/tick while
-checking the overlay/cache are removed. Review also found narrowing could hide
-a newly selected row; cached navigation now widens, matching full-list rendering,
-with a regression asserting actual buffer/window point and unchanged characters.
-Corrected implementation `aefc7aa1f152e3a2d4124d04f989b20672c9044e` received
-independent agent approval and a separate repeat of all local checks. Extra
-probes cover ephemeral query point, nonlocal rollback and hidden-view updates.
+Current work hardens the benchmark before rebasing/revalidating PR #20. Terminal
+attachment runs in a fresh Python interpreter with a new session, avoiding
+Python preexec callbacks. The whole driver has a stack-dumping deadline and
+hard watchdog; metadata commands and cleanup waits are bounded. Flushed stage
+logs identify launch, workload and metadata progress. CI also bounds the smoke
+step and runtime job. The library API/implementation is unchanged from main.
+Local five-workload native-input smoke, strict fixture compilation and Python
+syntax checks passed. A controlled stalled child failed in 0.539s with a stack dump, no artifact and
+no surviving child. Ignoring SIGALRM exercised the hard watchdog, which dumped
+and exited in 10.132s. Independent review and all current-head CI remain required.
 
-A clean interpreted-source navigation pair is published under
-bench/results/2026-10-24-navigation. Each of four workloads has 100 measured
-samples plus 10 warmups; raw CSVs retain all 440 records per run, environment,
-source/benchmark hashes, GC/allocation counters and p50/p95/p99. Files were
-compared with remote before/after commits. On this Emacs 29.3/Linux host,
-10,000-row table PTY-output p50 changed from 1465.987ms to 0.544ms; p95/p99
-changed from 1622.462/1683.763ms to 0.826/1.194ms. Median immediate command cons
-cells changed from 4,831,043 to 232 (including instrumentation). This is one
-interpreted-source pair, not a compiled/native-code, child-frame or physical
-paint claim. Source/query updates still render full contents. Methodology and
-limits are in docs/PERFORMANCE.md. Artifact/doc review and passing final-head
-CI remain integration gates.
-
-Next: broaden stress/display validation and address the next measured cost. Public-history,
-human-review and actual MELPA acceptance remain external gates.
+The navigation pair remains under bench/results/2026-10-24-navigation and is
+limited interpreted-source evidence. Bytecompiled-library benchmark mode is
+prepared separately but will follow this CI reliability fix. Next: verify the
+new macOS checks, integrate this fix, rebase/review/retest PR #20 using expected-head
+leases, then finish bytecode measurements and resource/display stress work.
+Public-history, human-review and actual MELPA acceptance remain external gates.
 
 ## Implementation and handoff
 

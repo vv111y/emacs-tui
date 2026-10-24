@@ -6,7 +6,9 @@ Assisted-by: Codex:gpt-6.1-sol-wm
 SPDX-License-Identifier: GPL-3.0-or-later
 """
 import argparse
+import contextlib
 import errno
+import faulthandler
 import fcntl
 import hashlib
 import json
@@ -20,6 +22,7 @@ import select
 import signal
 import struct
 import subprocess
+import sys
 import tempfile
 import termios
 import time
@@ -27,11 +30,33 @@ import time
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 MARKER = re.compile(rb"\x1b\]777;TUIBENCH;(ready|sample|done);(\d+);(\d+)\x07")
 KINDS = ("navigate-list", "navigate-table", "filter-list", "filter-table", "provider-list")
+LAUNCHER = """import fcntl, os, sys, termios
+fcntl.ioctl(0, termios.TIOCSCTTY, 0)
+os.execvp(sys.argv[1], sys.argv[1:])
+"""
 
 
-def attach_terminal():
-    os.setsid()
-    fcntl.ioctl(0, termios.TIOCSCTTY, 0)
+class BenchmarkTimeout(BaseException):
+    """Do not let metadata helpers swallow the whole-run deadline as OSError."""
+
+
+@contextlib.contextmanager
+def wall_timeout(seconds):
+    """Cover startup, measurements, metadata and cleanup, with a stack dump."""
+    def expired(_signum, _frame):
+        faulthandler.dump_traceback()
+        raise BenchmarkTimeout(f"benchmark exceeded {seconds:g}s wall-clock deadline")
+    previous = signal.signal(signal.SIGALRM, expired)
+    # A C watchdog still dumps/exits if Python cannot dispatch SIGALRM.
+    # Allow normal process-group cleanup five seconds before this hard fallback.
+    faulthandler.dump_traceback_later(seconds + 10, exit=True)
+    signal.setitimer(signal.ITIMER_REAL, seconds)
+    try:
+        yield
+    finally:
+        signal.setitimer(signal.ITIMER_REAL, 0)
+        faulthandler.cancel_dump_traceback_later()
+        signal.signal(signal.SIGALRM, previous)
 
 
 def quantiles(values):
@@ -46,12 +71,12 @@ def source_identity():
     hashes = {str(p.relative_to(ROOT)): hashlib.sha256(p.read_bytes()).hexdigest() for p in files}
     try:
         subprocess.run(["git", "ls-files", "--error-unmatch", *hashes], cwd=ROOT,
-                       check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                       check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=10)
         revision = subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=ROOT,
-                                           text=True).strip()
+                                           text=True, timeout=10).strip()
         dirty = subprocess.run(["git", "diff", "--quiet", "HEAD", "--", *hashes],
-                               cwd=ROOT).returncode != 0
-    except (subprocess.CalledProcessError, FileNotFoundError):
+                               cwd=ROOT, timeout=10).returncode != 0
+    except (subprocess.CalledProcessError, FileNotFoundError, subprocess.TimeoutExpired):
         revision, dirty = None, None
     return {"git_revision": revision, "source_dirty": dirty, "sha256": hashes}
 
@@ -64,7 +89,11 @@ def cpu_model():
             if line.startswith("model name"):
                 return line.split(":", 1)[1].strip()
     if platform.system() == "Darwin":
-        return subprocess.check_output(["sysctl", "-n", "machdep.cpu.brand_string"], text=True).strip()
+        try:
+            return subprocess.check_output(["sysctl", "-n", "machdep.cpu.brand_string"],
+                                           text=True, timeout=10).strip()
+        except (subprocess.CalledProcessError, FileNotFoundError, subprocess.TimeoutExpired):
+            return None
     return platform.processor() or None
 
 
@@ -73,24 +102,15 @@ def metrics(records):
             if key.endswith("_ms") or key in ("cons_cells", "string_chars", "gc_count")}
 
 
-def main():
-    parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--sizes", type=int, nargs="+", default=[100, 1000, 10000])
-    parser.add_argument("--samples", type=int, default=100)
-    parser.add_argument("--warmup", type=int, default=10)
-    parser.add_argument("--kinds", nargs="+", choices=KINDS, default=list(KINDS))
-    parser.add_argument("--output", type=pathlib.Path, required=True)
-    parser.add_argument("--label", default="")
-    args = parser.parse_args()
-    if min(args.sizes) < 10 or args.samples < 1 or args.warmup < 0:
-        parser.error("sizes must be >=10, samples >=1 and warmup >=0")
+def run(args):
     cases = [{"kind": kind, "size": size} for size in args.sizes for kind in args.kinds]
     command = [os.environ.get("EMACS", "emacs"), "-Q", "-nw", "-L", str(ROOT),
                "-l", str(ROOT / "bench/interactive.el")]
+    print("benchmark: collecting source identity", flush=True)
     identity = source_identity()
     # Interpret sources consistently: stale bytecode must never silently change a run.
     if list(ROOT.glob("emacs-tui*.elc")):
-        parser.error("remove library .elc files first (make clean); fixture loads source")
+        raise RuntimeError("remove library .elc files first (make clean); fixture loads source")
     with tempfile.TemporaryDirectory(prefix="emacs-tui-bench-") as directory:
         report = pathlib.Path(directory) / "report.json"
         master, slave = pty.openpty()
@@ -98,10 +118,19 @@ def main():
         env = dict(os.environ, TERM="xterm-256color", EMACS_TUI_BENCH_REPORT=str(report),
                    EMACS_TUI_BENCH_CASES=json.dumps(cases))
         env.pop("EMACSLOADPATH", None)
-        process = subprocess.Popen(command, cwd=directory, env=env,
-                                   stdin=slave, stdout=slave, stderr=slave,
-                                   preexec_fn=attach_terminal)
-        os.close(slave)
+        print("benchmark: starting PTY subprocess", flush=True)
+        # Run terminal attachment in a fresh interpreter, never in preexec_fn.
+        # This also lets Popen return a PID before any Python launcher work.
+        try:
+            process = subprocess.Popen([sys.executable, "-c", LAUNCHER, *command],
+                                       cwd=directory, env=env, stdin=slave,
+                                       stdout=slave, stderr=slave, start_new_session=True)
+        except BaseException:
+            os.close(master)
+            raise
+        finally:
+            os.close(slave)
+        print(f"benchmark: subprocess started pid={process.pid}", flush=True)
         pending = bytearray()
         roundtrips = []
 
@@ -134,6 +163,8 @@ def main():
         try:
             for index, case in enumerate(cases):
                 receive("ready", index, 0)
+                print(f'benchmark: ready {index + 1}/{len(cases)} {case["kind"]} {case["size"]} rows',
+                      flush=True)
                 for sequence in range(args.warmup + args.samples):
                     navigation = case["kind"].startswith("navigate-")
                     key = b"n" if navigation else (
@@ -149,6 +180,7 @@ def main():
             receive("done", len(cases), 0)
             if process.wait(timeout=30) != 0:
                 raise RuntimeError(report.read_text() if report.exists() else "Emacs failed")
+            print("benchmark: collecting report metadata", flush=True)
             result = json.loads(report.read_text())
             records = result.pop("records")
             if len(records) != len(roundtrips):
@@ -166,6 +198,7 @@ def main():
                     by_command.append({"command": name, "samples": len(subset), "metrics": metrics(subset)})
                 summaries.append(dict(case, metrics=metrics(measured), by_command=by_command))
             result.update(schema=1, label=args.label, source=identity, cases=cases,
+                          wall_timeout_s=args.timeout, pty_launcher="fresh-python-session",
                           command=command, samples=args.samples, warmup=args.warmup,
                           recorded_at_utc=time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
                           host={"system": platform.platform(), "machine": platform.machine(),
@@ -181,10 +214,34 @@ def main():
                 print(f'{summary["kind"]:16} {summary["size"]:6} rows: '
                       f'PTY ms p50={p["p50"]:.3f} p95={p["p95"]:.3f} p99={p["p99"]:.3f}')
         finally:
-            if process.poll() is None:
-                os.killpg(process.pid, signal.SIGKILL)
-                process.wait()
-            os.close(master)
+            try:
+                if process.poll() is None:
+                    try:
+                        os.killpg(process.pid, signal.SIGKILL)
+                    except ProcessLookupError:
+                        process.kill()
+                    process.wait(timeout=5)
+            finally:
+                os.close(master)
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--sizes", type=int, nargs="+", default=[100, 1000, 10000])
+    parser.add_argument("--samples", type=int, default=100)
+    parser.add_argument("--warmup", type=int, default=10)
+    parser.add_argument("--kinds", nargs="+", choices=KINDS, default=list(KINDS))
+    parser.add_argument("--output", type=pathlib.Path, required=True)
+    parser.add_argument("--label", default="")
+    parser.add_argument("--timeout", type=float, default=1800,
+                        help="whole-run seconds, including startup and metadata (default: 1800)")
+    args = parser.parse_args()
+    if min(args.sizes) < 10 or args.samples < 1 or args.warmup < 0:
+        parser.error("sizes must be >=10, samples >=1 and warmup >=0")
+    if not math.isfinite(args.timeout) or args.timeout <= 0:
+        parser.error("timeout must be finite and positive")
+    with wall_timeout(args.timeout):
+        run(args)
 
 
 if __name__ == "__main__":

@@ -12,6 +12,7 @@ jobs:
   check:
     name: check (${{ matrix.os }}, ${{ matrix.emacs }})
     runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
     strategy:
       fail-fast: false
       matrix:
@@ -37,6 +38,7 @@ jobs:
       - run: make check
       - run: make tty-smoke
       - name: Validate benchmark protocol (no timing threshold)
+        timeout-minutes: 5
         run: make clean benchmark-smoke
   package:
     name: package (build 31.1, install 31.1/28.1)
