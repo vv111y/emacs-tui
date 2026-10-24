@@ -4,6 +4,18 @@ Updated 2026-10-24 (America/Toronto).
 
 ## Active implementation
 
+PR #25's mark-consistency implementation `dd4e3789a7a2295d7cfb0578f9de7cc1c6e0f991`
+passed independent review and all eight jobs in
+[40072967260](https://github.com/vv111y/emacs-tui/actions/runs/40072967260).
+The final checkpoint changes documentation only; integration still requires
+passing checks on that final head. Runtime jobs passed 245 ERT, strict
+compilation/checkdoc, seven PTY scripts, three Python regressions and all five
+benchmark workloads in both source and fresh-bytecode modes. The recipe built
+and its archive clean-installed on 31.1 and 28.1. Independent reviewer probes
+confirmed old-code regression failures, isolated mark tables, hidden-panel
+clearing, header/focus preservation and insertion rollback with properties and
+selection overlay bounds retained.
+
 PR #24 merged at `38e7bde0b8d928926a3c20f950425c1ed7639e16` after independent
 review and all eight final-head CI jobs in
 [40072584963](https://github.com/vv111y/emacs-tui/actions/runs/40072584963).
@@ -29,7 +41,7 @@ This is one configuration with interpreted fixture callbacks and native JIT off;
 GUI/emulator paint and native compilation remain unmeasured. Full table rebuilds
 and nonempty matching remain candidates for later measured work.
 
-Current work fixes a reproduced mark/display consistency bug: toggling or
+PR #25 fixes a reproduced mark/display consistency bug: toggling or
 clearing marks mutated the live model before application table projection or
 native buffer editing succeeded. A projection/buffer-hook error left action
 targets different from visible indicators. Mark operations now stage a copied
@@ -41,8 +53,9 @@ Three new regressions failed against the prior implementation and pass with
 the fix: repeated toggle-on/off projection failures, clear failure with hidden
 marks, and after-change hook failures inside native atomic buffer edits. Each
 also verifies recovery. Local 245 ERT, strict compilation/checkdoc and seven
-PTY scripts passed on Emacs 29.3/Linux. Independent review and passing current-head CI remain
-required. Next: consumer-driven capabilities and broader display validation.
+PTY scripts, three Python regressions and both benchmark modes passed on
+Emacs 29.3/Linux. Next: consumer-driven capabilities and broader display
+validation, including actual GUI/emulator/multiplexer and multi-terminal use.
 The package remains experimental; public maintenance and human-review gates
 remain. Repeated bounded resource stress does not establish every GUI, terminal
 emulator, multi-terminal topology or long-term usage combination.
@@ -110,6 +123,8 @@ dashboard. PR #7 added borrowed-window embedding over the same primitives.
   projected selection APIs, with dashboard process-buffer inspection.
 - [PR #24](https://github.com/vv111y/emacs-tui/pull/24): repeated batch/native
   terminal ownership stress, cancellation and live-session isolation.
+- [PR #25](https://github.com/vv111y/emacs-tui/pull/25): mark targets and
+  indicators remain consistent after projection or native editing failures.
 
 API and runnable examples are in README.md. `make demo` explores an in-memory
 sample graph; `make async-demo` searches buffer snapshots. Marks are per view
@@ -131,7 +146,8 @@ streaming and disposal. The separate package job builds the candidate archive
 and clean-installs the same tar on 31.1 and the declared 28.1 floor.
 
 Package-lint at upstream commit `1865be780a16098f972fef50a52b21ca6ee04df9`
-was rerun against the current action implementation. Its only findings are the two warnings
+was confirmed as the latest upstream main and rerun against the mark-consistency
+implementation on 2026-10-24. Its only findings are the two warnings
 that `emacs` is redundant in the main/layout package names; the table and tree modules
 are clean. This remains a packaging question, not an overall clean lint pass.
 The extracted local runtime disables native compiler trampoline generation
@@ -158,7 +174,9 @@ because it has no configured native compiler toolchain.
 
 MELPA guidance was rechecked on 2026-10-24: public maintenance of at least one
 month and human review expectations remain. Earliest known time eligibility is
-approximately 2026-11-23, not a promised completion date. Autonomous reviews do
+approximately 2026-11-23, not a promised completion date. The upstream recipe
+path `recipes/emacs-tui` was absent on this check; recheck availability before
+submission. docs/MELPA.md records the exact policy file hashes. Autonomous reviews do
 not satisfy the human-review expectation. See docs/MELPA.md for source links;
 never claim acceptance from a submission alone.
 
