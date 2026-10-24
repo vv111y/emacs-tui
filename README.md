@@ -632,6 +632,22 @@ query/marks, maximize/restore, both resizes and explicit selection commitment.
 These checks are not a visual
 quality or performance benchmark.
 
+To diagnose asynchronous resize ordering, run an opt-in fault probe:
+
+```sh
+EMACS_TUI_REFLOW_FIXTURE=test/tty-input-smoke.el EMACS_TUI_REFLOW_FAULT=delay \
+  python3 test/run-tty-smoke.py test/tty-reflow-probe.el
+```
+
+The delayed automatic hook must still pass both resizes. Changing the fault to
+`disabled` must exit unsuccessfully at the fixture's original polling deadline;
+it is a diagnostic failure, not a passing smoke scenario. Both modes preserve
+the fixture's assertions and never force a refresh. Use the same entry point
+with the ephemeral, embedded, persistent, table, input, tree or graph fixture.
+`make tty-smoke` also checks delayed success and the specific bounded failure
+for input and tree scenarios. An unrelated error or a broken fixture is rejected,
+so a generic unsuccessful exit cannot pass the negative check.
+
 CI targets Emacs 28.1, 28.2, 29.4, 30.2 and 31.1 on Linux, plus 30.2 and 31.1
 on hosted macOS, with pinned actions. Every runtime-matrix job runs the complete checks and
 real terminal scripts; runtime identity and backend results are logged.

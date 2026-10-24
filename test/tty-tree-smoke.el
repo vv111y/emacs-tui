@@ -40,6 +40,9 @@
         (redisplay t)
         (when (and (= (frame-width parent) width)
                    (<= (- height 2) (frame-height parent) height)
+                   ;; Wait for the automatic hook, within the existing bound.
+                   (equal (emacs-tui--workspace-geometry session)
+                          (emacs-tui--geometry session))
                    (or (not child)
                        (and (< (frame-width child) width) (< (frame-height child) height)
                             (or (= phase 1) (> (frame-width child) emacs-tui-test--tree-small-width)))))
