@@ -53,7 +53,7 @@
 
 (cl-defstruct (emacs-tui--view (:constructor emacs-tui--make-view))
   id title items visible-items (selected 0) text on-select buffer window
-  multi-select marks)
+  multi-select marks keymap)
 
 (cl-defstruct (emacs-tui--workspace (:constructor emacs-tui--make-workspace))
   views (focus 0) layout backend on-query on-commit origin origin-window
@@ -138,7 +138,7 @@
           (puthash id t identities)))))
   items)
 
-(cl-defun emacs-tui-view (&key id title items text on-select multi-select)
+(cl-defun emacs-tui-view (&key id title items text on-select multi-select keymap)
   "Describe a list or text view.
 ID is a unique symbol or string.  TITLE defaults to ID.  ITEMS is a list
 of strings or plists with :label, optional :id, :value and :annotation.
@@ -149,16 +149,20 @@ their non-nil :id or otherwise the entire plist.  Use stable :id values
 to retain marks when labels or payloads change.  Text previews cannot
 be marked.
 ON-SELECT is called with the workspace and selected item; it need not
-close the workspace.  View descriptions are copied when opened."
+close the workspace.  KEYMAP optionally overrides application and default
+view bindings.  Maps are composed without mutation and remain live references.
+View descriptions are copied when opened."
   (unless (and id (or (symbolp id) (stringp id)))
     (error "View ID must be a non-nil symbol or string"))
   (unless (or (null text) (stringp text)) (error "TEXT must be a string"))
   (unless (or (null on-select) (functionp on-select))
     (error "ON-SELECT must be a function"))
+  (unless (or (null keymap) (keymapp keymap))
+    (error "KEYMAP must be a keymap or nil"))
   (emacs-tui--make-view :id id :title (or title (format "%s" id))
                         :items (emacs-tui--validate-items items multi-select)
                         :visible-items items :text text :on-select on-select
-                        :multi-select multi-select))
+                        :multi-select multi-select :keymap keymap))
 
 (defun emacs-tui--require-session (session)
   "Return live SESSION, defaulting to the current buffer's workspace."
@@ -169,6 +173,12 @@ close the workspace.  View descriptions are copied when opened."
       (user-error "No active emacs-tui workspace"))
     (when inferred (emacs-tui--sync-view-focus))
     session))
+
+(defun emacs-tui-current-session ()
+  "Return the live session associated with the current TUI buffer.
+Signal a user error outside a live interface.  Application keymap commands
+can pass this handle to `emacs-tui-update' and other explicit session APIs."
+  (emacs-tui--require-session nil))
 
 (defun emacs-tui-live-p (session)
   "Return non-nil if SESSION is a live interface handle."
@@ -805,7 +815,7 @@ No application provider or commit callback is invoked."
            (emacs-tui-close session)))))))
 
 (cl-defun emacs-tui-open (&key views (layout 'columns) (backend 'auto)
-                               on-query on-commit provider (debounce 0.08) on-close)
+                               on-query on-commit provider (debounce 0.08) on-close keymap)
   "Open an ephemeral workspace and return its session handle.
 VIEWS is a nonempty list of `emacs-tui-view' descriptions.  LAYOUT is
 `columns', `rows' or `grid'.  BACKEND is `auto', `windows' or
@@ -831,6 +841,10 @@ the request.  Obsolete callbacks are ignored after query changes or
 session close.  Views previously published by the provider are cleared
 on a new query; untouched static views remain available.
 
+KEYMAP optionally adds application commands in view buffers, leaving query
+editing untouched.  View-specific maps take precedence over KEYMAP, which
+precedes the default view map.  Maps are referenced without mutation.
+
 ON-CLOSE receives the closed session once, including initialization failures
 after allocation, and may release application-owned timers or resources.
 
@@ -838,11 +852,11 @@ The query is editable scratch text; the source buffer and its point
 are not modified by opening, filtering, selecting or cancelling."
   (emacs-tui--create :views views :layout layout :backend backend
                      :on-query on-query :on-commit on-commit
-                     :provider provider :debounce debounce :on-close on-close
+                     :provider provider :debounce debounce :on-close on-close :keymap keymap
                      :ephemeral t))
 
 (cl-defun emacs-tui-mount (&key views (layout 'columns) (backend 'windows)
-                                provider (debounce 0.08) on-close)
+                                provider (debounce 0.08) on-close keymap)
   "Mount a persistent interface and return its session handle.
 VIEWS, LAYOUT and BACKEND have the same meaning as in `emacs-tui-open'.
 The interface owns its surface and view buffers, but has no query
@@ -854,15 +868,16 @@ PROVIDER optionally starts asynchronous work with the same contract as
 `emacs-tui-open', using an empty query after DEBOUNCE seconds.  Updates
 use `emacs-tui-update'.  ON-CLOSE receives the closed session once and
 may release application resources.  Use `emacs-tui-live-p' to check a
-retained handle.  Close explicitly with `emacs-tui-close'.
+retained handle.  Close explicitly with `emacs-tui-close'.  KEYMAP supplies
+application view bindings as in `emacs-tui-open'.
 
 This entry point creates owned windows or a child frame.  To borrow an
 application-owned window for one panel, use `emacs-tui-embed'."
   (emacs-tui--create :views views :layout layout :backend backend
-                     :provider provider :debounce debounce :on-close on-close))
+                     :provider provider :debounce debounce :on-close on-close :keymap keymap))
 
 (cl-defun emacs-tui-embed (&key view (window (selected-window))
-                              provider (debounce 0.08) on-close)
+                              provider (debounce 0.08) on-close keymap)
   "Display VIEW in application-owned WINDOW and return a session handle.
 WINDOW defaults to the selected window and becomes selected.  It must be
 live, non-minibuffer, non-dedicated and not already claimed by a TUI.
@@ -871,8 +886,9 @@ its previous buffer.  Closing restores the previous buffer, point and scroll
 if WINDOW still displays the panel.  Host positions track intervening edits.
 A repurposed window is left alone; a deleted window closes the session.
 
-PROVIDER, DEBOUNCE and ON-CLOSE follow `emacs-tui-mount'.  Explicit actions
-keep the panel open.  This entry point embeds one list or text view; use
+PROVIDER, DEBOUNCE, ON-CLOSE and KEYMAP follow `emacs-tui-mount'.
+Explicit actions keep the panel open.  This entry point embeds one list or
+text view; use
 separate sessions for independently owned panels."
   (unless (and (window-live-p window) (not (window-minibuffer-p window))
                (not (window-dedicated-p window))
@@ -881,14 +897,15 @@ separate sessions for independently owned panels."
                      (buffer-local-value 'emacs-tui--session (window-buffer window)))))
     (user-error "Embedding requires a live, unclaimed, non-dedicated window"))
   (emacs-tui--create :views (list view) :layout 'columns :host-window window
-                     :provider provider :debounce debounce :on-close on-close))
+                     :provider provider :debounce debounce :on-close on-close :keymap keymap))
 
 (cl-defun emacs-tui--create (&key views layout backend on-query on-commit
-                                  provider debounce on-close ephemeral host-window)
+                                  provider debounce on-close ephemeral host-window keymap)
   "Create views and resources shared by both interface lifecycles.
 VIEWS, LAYOUT, BACKEND, ON-QUERY, ON-COMMIT, PROVIDER, DEBOUNCE and
 ON-CLOSE specify configuration.  EPHEMERAL enables query input and
-origin-buffer commit policy.  HOST-WINDOW borrows an existing window."
+origin-buffer commit policy.  HOST-WINDOW borrows an existing window.
+KEYMAP supplies application commands for view buffers."
   (unless (and (proper-list-p views) views
                (cl-every #'emacs-tui--view-p views))
     (error "VIEWS must be a nonempty list of emacs-tui-view descriptions"))
@@ -902,6 +919,8 @@ origin-buffer commit policy.  HOST-WINDOW borrows an existing window."
   (dolist (callback (list on-query on-commit provider on-close))
     (unless (or (null callback) (functionp callback))
       (error "Callbacks must be functions or nil")))
+  (unless (or (null keymap) (keymapp keymap))
+    (error "KEYMAP must be a keymap or nil"))
   (let ((ids (mapcar #'emacs-tui--view-id views)))
     (unless (= (length ids) (length (delete-dups (copy-sequence ids))))
       (error "View IDs must be unique")))
@@ -933,6 +952,11 @@ origin-buffer commit policy.  HOST-WINDOW borrows an existing window."
                   (emacs-tui--view-marks view) nil)
             (with-current-buffer (emacs-tui--view-buffer view)
               (emacs-tui-view-mode)
+              (when (or keymap (emacs-tui--view-keymap view))
+                (use-local-map
+                 (make-composed-keymap
+                  (delq nil (list (emacs-tui--view-keymap view) keymap))
+                  (current-local-map))))
               (setq-local emacs-tui--session session)
               (add-hook 'kill-buffer-hook #'emacs-tui--buffer-killed nil t)
               (unless query

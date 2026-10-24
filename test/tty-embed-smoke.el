@@ -11,6 +11,7 @@
 (defvar emacs-tui-test--embed-closed 0)
 (defvar emacs-tui-test--embed-host nil)
 (defvar emacs-tui-test--embed-window nil)
+(defvar emacs-tui-test--embed-command-session nil)
 
 (defun emacs-tui-test--embed-failure (err)
   (with-temp-file (getenv "EMACS_TUI_SMOKE_REPORT")
@@ -69,7 +70,11 @@
 
 (defun emacs-tui-test--embed-start ()
   (condition-case err
-      (let ((source (get-buffer-create "*Embedded smoke host*")))
+      (let ((source (get-buffer-create "*Embedded smoke host*"))
+            (keymap (make-sparse-keymap)))
+        (define-key keymap (kbd "r")
+          (lambda () (interactive)
+            (setq emacs-tui-test--embed-command-session (emacs-tui-current-session))))
         (switch-to-buffer source)
         (erase-buffer)
         (insert "unchanged")
@@ -77,12 +82,14 @@
               emacs-tui-test--embed-window (selected-window)
               emacs-tui-test--embed-session
               (emacs-tui-embed
+               :keymap keymap
                :view (emacs-tui-view
                       :id 'items :items '("alpha" "beta") :multi-select t
                       :on-select (lambda (_app _item)
                                    (cl-incf emacs-tui-test--embed-actions)))
                :on-close (lambda (_) (cl-incf emacs-tui-test--embed-closed))))
-        (execute-kbd-macro (kbd "n C-c C-m RET"))
+        (execute-kbd-macro (kbd "n C-c C-m RET r"))
+        (cl-assert (eq emacs-tui-test--embed-command-session emacs-tui-test--embed-session))
         (cl-assert (= 1 (length (window-list))))
         (cl-assert (equal (with-current-buffer source (buffer-string)) "unchanged"))
         (redisplay t)

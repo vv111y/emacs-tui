@@ -4,34 +4,27 @@ Updated 2026-10-23 (America/Toronto).
 
 ## Active implementation
 
-PR #6 is merged at `0d181ea9c48af1a5df3bfd4e0404a130e326001f` after separate
-agent review of `a65432bfe04ef1aa91e8400efb817cb6923b4b32`. The reviewer reran
-106 ERT tests, compilation, checkdoc, both real Emacs 29.3 TTY scripts and
-50 additional lifecycle cycles without retained sessions or owned buffers.
-All four CI jobs passed in
-[run 40048314834](https://github.com/vv111y/emacs-tui/actions/runs/40048314834).
-This was agent review, not human/MELPA review.
+PR #6 merged the persistent lifecycle/dashboard at
+`0d181ea9c48af1a5df3bfd4e0404a130e326001f` after independent agent review,
+106 ERT tests and all four CI jobs. PR #7 merged embedded panels at
+`e1ce030e968e666640ad8284a64e9afdecb319c4` after independent agent review,
+118 ERT tests, strict compilation/checkdoc and three real TTY scripts on Emacs
+28.2, 29.4, 30.2 and 31.1 in
+[CI run 40049114090](https://github.com/vv111y/emacs-tui/actions/runs/40049114090).
+Reviewers additionally exercised 50 persistent and 50 dual-panel lifecycle
+cycles without retained sessions or owned buffers. These were agent reviews,
+not human/MELPA review.
 
-[PR #7](https://github.com/vv111y/emacs-tui/pull/7) adds `emacs-tui-embed` for one panel in a borrowed application
-window, restoring the original buffer and tracked point/scroll on close. It
-preserves repurposed windows, supports async providers and explicit actions,
-and never deletes the borrowed host window. A buffer browser demonstrates it.
-A dedicated real TTY script checks keyboard actions, marks, resizing and host
-restoration. Region-level embedding is outside this increment.
+The next increment adds native application/per-view `:keymap` composition and
+`emacs-tui-current-session` for interactive application commands. View bindings
+override application bindings, then toolkit defaults; ephemeral query editing
+is untouched. Maps remain live references and are not mutated by the toolkit.
+The dashboard demonstrates g refresh and P pause/resume from any view.
 
-Active worker owns core, embed tests/example/smoke, Makefile, README and this
-handoff. Independent review and current-head CI are required before integration.
-Local validation passed 118 ERT tests, strict compilation, checkdoc and all
-three real TTY scripts on Emacs 29.3. Do not treat these author checks as
-independent review.
-
-Implementation head `e81ee3e7d50dd7be226b9f1919907f6c23d9e9ff` passes all four
-Emacs versions, including all three real TTY scripts, in
-[CI run 40048997759](https://github.com/vv111y/emacs-tui/actions/runs/40048997759).
-A separate reviewer reran 118 ERT tests; further restoration probes are in
-progress. The reviewer caught a stale README statement about embedding, now
-corrected. The owner confirmed routine independent review belongs to a separate
-coding agent, not to them; AGENTS.md records this workflow.
+Active worker owns core, keymap/dashboard tests, dashboard example, embedded
+TTY smoke and documentation. Local validation: 125 ERT tests, strict compilation,
+checkdoc and three real TTY scripts on Emacs 29.3. Independent review and
+current-head four-version CI are required before integrating this increment.
 
 ## Implementation and handoff
 
@@ -41,8 +34,7 @@ Scope clarification from the owner, 2026-10-23: build a general-purpose TUI
 toolkit for Emacs. The ephemeral XOB-style workflow is one supported application
 pattern. Persistent applications and embedded panels must not require query
 input, an origin marker, or commit-then-close. See docs/DESIGN.md and the new
-immediate priorities in ROADMAP.md. PR #6 merged the persistent lifecycle and dashboard. The current increment
-proves a borrowed-window embedding policy over the same primitives.
+immediate priorities in ROADMAP.md. PR #6 merged the persistent lifecycle and dashboard. PR #7 added borrowed-window embedding over the same primitives.
 
 - [PR #1](https://github.com/vv111y/emacs-tui/pull/1): merged foundation with
   editable temporary queries, independent list/text views, explicit selection
@@ -89,7 +81,7 @@ trampoline generation because it has no configured native compiler toolchain.
 
 ## Remaining work
 
-1. Review and integrate the borrowed-window embedding increment, then add
+1. Review and integrate native application/per-view keymaps. Next extend
    application input/action composition. Preserve ephemeral behavior. Extend
    layouts, history, per-view input, maximize/restore and tables as real consumers
    require them. Avoid treating every preview as navigation.
