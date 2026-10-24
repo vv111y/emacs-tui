@@ -1,0 +1,190 @@
+;;; emacs-tui-navigation-test.el --- Selection rendering regressions -*- lexical-binding: t; -*-
+
+;; Copyright (C) 2026 Willy Rempel
+;; Assisted-by: Codex:gpt-6.1-sol-wm
+;; SPDX-License-Identifier: GPL-3.0-or-later
+
+(require 'ert)
+(require 'emacs-tui)
+
+(defmacro emacs-tui-test--navigation (view &rest body)
+  "Mount VIEW and evaluate BODY with session and view buffer selected."
+  (declare (indent 1) (debug t))
+  `(save-window-excursion
+     (let* ((session (emacs-tui-mount :views (list ,view)))
+            (view (car (emacs-tui--workspace-views session))))
+       (unwind-protect
+           (with-current-buffer (emacs-tui--view-buffer view) ,@body)
+         (emacs-tui-close session)))))
+
+(ert-deftest emacs-tui-navigation-keeps-buffer-and-application-properties ()
+  (let ((label (propertize "日本語\nsecond é" 'face 'bold 'help-echo "application")))
+    (emacs-tui-test--navigation
+        (emacs-tui-view :id 'rows :items (list label "last") :multi-select t)
+      (let ((text (buffer-string)) (tick (buffer-modified-tick)) (changes 0)
+            (overlay emacs-tui--selection-overlay))
+        (add-hook 'after-change-functions (lambda (&rest _) (cl-incf changes)) nil t)
+        (emacs-tui-next-item session)
+        (should (equal (emacs-tui-current-item session) "last"))
+        (should (= (overlay-start overlay) (point)))
+        (should (equal (buffer-substring-no-properties (overlay-start overlay)
+                                                      (overlay-end overlay)) "[ ] last"))
+        (should (eq overlay emacs-tui--selection-overlay))
+        (emacs-tui-previous-item session)
+        (should (eq (emacs-tui-current-item session) label))
+        (should (= (overlay-start overlay) 1))
+        (should (equal (buffer-substring-no-properties (overlay-start overlay)
+                                                      (overlay-end overlay))
+                       "[ ] 日本語\nsecond é"))
+        (should (eq (get-text-property 5 'face) 'bold))
+        (should (equal-including-properties text (buffer-string)))
+        (should (= tick (buffer-modified-tick)))
+        (should (zerop changes))
+        (should-not (buffer-modified-p))
+        (emacs-tui-next-item session -5)
+        (should (equal (emacs-tui-current-item session) "last"))))))
+
+(ert-deftest emacs-tui-navigation-does-not-reproject-tables ()
+  (let ((projections 0) forbidden)
+    (emacs-tui-test--navigation
+        (emacs-tui-view
+         :id 'rows :items '("alpha" "beta")
+         :columns (list (emacs-tui-column
+                         :id 'name :title "Name"
+                         :value (lambda (item)
+                                  (when forbidden (error "Unexpected projection"))
+                                  (cl-incf projections) item))))
+      (let ((before projections) (text (buffer-string)))
+        (setq forbidden t)
+        (dotimes (_ 5) (emacs-tui-next-item session))
+        (should (= projections before))
+        (should (equal (emacs-tui-current-item session) "beta"))
+        (should (= (line-number-at-pos) 3))
+        (should (equal-including-properties text (buffer-string)))))))
+
+(ert-deftest emacs-tui-navigation-cache-follows-query-sort-and-source-replacement ()
+  (emacs-tui-test--navigation
+      (emacs-tui-view :id 'rows :items '("gamma" "alpha" "beta")
+                      :columns (list (emacs-tui-column :id 'name :value #'identity)))
+    (emacs-tui-sort session 'rows 'name)
+    (emacs-tui-next-item session)
+    (should (equal (emacs-tui-current-item session) "alpha"))
+    (emacs-tui-set-query session 'rows "beta")
+    (emacs-tui-next-item session)
+    (should (equal (emacs-tui-current-item session) "beta"))
+    (emacs-tui-set-query session 'rows "")
+    (emacs-tui-update session 'rows :items '("delta" "epsilon"))
+    (emacs-tui-next-item session)
+    (should (equal (emacs-tui-current-item session) "epsilon"))
+    (should (= (overlay-start emacs-tui--selection-overlay) (point)))
+    (should (string-match-p "epsilon" (buffer-substring-no-properties
+                                      (overlay-start emacs-tui--selection-overlay)
+                                      (overlay-end emacs-tui--selection-overlay))))
+    (emacs-tui-update session 'rows :items nil)
+    (emacs-tui-next-item session)
+    (should-not (overlay-buffer emacs-tui--selection-overlay))
+    (should-not (emacs-tui-current-item session))))
+
+(ert-deftest emacs-tui-navigation-cache-repairs-externally-edited-content ()
+  (emacs-tui-test--navigation (emacs-tui-view :id 'rows :items '("alpha" "beta"))
+    (let ((inhibit-read-only t)) (erase-buffer) (insert "foreign content"))
+    (emacs-tui-next-item session)
+    (should (equal (buffer-string) "alpha\nbeta\n"))
+    (should (equal (emacs-tui-current-item session) "beta"))
+    (should (= (overlay-start emacs-tui--selection-overlay) 7))))
+
+(ert-deftest emacs-tui-navigation-overlay-disappears-for-preview-and-is-reused ()
+  (emacs-tui-test--navigation (emacs-tui-view :id 'rows :items '("alpha" "beta"))
+    (let ((overlay emacs-tui--selection-overlay))
+      (emacs-tui-update session 'rows :text "preview")
+      (should-not (overlay-buffer overlay))
+      (emacs-tui-update session 'rows :text nil)
+      (emacs-tui-next-item session)
+      (should (eq overlay emacs-tui--selection-overlay))
+      (should (eq (overlay-buffer overlay) (current-buffer)))
+      (should (equal (emacs-tui-current-item session) "beta"))
+      (emacs-tui-close session)
+      (should-not (overlay-buffer overlay)))))
+
+(ert-deftest emacs-tui-navigation-overlay-follows-tree-projection-and-marks ()
+  (emacs-tui-test--navigation
+      (emacs-tui-tree :id 'rows :multi-select t
+                      :items '((:id root :label "Root"
+                                    :children ((:id leaf :label "Leaf")))))
+    (emacs-tui-tree-expand session)
+    (emacs-tui-next-item session)
+    (should (eq (plist-get (emacs-tui-current-item session) :id) 'leaf))
+    (emacs-tui-toggle-mark session)
+    (let ((region (buffer-substring-no-properties
+                   (overlay-start emacs-tui--selection-overlay)
+                   (overlay-end emacs-tui--selection-overlay))))
+      (should (string-prefix-p "[x] " region))
+      (should (string-suffix-p "Leaf" region)))
+    (emacs-tui-tree-collapse session)
+    (should (eq (plist-get (emacs-tui-current-item session) :id) 'root))
+    (emacs-tui-next-item session)
+    (should (eq (plist-get (emacs-tui-current-item session) :id) 'leaf))))
+
+(ert-deftest emacs-tui-navigation-identical-preview-retires-list-display-state ()
+  (emacs-tui-test--navigation (emacs-tui-view :id 'rows :items '("alpha" "beta"))
+    (emacs-tui-next-item session)
+    (let ((text (buffer-string)) (tick (buffer-modified-tick)) (position (point)))
+      (emacs-tui-update session 'rows :text text)
+      (should-not (overlay-buffer emacs-tui--selection-overlay))
+      (should-not emacs-tui--row-ranges)
+      (should-not emacs-tui--row-items)
+      (should-not emacs-tui--row-tick)
+      (should (= tick (buffer-modified-tick)))
+      (should (= position (point)))
+      (should (equal-including-properties text (buffer-string))))))
+
+(ert-deftest emacs-tui-navigation-exposes-selected-row-in-narrowed-list ()
+  (emacs-tui-test--navigation
+      (emacs-tui-view :id 'rows :items '("alpha" "beta" "gamma"))
+    (let ((tick (buffer-chars-modified-tick)))
+      (narrow-to-region 1 6)
+      (emacs-tui-next-item session)
+      (should-not (buffer-narrowed-p))
+      (should (equal (emacs-tui-current-item session) "beta"))
+      (should (= (point) 7))
+      (should (= (window-point (emacs-tui--view-window view)) 7))
+      (should (= (overlay-start emacs-tui--selection-overlay) 7))
+      (should (= tick (buffer-chars-modified-tick))))))
+
+(ert-deftest emacs-tui-navigation-failed-fallback-does-not-move-selection ()
+  (let (fail)
+    (emacs-tui-test--navigation
+        (emacs-tui-view :id 'rows :items '("alpha" "beta")
+                        :columns (list (emacs-tui-column
+                                        :id 'name :value (lambda (item)
+                                                          (when fail (error "Projection failed"))
+                                                          item))))
+      (let ((inhibit-read-only t)) (goto-char (point-max)) (insert "foreign"))
+      (setq fail t)
+      (let ((text (buffer-string)))
+        (should-error (emacs-tui-next-item session))
+        (should (equal (emacs-tui-current-item session) "alpha"))
+        (should (equal-including-properties text (buffer-string)))))))
+
+(ert-deftest emacs-tui-navigation-failed-buffer-edit-restores-highlight ()
+  (emacs-tui-test--navigation (emacs-tui-view :id 'rows :items '("alpha" "beta"))
+    (emacs-tui-next-item session)
+    (let ((text (buffer-string))
+          (start (overlay-start emacs-tui--selection-overlay))
+          (end (overlay-end emacs-tui--selection-overlay))
+          failed)
+      (let ((hook (lambda (beg end _old)
+                    (when (and (> end beg) (not failed))
+                      (setq failed t)
+                      (error "Insert failed")))))
+        (add-hook 'after-change-functions hook nil t)
+        (unwind-protect
+            (should-error (emacs-tui-update session 'rows :items '("changed")))
+          (remove-hook 'after-change-functions hook t)))
+      (should failed)
+      (should (equal-including-properties text (buffer-string)))
+      (should (= start (overlay-start emacs-tui--selection-overlay)))
+      (should (= end (overlay-end emacs-tui--selection-overlay)))
+      (should (equal (emacs-tui-current-item session) "beta")))))
+
+;;; emacs-tui-navigation-test.el ends here

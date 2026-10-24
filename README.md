@@ -519,8 +519,11 @@ preserved. `emacs-tui-refresh` is also available for an explicit reflow.
 
 The four-sided around-point layout, multiple floating surfaces,
 history, per-view asynchronous providers and richer form controls are planned in
-[ROADMAP.md](ROADMAP.md). The initial implementation renders full view content;
-large-data performance is not yet characterized.
+[ROADMAP.md](ROADMAP.md). Source/filter updates render full view content;
+selection movement reuses rendered rows. The first interpreted-source
+[navigation baseline](bench/results/2026-10-24-navigation/README.md) records
+latency and allocations on 1,000/10,000-row lists and tables. Broader application
+and display performance remains to be measured.
 
 ## Development and readiness
 

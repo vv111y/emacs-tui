@@ -4,37 +4,50 @@ Updated 2026-10-24 (America/Toronto).
 
 ## Active implementation
 
-PR #17 merged at `b96f0d9c628f0fdeb52ffa1775cd594969343705` after independent
-review and final-head CI [40060803999](https://github.com/vv111y/emacs-tui/actions/runs/40060803999).
-All eight jobs passed: seven Linux/macOS runtime jobs each with 218 ERT tests,
-strict compilation, checkdoc and six PTY scripts; plus pinned real package-build
-and clean installation of the identical archive on Emacs 31.1 and 28.1.
-Recipe layout/build/install are verified, not live MELPA fetching/publication.
+PR #18 merged at `ee7066847518c36c639b76ad6d9bac5ac977fdb1` after independent
+review and final-head CI [40065371481](https://github.com/vv111y/emacs-tui/actions/runs/40065371481).
+All eight jobs passed. Seven runtime jobs each ran 218 ERT tests, strict
+compilation/checkdoc, six PTY scripts and five-workload benchmark protocol
+smoke; the package job built/clean-installed on 31.1 and 28.1.
 
-Current work adds a reproducible interactive benchmark. Python sends native
-keys through a real 120x40 PTY, one command outstanding at a time. Emacs forces
-redisplay before acknowledging terminal output. List/table navigation, native
-input filtering and a controlled async provider are separate workloads. Raw
-samples retain command/render, PTY roundtrip, provider stages, GC and allocation
-counters, environment and source hashes. This measures terminal output rather
-than physical paint. No universal latency threshold or performance claim is
-made. See docs/PERFORMANCE.md for methodology and limitations.
+Current work removes full row reconstruction from selection navigation. Full
+renders prepare item bounds, then a buffer-local overlay supplies selection
+highlighting without altering application text properties. Navigation reuses
+valid bounds and updates native point/window point. External character edits
+invalidate the cache; fallback rendering stages selection before committing.
+Full source/query/sort/mark/tree updates still prepare and replace contents.
+Overlay positions are restored if an atomic buffer edit fails.
 
-The 100-row five-workload protocol and 218 ERT tests, strict compilation,
-checkdoc and six PTY scripts passed locally on Emacs 29.3. Independent agent
-review caught missing benchmark-file provenance; corrected head
-`1b46bd33635511aceceb5fb49f4fac8b6812a7e5` hashes both benchmark files and all
-libraries, and received approval. Separate wrong-key, malformed-marker,
-stale-bytecode and tracked-dirty probes passed. CI
-[40065141305](https://github.com/vv111y/emacs-tui/actions/runs/40065141305)
-passed all eight jobs, including benchmark protocol smoke on all seven runtime
-jobs and package builds/installs. This final documentation checkpoint still
-requires review and final-head CI. Full baseline evidence remains next; an
-early development run with a faulty final-ack parser is not publishable data.
-No rendering optimization is included in this PR.
-Next: publish the measured baseline, then address the observed full-table
-reconstruction on selection movement with regression tests and repeat timings.
-Public-history and human-review MELPA gates remain; policy was rechecked today.
+Local Emacs 29.3 passes 228 ERT tests, strict compilation, checkdoc and six
+PTY scripts. Ten new regressions cover unchanged content/properties/hooks,
+Unicode/multiline rows, projection-free table navigation, query/sort/source
+replacement, external edits, preview transitions/disposal, tree marks and
+failed-update rollback. Independent review found that a list-to-identical-text
+transition retained
+its highlight. Successful text renders now retire list state even when no
+buffer replacement is needed; a regression retains preview point/tick while
+checking the overlay/cache are removed. Review also found narrowing could hide
+a newly selected row; cached navigation now widens, matching full-list rendering,
+with a regression asserting actual buffer/window point and unchanged characters.
+Corrected implementation `aefc7aa1f152e3a2d4124d04f989b20672c9044e` received
+independent agent approval and a separate repeat of all local checks. Extra
+probes cover ephemeral query point, nonlocal rollback and hidden-view updates.
+
+A clean interpreted-source navigation pair is published under
+bench/results/2026-10-24-navigation. Each of four workloads has 100 measured
+samples plus 10 warmups; raw CSVs retain all 440 records per run, environment,
+source/benchmark hashes, GC/allocation counters and p50/p95/p99. Files were
+compared with remote before/after commits. On this Emacs 29.3/Linux host,
+10,000-row table PTY-output p50 changed from 1465.987ms to 0.544ms; p95/p99
+changed from 1622.462/1683.763ms to 0.826/1.194ms. Median immediate command cons
+cells changed from 4,831,043 to 232 (including instrumentation). This is one
+interpreted-source pair, not a compiled/native-code, child-frame or physical
+paint claim. Source/query updates still render full contents. Methodology and
+limits are in docs/PERFORMANCE.md. Artifact/doc review and passing final-head
+CI remain integration gates.
+
+Next: broaden stress/display validation and address the next measured cost. Public-history,
+human-review and actual MELPA acceptance remain external gates.
 
 ## Implementation and handoff
 
@@ -85,6 +98,8 @@ dashboard. PR #7 added borrowed-window embedding over the same primitives.
   actions over marks/current objects with native-menu target revalidation.
 - [PR #17](https://github.com/vv111y/emacs-tui/pull/17): real candidate-recipe
   builds, clean archive installations and declared-floor Emacs 28.1 CI.
+- [PR #18](https://github.com/vv111y/emacs-tui/pull/18): real native-key/PTY
+  benchmark with separate command/render/provider stages and source provenance.
 
 API and runnable examples are in README.md. `make demo` explores an in-memory
 sample graph; `make async-demo` searches buffer snapshots. Marks are per view
@@ -121,13 +136,13 @@ because it has no configured native compiler toolchain.
    multiplexers, narrow screens, multiple clients/terminals and visual behavior.
    Linux PTY smoke is not complete UI QA.
 3. Measure large-result rendering, input-to-display latency and allocations.
-   List/table rendering currently replaces full view contents; unchanged text
-   previews avoid replacement. Async providers remain
+   Source/filter/sort/mark/tree updates replace full view contents; selection
+   navigation reuses rendered rows and unchanged text previews avoid replacement. Async providers remain
    cooperative and must return promptly; cancellation must stop their own
    processes/timers. Snapshot acquisition in the async demo is synchronous.
 4. Resolve the package-name lint question, document API/migration stability and accumulate
-   real usage. Continue through ROADMAP.md; no performance or maturity claim
-   has been established.
+   real usage. Continue through ROADMAP.md; only the limited navigation baseline is established; maturity has not
+   been established.
 
 ## External gates and continuity
 
