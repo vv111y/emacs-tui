@@ -56,6 +56,11 @@ The late tracker honors application delete hooks and close-callback focus effect
 a captured late hook cannot recreate pending records after the last interface closes. Background deletion, explicit parent
 focus and repurposed surfaces do not capture focus. Pending deletion records and
 all routing hooks are released with the last native terminal interface.
+Run 40094038742 still reached the survivor-input failure. Close-callback focus
+recording now distinguishes an actual application selection change from an
+unchanged callback observing Emacs's implicit fallback. Bounded diagnostics now
+include routing/deletion-hook ordering and remembered focus flags. Native proof
+is still required; no unsuccessful iteration is treated as passing.
 
 Local 296 ERT, strict compilation/checkdoc passed on Emacs 29.3/Linux. Ten new
 modeled routing tests cover event identity, prefix preservation, explicit parent

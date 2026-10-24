@@ -182,7 +182,14 @@
             (emacs-tui-close closing)
             (should (eq 'ar selected))
             (should-not (emacs-tui--workspace-tty-focus a))
-            (should (emacs-tui--workspace-tty-focus b)))
+            (should (emacs-tui--workspace-tty-focus b))
+            ;; An unchanged callback must not classify an implicit fallback as intent.
+            (setf (emacs-tui--workspace-tty-focus a) t)
+            (let ((noop (emacs-tui--make-workspace :active t :on-close #'ignore)))
+              (push noop emacs-tui--sessions)
+              (emacs-tui-close noop))
+            (should (eq 'ar selected))
+            (should (emacs-tui--workspace-tty-focus a)))
         (advice-remove #'handle-switch-frame #'emacs-tui--tty-switch-frame)))))
 
 (ert-deftest emacs-tui-tty-focus-hook-lifetime-preserves-other-advice-and-window-sessions ()

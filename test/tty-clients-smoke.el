@@ -21,6 +21,21 @@
 (defvar emacs-tui-test--clients-timer nil)
 (defvar emacs-tui-test--clients-commands nil)
 
+(defun emacs-tui-test--clients-record (kind details)
+  "Record bounded diagnostic event KIND with DETAILS and native focus."
+  (push (list kind details (selected-frame)
+              (mapcar (lambda (entry)
+                        (let ((app (plist-get (cdr entry) :session)))
+                          (list (car entry)
+                                (and app (emacs-tui--workspace-tty-focus app)))))
+                      emacs-tui-test--clients)
+              (copy-tree emacs-tui--tty-deleting-frames))
+        emacs-tui-test--clients-commands)
+  (setq emacs-tui-test--clients-commands
+        (seq-take emacs-tui-test--clients-commands 80))
+  (emacs-tui-test--clients-write
+   "commands" (pp-to-string (reverse emacs-tui-test--clients-commands))))
+
 (defun emacs-tui-test--clients-command ()
   "Retain a bounded native input trace for failure diagnostics."
   (push (list emacs-tui-test--clients-phase
@@ -28,7 +43,7 @@
               (buffer-name) last-command-event this-command)
         emacs-tui-test--clients-commands)
   (setq emacs-tui-test--clients-commands
-        (seq-take emacs-tui-test--clients-commands 30))
+        (seq-take emacs-tui-test--clients-commands 80))
   (emacs-tui-test--clients-write
    "commands" (pp-to-string (reverse emacs-tui-test--clients-commands))))
 
@@ -86,7 +101,9 @@
                           (lambda ()
                             (cl-incf (plist-get state :cancelled))
                             (cancel-timer timer))))
-            :on-close (lambda (_session) (cl-incf (plist-get state :closed))))))
+            :on-close (lambda (_session)
+                        (cl-incf (plist-get state :closed))
+                        (emacs-tui-test--clients-record 'close-callback id)))))
       (setf (plist-get state :session) session
             (plist-get state :buffers)
             (mapcar #'emacs-tui--view-buffer (emacs-tui--workspace-views session)))
@@ -265,6 +282,18 @@
         (set-file-modes server-socket-dir #o700)
         (server-start)
         (add-hook 'pre-command-hook #'emacs-tui-test--clients-command)
+        (advice-add #'emacs-tui--remember-tty-focus :before
+                    (lambda (&rest _) (emacs-tui-test--clients-record 'remember-before nil)))
+        (advice-add #'emacs-tui--remember-tty-focus :after
+                    (lambda (&rest _) (emacs-tui-test--clients-record 'remember-after nil)))
+        (advice-add #'emacs-tui--tty-frame-deleting :before
+                    (lambda (frame) (emacs-tui-test--clients-record 'deleting-before frame)))
+        (advice-add #'emacs-tui--tty-frame-deleting :after
+                    (lambda (frame) (emacs-tui-test--clients-record 'deleting-after frame)))
+        (advice-add #'emacs-tui--tty-frame-deleted :before
+                    (lambda (frame) (emacs-tui-test--clients-record 'deleted-before frame)))
+        (advice-add #'emacs-tui--tty-frame-deleted :after
+                    (lambda (frame) (emacs-tui-test--clients-record 'deleted-after frame)))
         (emacs-tui-test--clients-create 'A)
         (setq emacs-tui-test--clients-timer
               (run-at-time 0.05 0.05 #'emacs-tui-test--clients-poll))

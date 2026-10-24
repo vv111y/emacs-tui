@@ -1732,13 +1732,17 @@ windows are preserved."
       (emacs-tui--sync-tty-focus-hooks)
       (unwind-protect
           (emacs-tui--stop-request (emacs-tui--workspace-request session))
-        (let ((callback (emacs-tui--workspace-on-close session)))
+        (let ((callback (emacs-tui--workspace-on-close session))
+              (callback-frame (selected-frame))
+              (callback-window (selected-window)))
           (setf (emacs-tui--workspace-on-close session) nil)
           (when callback
             (condition-case err (funcall callback session)
               ((error quit)
                (message "emacs-tui close callback: %s" (error-message-string err))))
-            (emacs-tui--remember-tty-focus))))))
+            (when (or (not (eq callback-frame (selected-frame)))
+                      (not (eq callback-window (selected-window))))
+              (emacs-tui--remember-tty-focus)))))))
   nil)
 
 (defun emacs-tui-next-view (&optional session delta)
