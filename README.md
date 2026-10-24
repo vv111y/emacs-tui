@@ -7,8 +7,8 @@ data, behavior and persistence policies.
 
 The implementation now provides both long-lived mounted interfaces and ephemeral
 query workspaces. Mounted interfaces stay open across actions and do not require
-a query field or origin-buffer commit. Embedding into application-owned surfaces
-remains planned work.
+a query field or origin-buffer commit. Single panels can also borrow existing
+application windows and restore their original buffer when closed.
 XOB is an intended consumer; the toolkit is not specific to XOB, Org or graphs.
 
 **Experimental foundation; not a stable release or a MELPA package yet.**
@@ -30,6 +30,32 @@ Requires Emacs 28.1 or later. Native terminal child frames require an Emacs buil
 advertising `tty-child-frames` (introduced in 31.1). Older terminal builds use
 ordinary windows. Graphical builds can also use native child frames. There are
 no third-party runtime dependencies.
+
+## Embedded panels
+
+Run `make panel` to browse buffers in the selected window. RET displays a buffer
+elsewhere; q restores the original buffer and position without deleting the
+host window. The application continues to own its buffers and windows.
+
+```elisp
+(emacs-tui-embed
+ :window (selected-window)
+ :view (emacs-tui-view :id 'status :title "Status" :text "Ready"))
+```
+
+`emacs-tui-embed` accepts one list or text view, an optional `:window` (selected
+window by default), and the same `:provider`, `:debounce` and `:on-close` options
+as `emacs-tui-mount`. It selects the host window and owns only its new view
+buffer and session resources. Dedicated, minibuffer and already claimed windows
+are rejected. Closing restores the host buffer, point and scroll position;
+positions track edits made to that buffer elsewhere. A repurposed window is
+preserved. Deleting the host window disposes the panel. If the original buffer
+was killed, closing displays another live buffer in the surviving window.
+
+Each embedded session contains one view. Use independent sessions for separate
+application-owned panels; multi-view owned layouts remain available via
+`emacs-tui-mount`. Embedding within a text region of an existing buffer is not
+implemented.
 
 ## Persistent applications
 
@@ -60,7 +86,7 @@ launching buffer/window may disappear without ending the application. Native
 window focus and keyboard navigation select the active view. Application
 callbacks own data mutations; rendering and layout do not perform them.
 
-Both openers accept `:on-close (lambda (app) ...)` for application cleanup. It is
+All entry points accept `:on-close (lambda (app) ...)` for application cleanup. It is
 called once after the handle becomes inactive, including startup failures after
 allocation. Use it to cancel application-owned timers or processes. The toolkit
 still cancels its own provider work. `emacs-tui-live-p` checks a retained handle;
@@ -70,7 +96,7 @@ running Emacs session, not automatic storage across restarts.
 A mounted provider uses the existing async contract with an empty query string.
 It starts once; applications can publish updates until disposal. Mounted views
 have no origin commit action; use explicit application actions for persistence.
-Host-owned buffer/window embedding is a separate, unimplemented lifecycle.
+Use `emacs-tui-embed` for a single panel in an application-owned window.
 
 ## Ephemeral workspaces
 
@@ -105,6 +131,7 @@ and continue exploration; commitment is a separate command.
 | --- | --- |
 | `emacs-tui-view` | Describe a list or text preview |
 | `emacs-tui-open` | Open an ephemeral query workspace |
+| `emacs-tui-embed` | Borrow an application window for one panel; restore it on close |
 | `emacs-tui-mount` | Open a persistent interface without query or origin policy |
 | `emacs-tui-live-p` | Check whether an interface handle is active |
 | `emacs-tui-update` | Replace a view's items or preview, reusing its buffer |

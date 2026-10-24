@@ -22,6 +22,8 @@ extending those assumptions.
   after independent review findings are resolved and relevant CI passes, using
   the reviewed head SHA. Do not require owner approval for each development PR.
   Never waive external MELPA review or assert human review that did not occur.
+- Use a separate coding agent for independent PR review. The owner confirmed
+  this routine review is our responsibility and does not require their time.
 - Keep state in this repository so future sessions can continue. Update
   docs/STATE.md with completed work, actual checks, risks and next work.
 - No Sunday work or notifications (America/Toronto).
