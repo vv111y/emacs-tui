@@ -4,17 +4,31 @@ Updated 2026-10-24 (America/Toronto).
 
 ## Active implementation
 
-PR #25's mark-consistency implementation `dd4e3789a7a2295d7cfb0578f9de7cc1c6e0f991`
-passed independent review and all eight jobs in
-[40072967260](https://github.com/vv111y/emacs-tui/actions/runs/40072967260).
-The final checkpoint changes documentation only; integration still requires
-passing checks on that final head. Runtime jobs passed 245 ERT, strict
-compilation/checkdoc, seven PTY scripts, three Python regressions and all five
-benchmark workloads in both source and fresh-bytecode modes. The recipe built
-and its archive clean-installed on 31.1 and 28.1. Independent reviewer probes
-confirmed old-code regression failures, isolated mark tables, hidden-panel
-clearing, header/focus preservation and insertion rollback with properties and
-selection overlay bounds retained.
+PR #25 merged at `a3bf3e77e1a0e6cf2e2e4df1b8ca40625d894f3f` after independent
+implementation/final-documentation review and all eight final-head CI jobs in
+[40073215560](https://github.com/vv111y/emacs-tui/actions/runs/40073215560).
+Runtime jobs passed 245 ERT, strict compilation/checkdoc, seven PTY scripts,
+three Python regressions and all five benchmark workloads in both source and
+fresh-bytecode modes. Package build/clean-install passed on 31.1/28.1.
+Independent probes confirmed mark-table isolation, hidden-panel clearing,
+header/focus preservation and insertion rollback with properties/overlay bounds.
+
+The next ownership fix was reproduced before implementation: replacing an
+embedded window's buffer, positioning its cursor at 60, then publishing a view
+update moved that unrelated cursor to 1. Full rendering checked that the old
+window was live but not that it still displayed the owned view buffer. It now
+checks both, matching cached selection behavior. Updating the owned private
+buffer remains allowed until normal ownership invalidation closes the session;
+there is no change to provider generation or disposal policy.
+
+Two new regressions fail on old code and pass with the fix: late list updates,
+mark/clear/navigation and explicit disposal preserve foreign window/buffer
+state; a provider preview replacement also preserves it before refresh closes
+and cancels once, then rejects stale publication. Local 247 ERT, strict
+compilation/checkdoc, seven PTY scripts, three Python regressions and both
+benchmark modes passed on Emacs 29.3/Linux. Independent review and all eight
+current-head jobs remain integration gates. No GUI/physical terminal or
+multi-terminal validation is added by these deterministic ownership tests.
 
 PR #24 merged at `38e7bde0b8d928926a3c20f950425c1ed7639e16` after independent
 review and all eight final-head CI jobs in

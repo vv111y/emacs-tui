@@ -49,7 +49,9 @@ as `emacs-tui-mount`. It selects the host window and owns only its new view
 buffer and session resources. Dedicated, minibuffer and already claimed windows
 are rejected. Closing restores the host buffer, point and scroll position;
 positions track edits made to that buffer elsewhere. A repurposed window is
-preserved. Deleting the host window disposes the panel. If the original buffer
+preserved, including its cursor when a late update arrives before ownership
+invalidation. The next refresh/window-state check disposes an invalid panel.
+Deleting the host window disposes the panel. If the original buffer
 was killed, closing displays another live buffer in the surviving window.
 
 Each embedded session contains one view. Use independent sessions for separate

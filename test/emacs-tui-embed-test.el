@@ -3,6 +3,7 @@
 ;; Copyright (C) 2026 Willy Rempel
 ;; Author: Willy Rempel <https://github.com/vv111y>
 ;; Assisted-by: Codex:GPT-6
+;; Assisted-by: Codex:gpt-6.1-sol-wm
 ;; SPDX-License-Identifier: GPL-3.0-or-later
 
 ;;; Commentary:
@@ -180,6 +181,78 @@
             (should (window-dedicated-p window))
             (should-not (buffer-live-p view-buffer)))
         (set-window-dedicated-p window nil)))))
+
+(defun emacs-tui-embed-test--foreign-state (window)
+  "Capture the unrelated display state in WINDOW."
+  (list (window-buffer window) (window-point window) (window-start window)
+        (window-hscroll window) (window-vscroll window t)
+        (with-current-buffer (window-buffer window)
+          (list (point) (buffer-string) (buffer-modified-p)))))
+
+(ert-deftest emacs-tui-embed-late-list-renders-preserve-repurposed-window ()
+  (emacs-tui-embed-test--host
+    (let ((foreign (generate-new-buffer " *embed-foreign-update*")))
+      (unwind-protect
+          (progn
+            (setq session (emacs-tui-embed
+                           :view (emacs-tui-view :id 'a :multi-select t
+                                                 :items '("alpha" "beta"))))
+            (with-current-buffer foreign
+              (insert (make-string 200 ?x))
+              (set-buffer-modified-p nil))
+            (set-window-buffer window foreign)
+            (set-window-point window 60)
+            (set-window-hscroll window 4)
+            (let ((before (emacs-tui-embed-test--foreign-state window)))
+              ;; These can run synchronously before the window-state hook
+              ;; notices that the user has repurposed the borrowed window.
+              (emacs-tui-update session 'a :items '("gamma" "delta"))
+              (should (equal "gamma" (emacs-tui-current-item session 'a)))
+              (should (equal before (emacs-tui-embed-test--foreign-state window)))
+              (should (emacs-tui-toggle-mark session))
+              (should (equal before (emacs-tui-embed-test--foreign-state window)))
+              (emacs-tui-clear-marks session)
+              (should (equal before (emacs-tui-embed-test--foreign-state window)))
+              (emacs-tui-next-item session)
+              (should (equal before (emacs-tui-embed-test--foreign-state window)))
+              (emacs-tui-close session)
+              (should (equal before (emacs-tui-embed-test--foreign-state window)))))
+        (kill-buffer foreign)))))
+
+(ert-deftest emacs-tui-embed-late-provider-preview-preserves-repurposed-window ()
+  (let (publish (cancelled 0))
+    (emacs-tui-embed-test--host
+      (let ((foreign (generate-new-buffer " *embed-foreign-preview*")))
+        (unwind-protect
+            (progn
+              (setq session
+                    (emacs-tui-embed
+                     :view (emacs-tui-view :id 'a :text "Original preview")
+                     :debounce 60
+                     :provider (lambda (_ _query emit _fail)
+                                 (setq publish emit)
+                                 (lambda () (cl-incf cancelled)))))
+              (let ((request (emacs-tui--workspace-request session)))
+                (cancel-timer (emacs-tui--request-timer request))
+                (emacs-tui--start-provider request))
+              (with-current-buffer foreign
+                (insert (make-string 200 ?x))
+                (set-buffer-modified-p nil))
+              (set-window-buffer window foreign)
+              (set-window-point window 80)
+              (let ((before (emacs-tui-embed-test--foreign-state window)))
+                (should (funcall publish 'a :text "New provider preview"))
+                (should (equal "New provider preview"
+                               (with-current-buffer
+                                   (emacs-tui--view-buffer (emacs-tui--focused-view session))
+                                 (buffer-string))))
+                (should (equal before (emacs-tui-embed-test--foreign-state window)))
+                ;; Normal ownership invalidation still closes/cancels once.
+                (should-not (emacs-tui-refresh session))
+                (should (= cancelled 1))
+                (should-not (funcall publish 'a :text "Obsolete preview"))
+                (should (equal before (emacs-tui-embed-test--foreign-state window)))))
+          (kill-buffer foreign))))))
 
 (provide 'emacs-tui-embed-test)
 ;;; emacs-tui-embed-test.el ends here
