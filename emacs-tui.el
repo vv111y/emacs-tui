@@ -56,7 +56,7 @@
 (cl-defstruct (emacs-tui--view (:constructor emacs-tui--make-view))
   id title items visible-items (selected 0) text on-select buffer window
   multi-select marks keymap columns sort-column sort-descending editable on-change
-  tree children tree-open tree-search display-state)
+  tree children tree-open tree-search display-state query)
 
 (cl-defstruct (emacs-tui--workspace (:constructor emacs-tui--make-workspace))
   views (focus 0) layout backend on-query on-commit origin origin-window
@@ -427,29 +427,63 @@ its focused view.  Ordinary views are unchanged.  Return nil."
       (emacs-tui--render-view session view)))
   nil)
 
-(defun emacs-tui-query (&optional session)
-  "Return SESSION's query string, or an empty string if it has no input."
-  (let ((query (emacs-tui--workspace-query-buffer
-                (emacs-tui--require-session session))))
-    (if query
-        (with-current-buffer query
-          (buffer-substring-no-properties (point-min) (point-max)))
-      "")))
+(defun emacs-tui-query (&optional session id)
+  "Return SESSION's workspace query, or the effective query of view ID.
+Without ID, return the ephemeral query string, or an empty string for a
+persistent interface.  A view's local query overrides the workspace query;
+nil local state inherits it.  Use `emacs-tui-set-query' to set an override."
+  (setq session (emacs-tui--require-session session))
+  (or (and id (emacs-tui--view-query (emacs-tui--resolve-view session id)))
+      (let ((query (emacs-tui--workspace-query-buffer session)))
+        (if query
+            (with-current-buffer query
+              (buffer-substring-no-properties (point-min) (point-max)))
+          ""))))
+
+(defun emacs-tui-set-query (session id query)
+  "Set SESSION's view ID to local literal QUERY and return SESSION.
+Nil ID means the focused view.  QUERY is a string; nil removes the override
+and inherits the workspace query.  An empty string explicitly shows all items.
+Match whitespace-separated terms case-insensitively against labels and table
+values, or reveal matching tree paths.  Retain source data, sort, hidden marks
+and surviving visible selection.  Updates keep the local override.
+Local filtering also applies to provider/application-owned results without
+invoking callbacks, restarting providers or changing their workspace query.
+Text previews and editable fields are not filter targets.  Input callbacks
+can filter another view without replacing its source items."
+  (setq session (emacs-tui--require-session session))
+  (unless (or (null query) (stringp query))
+    (error "QUERY must be a string or nil"))
+  (let* ((view (emacs-tui--resolve-view session id))
+         (candidate (copy-emacs-tui--view view)))
+    (when (emacs-tui--view-text view)
+      (user-error "Text and input views cannot be filtered"))
+    (setf (emacs-tui--view-query candidate) query)
+    (emacs-tui--filter session candidate)
+    (emacs-tui--render-view session candidate)
+    (setf (emacs-tui--view-query view) query
+          (emacs-tui--view-visible-items view) (emacs-tui--view-visible-items candidate)
+          (emacs-tui--view-selected view) (emacs-tui--view-selected candidate)
+          (emacs-tui--view-tree-open view) (emacs-tui--view-tree-open candidate)
+          (emacs-tui--view-tree-search view) (emacs-tui--view-tree-search candidate)))
+  session)
 
 (defun emacs-tui--filter (session view)
   "Update VIEW's visible items for SESSION, preserving stable selection."
   (let* ((old (nth (emacs-tui--view-selected view)
                    (emacs-tui--view-visible-items view)))
-         (terms (split-string (emacs-tui-query session) nil t))
+         (local-query (emacs-tui--view-query view))
+         (application-query (and (null local-query)
+                                 (or (emacs-tui--workspace-on-query session)
+                                     (emacs-tui--workspace-provider session))))
+         (terms (split-string (or local-query (emacs-tui-query session)) nil t))
          (case-fold-search t)
-         (tree-terms (unless (or (emacs-tui--workspace-on-query session)
-                                 (emacs-tui--workspace-provider session)) terms))
+         (tree-terms (unless application-query terms))
          (projection (when (emacs-tui--view-tree view)
                        (emacs-tui--tree-project (emacs-tui--view-tree view) tree-terms)))
          (items
           (if projection (car projection)
-            (if (or (emacs-tui--workspace-on-query session)
-                    (emacs-tui--workspace-provider session))
+            (if application-query
 		(emacs-tui--view-items view)
               (cl-remove-if-not
                (lambda (item)

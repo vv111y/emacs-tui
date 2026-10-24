@@ -175,6 +175,35 @@ available through `emacs-tui-mount` and `emacs-tui-embed`; the dedicated-query
 `emacs-tui-open` workflow currently rejects editable views. Field validation,
 completion and application persistence remain application policies.
 
+## Per-view filters
+
+Each list, table or tree can have its own local query without changing source
+items. Connect a native input to a result view:
+
+```elisp
+(emacs-tui-mount
+ :views (list (emacs-tui-input
+               :id 'search :on-change
+               (lambda (app _id value) (emacs-tui-set-query app 'results value)))
+              (emacs-tui-view :id 'results :items '("alpha beta" "gamma")
+                              :multi-select t)))
+```
+
+`emacs-tui-set-query SESSION ID STRING` applies literal, case-insensitive terms
+to that view's labels and table values. Trees reveal matching ancestor paths.
+It preserves the source objects, hidden marks, sorting and surviving visible
+selection. Later source updates keep the query. `emacs-tui-query SESSION ID`
+reads the effective view query; omitting ID still reads the workspace query.
+
+An empty string explicitly shows all source items. Nil removes the override
+and inherits the workspace query policy. Explicit local filters also narrow
+application/provider-owned results, without invoking callbacks or restarting
+providers. Text previews and editable inputs are not filter targets.
+
+Run `make filter-demo` for a persistent search field, sortable buffer table and
+preview. Mark a buffer, hide it with a query, then clear the field: its mark
+survives. `C-c C-r` refreshes the source snapshot while retaining the filter.
+
 ## Application commands
 
 Pass an ordinary Emacs keymap as `:keymap` to any entry point, or to an
@@ -286,7 +315,8 @@ and continue exploration; commitment is a separate command.
 | `emacs-tui-update` | Replace a view's items or preview, reusing its buffer |
 | `emacs-tui-toggle-maximize` | Enlarge the focused panel or restore the layout |
 | `emacs-tui-refresh` | Reflow the workspace while preserving its input and selection |
-| `emacs-tui-query` | Read the temporary query |
+| `emacs-tui-query` | Read the workspace query or a view’s effective query |
+| `emacs-tui-set-query` | Set or clear a local list/table/tree filter |
 | `emacs-tui-current-item` | Read the selected object |
 | `emacs-tui-toggle-mark` | Toggle the current item in a multi-select view |
 | `emacs-tui-marked-items` | Read marked objects in source order |
@@ -447,7 +477,7 @@ workspace surface closes safely; unrelated windows and application buffers are
 preserved. `emacs-tui-refresh` is also available for an explicit reflow.
 
 The four-sided around-point layout, multiple floating surfaces,
-history, per-view query providers and richer form controls are planned in
+history, per-view asynchronous providers and richer form controls are planned in
 [ROADMAP.md](ROADMAP.md). The initial implementation renders full view content;
 large-data performance is not yet characterized.
 

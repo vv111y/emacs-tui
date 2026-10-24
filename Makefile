@@ -1,6 +1,6 @@
 EMACS ?= emacs
 
-.PHONY: test compile checkdoc check clean demo async-demo dashboard panel composer tree tty-smoke
+.PHONY: test compile checkdoc check clean demo async-demo dashboard panel composer tree filter-demo tty-smoke
 test:
 	$(EMACS) -Q --batch -L . -L test -l test/run-tests.el
 compile:
@@ -29,3 +29,5 @@ composer:
 	$(EMACS) -Q -nw -L . -l examples/emacs-tui-composer.el -f emacs-tui-composer
 tree:
 	$(EMACS) -Q -nw -L . -l examples/emacs-tui-buffer-tree.el -f emacs-tui-buffer-tree
+filter-demo:
+	$(EMACS) -Q -nw -L . -l examples/emacs-tui-filter-demo.el -f emacs-tui-filter-demo
