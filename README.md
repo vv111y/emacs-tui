@@ -57,11 +57,34 @@ application-owned panels; multi-view owned layouts remain available via
 `emacs-tui-mount`. Embedding within a text region of an existing buffer is not
 implemented.
 
+## Application commands
+
+Pass an ordinary Emacs keymap as `:keymap` to any entry point, or to an
+individual `emacs-tui-view`. Bindings resolve in this order: view, application,
+then toolkit defaults. These maps affect view buffers only; the ephemeral
+query keeps native text editing. Maps are referenced without changing their
+bindings or parents, so application changes to a supplied map remain live.
+
+```elisp
+(let ((map (make-sparse-keymap)))
+  (define-key map (kbd "r")
+    (lambda () (interactive)
+      (emacs-tui-update (emacs-tui-current-session) 'status :text "Updated")))
+  (emacs-tui-embed :keymap map
+                   :view (emacs-tui-view :id 'status :text "Ready")))
+```
+
+Commands run in the active view buffer. `emacs-tui-current-session` supplies
+its live handle for explicit update APIs; it signals a user error outside a
+live interface. Native prefix maps, command remapping and help lookup remain
+available. Existing n/p, TAB and q bindings remain unless overridden.
+
 ## Persistent applications
 
 Run `make dashboard` for a live buffer/process dashboard. It updates once per
 second, previews selected objects, and offers Refresh and Pause/Resume actions.
 Use TAB to change views, n/p to move through items, RET to act, and q to close.
+The g key refreshes and P pauses/resumes updates from any dashboard view.
 The dashboard does not edit buffers or start/terminate processes.
 
 Use `emacs-tui-mount` to build an application without query or origin-buffer
@@ -132,6 +155,7 @@ and continue exploration; commitment is a separate command.
 | `emacs-tui-view` | Describe a list or text preview |
 | `emacs-tui-open` | Open an ephemeral query workspace |
 | `emacs-tui-embed` | Borrow an application window for one panel; restore it on close |
+| `emacs-tui-current-session` | Return the current live interface handle for application commands |
 | `emacs-tui-mount` | Open a persistent interface without query or origin policy |
 | `emacs-tui-live-p` | Check whether an interface handle is active |
 | `emacs-tui-update` | Replace a view's items or preview, reusing its buffer |

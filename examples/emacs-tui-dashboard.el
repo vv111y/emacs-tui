@@ -60,9 +60,10 @@
 \\[emacs-tui-next-item]/\\[emacs-tui-previous-item] navigate items, and
 \\[emacs-tui-select] inspects an object or invokes the selected action.
 The Actions view refreshes or pauses/resumes updates without closing.
+The g key refreshes and P pauses/resumes updates from any view.
 \\[emacs-tui-close] closes the interface and cancels its update timer."
   (interactive)
-  (let (session timer paused initialized)
+  (let ((keymap (make-sparse-keymap)) session timer paused initialized)
     (cl-labels
         ((refresh
           ()
@@ -78,11 +79,15 @@ The Actions view refreshes or pauses/resumes updates without closing.
           (when (and (not paused) (emacs-tui-live-p session))
             (condition-case err (refresh)
               (error (message "emacs-tui dashboard: %s" (error-message-string err)))))))
+      (define-key keymap (kbd "g") (lambda () (interactive) (refresh)))
+      (define-key keymap (kbd "P")
+        (lambda () (interactive) (setq paused (not paused)) (refresh)))
       (unwind-protect
           (progn
             (setq session
                   (emacs-tui-mount
                    :layout 'grid
+                   :keymap keymap
                    :views
                    (list
                     (emacs-tui-view :id 'buffers :title "Buffers"
