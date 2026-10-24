@@ -16,16 +16,9 @@ and the package is not on MELPA yet.
 
 ## Install the beta
 
-The beta tag is `v0.1.0-beta1`. With Emacs 29 or later, evaluate:
-
-```elisp
-(package-vc-install
- '(emacs-tui :url "https://github.com/vv111y/emacs-tui.git"
-             :branch "v0.1.0-beta1"))
-```
-
-With [straight.el](https://github.com/radian-software/straight.el) on Emacs
-28.1 or later:
+The beta tag is `v0.1.0-beta1`. With
+[straight.el](https://github.com/radian-software/straight.el) on Emacs 28.1 or
+later, evaluate:
 
 ```elisp
 (straight-use-package

@@ -23,8 +23,8 @@ First community-testing release of the general-purpose Emacs TUI toolkit.
 
 - Requires Emacs 28.1 or later and has no third-party runtime dependencies.
 - CI exercises Emacs 28.1, 28.2, 29.4, 30.2 and 31.1 on Linux, plus 30.2 and
-  31.1 on macOS. It builds and clean-installs the actual package recipe on the
-  minimum and newest supported versions.
+  31.1 on macOS. It builds the actual package recipe on the newest version and
+  clean-installs the resulting archive on the minimum and newest versions.
 - Terminal scenarios cover real input, resize, two simultaneous PTY clients,
   explicit deletion, abrupt client loss, focus survival and final cleanup.
 
@@ -36,6 +36,6 @@ First community-testing release of the general-purpose Emacs TUI toolkit.
   the automated pseudo-terminal matrix.
 - Embedded panels own complete Emacs windows; inline text-region widgets are
   not implemented.
-- The beta is installed from the Git tag with `package-vc` or straight.el. It
-  is not yet available from MELPA; public-maintenance and substantive human
-  review gates remain external requirements.
+- The beta is installed from the Git tag with straight.el. It is not yet
+  available from MELPA; public-maintenance and substantive human review gates
+  remain external requirements.

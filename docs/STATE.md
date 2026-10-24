@@ -6,11 +6,16 @@ Updated 2026-10-24 (America/Toronto).
 
 The 0.1.0-beta1 release candidate packages the reviewed public surface for
 community testing. The main package metadata uses the prerelease version,
-README installation instructions pin `v0.1.0-beta1` for Emacs package-vc and
-straight.el, and CHANGELOG.md records scope, compatibility and known limits.
+README installation instructions pin `v0.1.0-beta1` with a file-filtered
+straight.el recipe, and CHANGELOG.md records scope, compatibility and known
+limits.
 The beta is explicitly experimental: it is neither a stable API promise nor a
 MELPA publication. Tagging and a GitHub prerelease require exact-head review,
 all eight CI jobs and a clean install of the built package artifact.
+Exact-head release review found that Emacs 29 package-vc recursively compiles
+the repository's tests and benchmarks, producing build-only failures and an
+overbroad installation. That path is intentionally omitted; the documented
+straight.el recipe selects only `emacs-tui*.el` from the pinned tag.
 
 The beta retains the `emacs-tui` package name to match the repository and
 established API prefix while avoiding the existing `tui-*` namespace. The one
