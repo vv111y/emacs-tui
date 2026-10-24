@@ -4,6 +4,20 @@ Updated 2026-10-24 (America/Toronto).
 
 ## Active implementation
 
+PR #41 merged at `46436af08bdd26fd02f43b5e0861aae79427cc7f` after independent
+exact-head review and all eight jobs in
+[40104813509](https://github.com/vv111y/emacs-tui/actions/runs/40104813509).
+Every runtime passed 310 ERT, strict compilation/checkdoc, ten terminal
+scenarios and benchmark protocol smokes. Linux/macOS 31.1 and fallback runtimes
+passed actual PTY table resize with the fill column matching live width at both
+sizes. The package snapshot built and clean-installed on 31.1/28.1.
+
+The beta install-ref candidate changes straight.el from the unavailable tag to
+fixed branch `release/0.1.0-beta1`, adds responsive tables to the changelog and
+keeps the GitHub prerelease authentication blocker explicit. After exact-head
+review, full CI and merge, create that branch from the merge commit and never
+move it. A later tag/prerelease must target the same commit.
+
 PR #40 merged at `e761ac8ff3f72e652b278b13df2e4109f2289000` after independent
 exact-head review and all eight jobs in
 [40098931357](https://github.com/vv111y/emacs-tui/actions/runs/40098931357).
@@ -14,8 +28,8 @@ dated recipe snapshot and clean-installed the identical archive on 31.1/28.1.
 Latest package-lint retained only the disclosed package-name advisory. The beta
 tag and GitHub prerelease are not yet published: the available GitHub connector
 cannot create releases, and the release UI requires an authenticated browser
-session. Do not claim that the straight.el tag exists until that external step
-is complete.
+session. Do not claim the tag or prerelease exists until that external step is
+complete.
 
 A post-beta candidate lets one table column use width `fill`. Rendering derives
 the remainder from the live window on each render/reflow, reserves mark-prefix
@@ -25,7 +39,7 @@ table fixture exercise it across resize. Fresh review and CI are required.
 
 The 0.1.0-beta1 release candidate packages the reviewed public surface for
 community testing. The main package metadata uses the prerelease version,
-README installation instructions pin `v0.1.0-beta1` with a file-filtered
+README installation instructions pin `release/0.1.0-beta1` with a file-filtered
 straight.el recipe, and CHANGELOG.md records scope, compatibility and known
 limits.
 The beta is explicitly experimental: it is neither a stable API promise nor a
@@ -34,7 +48,7 @@ all eight CI jobs and a clean install of the built package artifact.
 Exact-head release review found that Emacs 29 package-vc recursively compiles
 the repository's tests and benchmarks, producing build-only failures and an
 overbroad installation. That path is intentionally omitted; the documented
-straight.el recipe selects only `emacs-tui*.el` from the pinned tag.
+straight.el recipe selects only `emacs-tui*.el` from the pinned release ref.
 The unsubmitted package-build recipe still creates a dated MELPA-style snapshot
 archive for clean-install testing. Release CI now separately parses the source
 with package.el and asserts header `0.1.0-beta1` and canonical package version

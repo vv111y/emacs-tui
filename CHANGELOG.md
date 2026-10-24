@@ -10,6 +10,8 @@ First community-testing release of the general-purpose Emacs TUI toolkit.
   preview/commit workspaces over shared lifecycle primitives.
 - List, text, editable input, table and tree views with identity-preserving
   selection, multi-selection, queries, sorting and named actions.
+- Responsive tables with one optional fill-width column that follows its live
+  window across terminal resize while retaining fixed-column overflow.
 - Columns, rows and grid layouts; direct layout selection, maximization,
   automatic terminal resize reflow and application keymaps.
 - Cancellable asynchronous providers with generation-safe publication and
@@ -36,6 +38,7 @@ First community-testing release of the general-purpose Emacs TUI toolkit.
   the automated pseudo-terminal matrix.
 - Embedded panels own complete Emacs windows; inline text-region widgets are
   not implemented.
-- The beta is installed from the Git tag with straight.el. It is not yet
-  available from MELPA; public-maintenance and substantive human review gates
-  remain external requirements.
+- The beta is installed from the fixed release branch with straight.el while
+  the matching GitHub prerelease tag awaits authenticated publication. It is
+  not yet available from MELPA; public-maintenance and substantive human review
+  gates remain external requirements.

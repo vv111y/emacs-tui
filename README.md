@@ -12,11 +12,14 @@ application windows and restore their original buffer when closed.
 XOB is an intended consumer; the toolkit is not specific to XOB, Org or graphs.
 
 **0.1.0 beta: ready for community testing.** The API remains experimental,
-and the package is not on MELPA yet.
+and the package is not on MELPA yet. The reviewed beta is available from its
+versioned release branch while the matching GitHub prerelease tag awaits an
+authenticated publication step.
 
 ## Install the beta
 
-The beta tag is `v0.1.0-beta1`. With
+The beta release ref is `release/0.1.0-beta1`. It is fixed to the reviewed beta
+contents and will not track later development. With
 [straight.el](https://github.com/radian-software/straight.el) on Emacs 28.1 or
 later, evaluate:
 
@@ -24,7 +27,7 @@ later, evaluate:
 (straight-use-package
  '(emacs-tui :type git
              :repo "https://github.com/vv111y/emacs-tui.git"
-             :branch "v0.1.0-beta1"
+             :branch "release/0.1.0-beta1"
              :files ("emacs-tui*.el")))
 ```
 
