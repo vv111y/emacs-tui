@@ -101,6 +101,8 @@
     (define-key map (kbd "<backtab>") #'emacs-tui-previous-view)
     (define-key map (kbd "M-n") #'emacs-tui-next-item)
     (define-key map (kbd "M-p") #'emacs-tui-previous-item)
+    (define-key map (kbd "C-c <") #'emacs-tui-first-item)
+    (define-key map (kbd "C-c >") #'emacs-tui-last-item)
     (define-key map (kbd "RET") #'emacs-tui-select)
     (define-key map (kbd "C-c C-c") #'emacs-tui-commit)
     (define-key map (kbd "C-c C-m") #'emacs-tui-toggle-mark)
@@ -1642,8 +1644,9 @@ callbacks.  Return SESSION.  Read the source object with
   session)
 
 (defun emacs-tui-next-item (&optional session delta)
-  "Move SESSION's focused selection by DELTA, defaulting to one."
-  (interactive)
+  "Move SESSION's focused selection by DELTA, defaulting to one.
+Wrap at projection boundaries.  Interactively, use the numeric prefix argument."
+  (interactive (list nil (prefix-numeric-value current-prefix-arg)))
   (setq session (emacs-tui--require-session session))
   (let* ((view (emacs-tui--focused-view session))
          (buffer (emacs-tui--view-buffer view)))
@@ -1656,10 +1659,44 @@ callbacks.  Return SESSION.  Read the source object with
             (let ((index (mod (+ (emacs-tui--view-selected view) (or delta 1)) count)))
               (emacs-tui--select-index session view index))))))))
 
-(defun emacs-tui-previous-item (&optional session)
-  "Move SESSION's focused selection backward."
+(defun emacs-tui-previous-item (&optional session count)
+  "Move SESSION's focused selection backward by COUNT, defaulting to one.
+Wrap at projection boundaries.  A negative COUNT moves forward.
+Interactively, use the numeric prefix argument."
+  (interactive (list nil (prefix-numeric-value current-prefix-arg)))
+  (emacs-tui-next-item session (- (or count 1))))
+
+(defun emacs-tui--select-boundary (session last)
+  "Select SESSION's first projected row, or its last when LAST is non-nil."
+  (setq session (emacs-tui--require-session session))
+  (let* ((view (emacs-tui--focused-view session))
+         (buffer (emacs-tui--view-buffer view)))
+    (when (emacs-tui--view-text view)
+      (user-error "Text and input views do not select items"))
+    (unless (emacs-tui--subtree session)
+      (user-error "Interface surface is no longer owned"))
+    (with-current-buffer buffer
+      (let ((count (if (emacs-tui--selection-cached-p view)
+                       (length emacs-tui--row-ranges)
+                     (length (emacs-tui--view-visible-items view)))))
+        (when (> count 0)
+          (emacs-tui--select-index session view (if last (1- count) 0))))))
+  session)
+
+(defun emacs-tui-first-item (&optional session)
+  "Select SESSION's first projected item without invoking application actions.
+Preserve queries, sort and marks.  An empty projection is unchanged.
+Text/input views and invalidated surfaces signal a user error.
+SESSION defaults to the current interface.  Return SESSION."
   (interactive)
-  (emacs-tui-next-item session -1))
+  (emacs-tui--select-boundary session nil))
+
+(defun emacs-tui-last-item (&optional session)
+  "Select SESSION's last projected item without invoking application actions.
+Use the same projection, preservation and error rules as `emacs-tui-first-item'.
+SESSION defaults to the current interface.  Return SESSION."
+  (interactive)
+  (emacs-tui--select-boundary session t))
 
 (defun emacs-tui--action-items (session view)
   "Return a fresh target list for VIEW's explicit action in SESSION."

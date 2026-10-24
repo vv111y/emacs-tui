@@ -386,6 +386,7 @@ and continue exploration; commitment is a separate command.
 | `emacs-tui-query` | Read the workspace query or a view’s effective query |
 | `emacs-tui-set-query` | Set or clear a local list/table/tree filter |
 | `emacs-tui-current-item` | Read the focused or named view's selected source object |
+| `emacs-tui-first-item` / `emacs-tui-last-item` | Select a projection endpoint without application actions |
 | `emacs-tui-toggle-mark` | Toggle the current item in a multi-select view |
 | `emacs-tui-mark-all` | Mark the focused or named view’s projected rows |
 | `emacs-tui-invert-marks` | Invert marks in that projection, preserving hidden marks |
@@ -405,7 +406,8 @@ functions; interactive commands infer it from the workspace buffer. Internal
 | --- | --- |
 | Ordinary editing keys | Edit temporary query using normal Emacs commands |
 | `TAB` / `S-TAB` | Focus next / previous view |
-| `M-n` / `M-p` | Select next / previous item |
+| `M-n` / `M-p` | Select next / previous item; numeric prefixes repeat, with wrapping |
+| `C-c <` / `C-c >` | Select first / last projected item |
 | `RET` | Invoke selection action without closing |
 | `C-c C-c` | Commit selected item and close after success |
 | `C-c C-l` | Cycle columns, rows and grid |
@@ -420,6 +422,14 @@ functions; interactive commands infer it from the workspace buffer. Internal
 The editing cursor stays in the query buffer while logical focus and selection
 move between views. An asterisk marks the focused view; faces use theme-friendly
 inheritance. No global keys are installed.
+
+Use numeric prefixes with item movement, for example `C-u M-n` moves four
+items and `M-3 M-p` moves three backward. Negative counts reverse direction;
+zero leaves selection in place. `C-c <` / `C-c >` select the first/last row of
+the current filtered/sorted/tree projection, including off-screen rows. Empty
+projections are unchanged; text/input views reject endpoint selection. Queries,
+marks and application actions remain untouched. Query editing still uses native
+`M-<` / `M->`. Programmatic previous-item accepts an optional backward count.
 
 Without a query callback, whitespace-separated terms match labels literally,
 case-insensitively and in any order. Supply `:on-query (lambda (session query)

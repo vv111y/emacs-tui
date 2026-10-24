@@ -188,3 +188,105 @@
       (should (equal (emacs-tui-current-item session) "beta")))))
 
 ;;; emacs-tui-navigation-test.el ends here
+
+(ert-deftest emacs-tui-navigation-boundaries-use-cache-without-actions ()
+  (let ((actions 0) (projections 0))
+    (emacs-tui-test--navigation
+        (emacs-tui-view :id 'rows :items '("日本語\n二行" "middle" "last") :multi-select t
+                        :columns (list (emacs-tui-column :id 'name :value
+                                                        (lambda (item) (cl-incf projections) item)))
+                        :on-select (lambda (&rest _) (cl-incf actions)))
+      (emacs-tui-toggle-mark session)
+      (let ((text (buffer-string)) (tick (buffer-chars-modified-tick)))
+        (setq projections 0)
+        (should (eq session (emacs-tui-last-item session)))
+        (should (equal "last" (emacs-tui-current-item session)))
+        (should (eq session (emacs-tui-first-item session)))
+        (should (equal "日本語\n二行" (emacs-tui-current-item session)))
+        (should (equal '("日本語\n二行") (emacs-tui-marked-items session)))
+        (should (equal text (buffer-string)))
+        (should (= tick (buffer-chars-modified-tick)))
+        (should (zerop projections))
+        (should (zerop actions))))))
+
+(ert-deftest emacs-tui-navigation-counted-native-movement-wraps ()
+  (emacs-tui-test--navigation (emacs-tui-view :id 'rows :items '("a" "b" "c" "d" "e"))
+    (execute-kbd-macro (kbd "C-3 n"))
+    (should (equal "d" (emacs-tui-current-item session)))
+    (execute-kbd-macro (kbd "C-2 p"))
+    (should (equal "b" (emacs-tui-current-item session)))
+    (execute-kbd-macro (kbd "M-- p"))
+    (should (equal "c" (emacs-tui-current-item session)))
+    (emacs-tui-previous-item session 0)
+    (should (equal "c" (emacs-tui-current-item session)))
+    (emacs-tui-previous-item session 8)
+    (should (equal "e" (emacs-tui-current-item session)))))
+
+(ert-deftest emacs-tui-navigation-boundaries-follow-sort-filter-and-empty ()
+  (emacs-tui-test--navigation
+      (emacs-tui-view :id 'rows :items '((:id 1 :label "keep A" :rank 1)
+                                        (:id 2 :label "omit" :rank 2)
+                                        (:id 3 :label "keep B" :rank 3))
+                      :columns (list (emacs-tui-column :id 'rank :value :rank)))
+    (emacs-tui-sort session 'rows 'rank t)
+    (emacs-tui-set-query session 'rows "keep")
+    (emacs-tui-first-item session)
+    (should (= 3 (plist-get (emacs-tui-current-item session) :id)))
+    (emacs-tui-last-item session)
+    (should (= 1 (plist-get (emacs-tui-current-item session) :id)))
+    (should (equal "keep" (emacs-tui-query session 'rows)))
+    (emacs-tui-set-query session 'rows "absent")
+    (should (eq session (emacs-tui-first-item session)))
+    (should (eq session (emacs-tui-last-item session)))
+    (should-not (emacs-tui-current-item session))))
+
+(ert-deftest emacs-tui-navigation-boundaries-exclude-collapsed-tree-children ()
+  (emacs-tui-test--navigation
+      (emacs-tui-tree :id 'tree :items '((:id root :label "Root"
+                                            :children ((:id leaf :label "Leaf")))))
+    (emacs-tui-last-item session)
+    (should (eq 'root (plist-get (emacs-tui-current-item session) :id)))
+    (emacs-tui-tree-expand session)
+    (emacs-tui-last-item session)
+    (should (eq 'leaf (plist-get (emacs-tui-current-item session) :id)))
+    (emacs-tui-first-item session)
+    (should (eq 'root (plist-get (emacs-tui-current-item session) :id)))))
+
+(ert-deftest emacs-tui-navigation-boundaries-reject-text-and-foreign-surface ()
+  (emacs-tui-test--navigation (emacs-tui-view :id 'text :text "Preview")
+    (should-error (emacs-tui-first-item session) :type 'user-error)
+    (should-error (emacs-tui-last-item session) :type 'user-error))
+  (emacs-tui-test--navigation (emacs-tui-view :id 'rows :items '("a" "b"))
+    (let ((foreign (generate-new-buffer " *Boundary foreign*"))
+          (window (emacs-tui--view-window view)))
+      (unwind-protect
+          (progn
+            (with-current-buffer foreign (insert "foreign") (goto-char 4))
+            (set-window-buffer window foreign)
+            (set-window-point window 4)
+            (should-error (emacs-tui-first-item session) :type 'user-error)
+            (should-error (emacs-tui-last-item session) :type 'user-error)
+            (should (equal "a" (emacs-tui-current-item session 'rows)))
+            (should (eq foreign (window-buffer window)))
+            (should (= 4 (window-point window))))
+        (kill-buffer foreign)))))
+
+(ert-deftest emacs-tui-navigation-boundaries-preserve-native-query-editing ()
+  (save-window-excursion
+    (let ((session (emacs-tui-open :backend 'windows
+                                 :views (list (emacs-tui-view :id 'rows
+                                                             :items '("alpha" "beta" "gamma"))))))
+      (unwind-protect
+          (progn
+            (insert "a")
+            (goto-char 1)
+            (let ((query (current-buffer)) (window (selected-window)))
+              (execute-kbd-macro (kbd "C-c >"))
+              (should (equal "gamma" (emacs-tui-current-item session)))
+              (execute-kbd-macro (kbd "C-c <"))
+              (should (equal "alpha" (emacs-tui-current-item session)))
+              (should (eq query (current-buffer)))
+              (should (eq window (selected-window)))
+              (should (= 1 (point)))
+              (should (equal "a" (emacs-tui-query session)))))
+        (emacs-tui-close session)))))
