@@ -37,6 +37,7 @@
 (require 'emacs-tui-layout)
 (require 'emacs-tui-table)
 (require 'emacs-tui-tree)
+(require 'emacs-tui-action)
 
 (defgroup emacs-tui nil
   "Composable text interfaces."
@@ -56,7 +57,7 @@
 (cl-defstruct (emacs-tui--view (:constructor emacs-tui--make-view))
   id title items visible-items (selected 0) text on-select buffer window
   multi-select marks keymap columns sort-column sort-descending editable on-change
-  tree children tree-open tree-search display-state query)
+  tree children tree-open tree-search display-state query actions)
 
 (cl-defstruct (emacs-tui--workspace (:constructor emacs-tui--make-workspace))
   views (focus 0) layout backend on-query on-commit origin origin-window
@@ -92,6 +93,7 @@
     (define-key map (kbd "C-c C-m") #'emacs-tui-toggle-mark)
     (define-key map (kbd "C-c C-u") #'emacs-tui-clear-marks)
     (define-key map (kbd "C-c C-l") #'emacs-tui-cycle-layout)
+    (define-key map (kbd "C-c C-a") #'emacs-tui-act)
     (define-key map (kbd "C-c C-f") #'emacs-tui-toggle-maximize)
     (define-key map (kbd "C-g") #'emacs-tui-close)
     (define-key map (kbd "C-c C-q") #'emacs-tui-close)
@@ -111,6 +113,7 @@
     (define-key map (kbd "p") #'emacs-tui-previous-item)
     (define-key map (kbd "q") #'emacs-tui-close)
     (define-key map (kbd "s") #'emacs-tui-sort)
+    (define-key map (kbd "a") #'emacs-tui-act)
     map)
   "Keymap for list and text views, including queryless applications.")
 
@@ -137,6 +140,7 @@
     (define-key map (kbd "<backtab>") #'emacs-tui-previous-view)
     (define-key map (kbd "C-c C-q") #'emacs-tui-close)
     (define-key map (kbd "C-c C-l") #'emacs-tui-cycle-layout)
+    (define-key map (kbd "C-c C-a") #'emacs-tui-act)
     (define-key map (kbd "C-c C-f") #'emacs-tui-toggle-maximize)
     map)
   "Keymap for editable views; ordinary text editing remains available.")
@@ -173,7 +177,7 @@
           (puthash id t identities)))))
   items)
 
-(cl-defun emacs-tui-view (&key id title items text on-select multi-select keymap columns)
+(cl-defun emacs-tui-view (&key id title items text on-select multi-select keymap columns actions)
   "Describe a list, table or text view.
 ID is a unique symbol or string.  TITLE defaults to ID.  ITEMS is a list
 of strings or plists with :label, optional :id, :value and :annotation.
@@ -189,7 +193,10 @@ be marked.
 ON-SELECT is called with the workspace and selected item; it need not
 close the workspace.  KEYMAP optionally overrides application and default
 view bindings.  Maps are composed without mutation and remain live references.
-View descriptions are copied when opened."
+ACTIONS optionally lists `emacs-tui-action' descriptions for explicit context
+operations.  Use `emacs-tui-act' to choose or invoke one.  Rendering never
+evaluates action predicates or callbacks.  View descriptions are copied
+when opened."
   (unless (and id (or (symbolp id) (stringp id)))
     (error "View ID must be a non-nil symbol or string"))
   (unless (or (null text) (stringp text)) (error "TEXT must be a string"))
@@ -198,13 +205,14 @@ View descriptions are copied when opened."
   (unless (or (null keymap) (keymapp keymap))
     (error "KEYMAP must be a keymap or nil"))
   (emacs-tui--validate-columns columns)
+  (emacs-tui--validate-actions actions)
   (emacs-tui--make-view :id id :title (or title (format "%s" id))
                         :items (emacs-tui--validate-items items multi-select)
                         :visible-items items :text text :on-select on-select
-                        :multi-select multi-select :keymap keymap :columns columns))
+                        :multi-select multi-select :keymap keymap :columns columns :actions actions))
 
 (cl-defun emacs-tui-tree (&key id title items (children :children)
-                               on-select multi-select keymap)
+                               on-select multi-select keymap actions)
   "Describe a finite tree of application ITEMS with view ID and TITLE.
 CHILDREN is a plist keyword or pure function returning an item's child list.
 It is evaluated once per node during construction and source replacement,
@@ -214,7 +222,8 @@ Items follow `emacs-tui-view'; plist nodes require explicit non-nil :id values.
 Identities must be globally unique, including collapsed descendants.  Cycles
 and repeated nodes are rejected.  Roots start collapsed.  Source updates
 retain expansion, selection and marks for surviving identities.
-ON-SELECT, MULTI-SELECT and KEYMAP follow `emacs-tui-view'.  Selection/actions
+ON-SELECT, MULTI-SELECT, KEYMAP and ACTIONS follow `emacs-tui-view'.
+Selection/actions
 receive the original item.  Local queries show matches and their ancestors
 without changing expansion; clear the query before changing expansion."
   (unless (or (keywordp children) (functionp children))
@@ -223,7 +232,7 @@ without changing expansion; clear the query before changing expansion."
          (projection (emacs-tui--tree-project data nil))
          (view (emacs-tui-view :id id :title title
                                :items (emacs-tui--tree-data-items data)
-                               :on-select on-select :multi-select multi-select :keymap keymap)))
+                               :on-select on-select :multi-select multi-select :keymap keymap :actions actions)))
     (setf (emacs-tui--view-tree view) data
           (emacs-tui--view-visible-items view) (car projection)
           (emacs-tui--view-tree-open view) (cdr projection)
@@ -283,9 +292,10 @@ without changing expansion; clear the query before changing expansion."
   (interactive)
   (emacs-tui--tree-command session 'collapse))
 
-(cl-defun emacs-tui-input (&key id title (value "") on-change keymap)
+(cl-defun emacs-tui-input (&key id title (value "") on-change keymap actions)
   "Describe an editable input for `emacs-tui-mount' or `emacs-tui-embed'.
-ID, TITLE and KEYMAP follow `emacs-tui-view'.  VALUE is the initial string.
+ID, TITLE, KEYMAP and ACTIONS follow `emacs-tui-view'.
+VALUE is the initial string.
 Ordinary editing, multiline input, input methods and undo use native Emacs
 commands; `emacs-tui-next-view' changes view and `emacs-tui-close' closes it.
 ON-CHANGE, when non-nil, receives (SESSION ID VALUE) after edits, including
@@ -297,7 +307,7 @@ The ephemeral `emacs-tui-open' query workflow does not accept editable views."
   (unless (stringp value) (error "VALUE must be a string"))
   (unless (or (null on-change) (functionp on-change))
     (error "ON-CHANGE must be a function or nil"))
-  (let ((view (emacs-tui-view :id id :title title :text value :keymap keymap)))
+  (let ((view (emacs-tui-view :id id :title title :text value :keymap keymap :actions actions)))
     (setf (emacs-tui--view-editable view) t
           (emacs-tui--view-on-change view) on-change)
     view))
@@ -554,6 +564,8 @@ an empty answer restores source order, and a prefix requests descending order."
                          (emacs-tui--view-id (emacs-tui--focused-view session))) "* " "  ")
           (emacs-tui--view-title view)
           (when (emacs-tui--workspace-maximized session) " | maximized")
+          (when (emacs-tui--view-actions view)
+            (if (emacs-tui--view-editable view) " | C-c C-a actions" " | a actions"))
           (when (and (emacs-tui--view-multi-select view)
                      (not (emacs-tui--view-text view)))
             (format " | %d marked"
@@ -1476,6 +1488,75 @@ windows are preserved."
   "Move SESSION's focused selection backward."
   (interactive)
   (emacs-tui-next-item session -1))
+
+(defun emacs-tui--action-items (session view)
+  "Return a fresh target list for VIEW's explicit action in SESSION."
+  (or (emacs-tui-marked-items session (emacs-tui--view-id view))
+      (when-let* ((item (emacs-tui-current-item session))) (list item))))
+
+(defun emacs-tui--action-enabled-p (action session items)
+  "Test ACTION's availability for SESSION and ITEMS."
+  (let ((enabled (emacs-tui--action-enabled action)))
+    (if (functionp enabled) (funcall enabled session items) enabled)))
+
+(defun emacs-tui--action-choice (answer choices)
+  "Resolve accepted completion ANSWER in CHOICES without case ambiguity.
+Prefer an exact spelling.  Native completion can accept another spelling
+when case folding is enabled, including by minibuffer-local configuration."
+  (or (assoc answer choices)
+      (let ((matches (cl-remove-if-not
+                      (lambda (choice)
+                        (eq t (compare-strings answer nil nil (car choice) nil nil t)))
+                      choices)))
+        (when (cdr matches)
+          (user-error "Ambiguous action spelling; choose an exact candidate"))
+        (car matches))
+      (user-error "No matching action chosen")))
+
+(defun emacs-tui-act (&optional session id)
+  "Invoke action ID in SESSION's focused view, or prompt when ID is nil.
+Use marked objects in source order, including hidden marks, before falling
+back to the selected object.  With no targets, pass nil; applications can
+provide target-free actions such as refresh.  Read current objects and check
+availability again after choosing from the menu.  If the interface closes or
+focus changes during the prompt, abort rather than dispatch to another view.
+Only the chosen action's RUN callback executes.  Return its result.  There is
+no implicit close, commit or transaction; applications own all effects."
+  (interactive)
+  (setq session (emacs-tui--require-session session))
+  (let* ((view (emacs-tui--focused-view session))
+         (actions (emacs-tui--view-actions view)))
+    (unless actions (user-error "This view has no named actions"))
+    (unless id
+      (let* ((items (emacs-tui--action-items session view))
+             (labels (make-hash-table :test #'equal))
+             (choices
+              (cl-loop for action in actions
+                       when (emacs-tui--action-enabled-p action session items)
+                       collect
+                       (let* ((label (format "%s (%S)" (emacs-tui--action-title action)
+                                             (emacs-tui--action-id action)))
+                              (choice label) (suffix 1))
+                         ;; Distinct uninterned IDs can have the same printed name.
+                         (while (gethash choice labels)
+                           (setq choice (format "%s [%d]" label (cl-incf suffix))))
+                         (puthash choice t labels)
+                         (cons choice (emacs-tui--action-id action))))))
+        (unless choices (user-error "No actions are available for these targets"))
+        (setq id (cdr (emacs-tui--action-choice (completing-read
+						 (format "Action (%d target%s): " (length items)
+							 (if (= 1 (length items)) "" "s"))
+						 choices nil t)
+						choices)))))
+    (emacs-tui--require-session session)
+    (unless (eq view (emacs-tui--focused-view session))
+      (user-error "Focused view changed; choose an action again"))
+    (let ((action (cl-find id actions :key #'emacs-tui--action-id :test #'equal))
+          (items (emacs-tui--action-items session view)))
+      (unless action (user-error "Unknown action: %S" id))
+      (unless (emacs-tui--action-enabled-p action session items)
+        (user-error "This action is unavailable for the current targets"))
+      (funcall (emacs-tui--action-run action) session items))))
 
 (defun emacs-tui-select (&optional session)
   "Invoke the focused view's selection action in SESSION.
