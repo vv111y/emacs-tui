@@ -82,6 +82,18 @@
 (defvar emacs-tui--rendering nil
   "Non-nil while rendering, suppressing editable-view change callbacks.")
 
+(defvar-local emacs-tui--row-ranges nil
+  "Vector of displayed item bounds, excluding each trailing newline.")
+
+(defvar-local emacs-tui--row-items nil
+  "Item snapshot whose positions are in `emacs-tui--row-ranges'.")
+
+(defvar-local emacs-tui--row-tick nil
+  "Character modification tick at which row positions were prepared.")
+
+(defvar-local emacs-tui--selection-overlay nil
+  "Owned selection highlight, separate from application text properties.")
+
 (defvar emacs-tui-input-mode-map
   (let ((map (make-sparse-keymap)))
     (define-key map (kbd "TAB") #'emacs-tui-next-view)
@@ -590,11 +602,11 @@ an empty answer restores source order, and a prefix requests descending order."
 
 (defun emacs-tui--view-content (view)
   "Prepare VIEW's complete content and selected position without display edits.
-Return (CONTENT . POSITION).  Projection errors leave the live buffer intact."
+Return (CONTENT POSITION ROW-RANGES).  Projection errors leave display intact."
   (if (emacs-tui--view-text view)
-      (cons (emacs-tui--view-text view) 1)
+      (list (emacs-tui--view-text view) 1 nil)
     (let ((columns (emacs-tui--view-columns view))
-          (position 1) (selected-position 1) chunks)
+          (position 1) (selected-position 1) chunks ranges)
       (when columns
         (let ((header
                (concat (when (emacs-tui--view-multi-select view) "    ")
@@ -623,11 +635,23 @@ Return (CONTENT . POSITION).  Projection errors leave the live buffer intact."
                                  (concat "  " (propertize (format "%s" annotation)
                                                            'face 'emacs-tui-annotation))))))
                  (when (= index (emacs-tui--view-selected view))
-                   (setq selected-position position)
-                   (add-face-text-property 0 (length line) 'emacs-tui-selection t line))
+                   (setq selected-position position))
+                 (push (cons position (+ position (length line))) ranges)
                  (push (concat line "\n") chunks)
                  (cl-incf position (1+ (length line)))))
-      (cons (apply #'concat (nreverse chunks)) selected-position))))
+      (list (apply #'concat (nreverse chunks)) selected-position
+            (vconcat (nreverse ranges))))))
+
+(defun emacs-tui--highlight-row (index)
+  "Move the current view buffer's selection highlight to row INDEX."
+  (if (and emacs-tui--row-ranges (< index (length emacs-tui--row-ranges)))
+      (let ((range (aref emacs-tui--row-ranges index)))
+        (unless (overlayp emacs-tui--selection-overlay)
+          (setq emacs-tui--selection-overlay (make-overlay 1 1))
+          (overlay-put emacs-tui--selection-overlay 'face 'emacs-tui-selection))
+        (move-overlay emacs-tui--selection-overlay (car range) (cdr range) (current-buffer)))
+    (when (overlayp emacs-tui--selection-overlay)
+      (delete-overlay emacs-tui--selection-overlay))))
 
 (defun emacs-tui--render-view (session view)
   "Render VIEW in SESSION without replacing its buffer or window.
@@ -642,10 +666,25 @@ Prepare application projections before changing any displayed content."
                        (save-restriction
                          (widen)
                          (equal-including-properties (car content) (buffer-string))))
-            (atomic-change-group
-              (erase-buffer)
-              (insert (car content))
-              (goto-char (cdr content)))
+            (let ((old-start (and (overlayp emacs-tui--selection-overlay)
+                                  (overlay-start emacs-tui--selection-overlay)))
+                  (old-end (and (overlayp emacs-tui--selection-overlay)
+                                (overlay-end emacs-tui--selection-overlay)))
+                  completed)
+              (unwind-protect
+                  (progn
+                    (atomic-change-group
+                      (erase-buffer)
+                      (insert (car content))
+                      (goto-char (cadr content)))
+                    (setq completed t))
+                ;; Text rollback does not promise to restore overlay marker bounds.
+                (when (and (not completed) old-start old-end (buffer-live-p buffer))
+                  (move-overlay emacs-tui--selection-overlay old-start old-end buffer))))
+            (setq emacs-tui--row-ranges (nth 2 content)
+                  emacs-tui--row-items (emacs-tui--view-visible-items view)
+                  emacs-tui--row-tick (buffer-chars-modified-tick))
+            (emacs-tui--highlight-row (emacs-tui--view-selected view))
             (set-buffer-modified-p nil)
             (when (emacs-tui--view-text view)
               (setf (emacs-tui--view-display-state view) nil))
@@ -1478,11 +1517,29 @@ windows are preserved."
   (interactive)
   (setq session (emacs-tui--require-session session))
   (let* ((view (emacs-tui--focused-view session))
-         (count (length (emacs-tui--view-visible-items view))))
-    (when (> count 0)
-      (setf (emacs-tui--view-selected view)
-            (mod (+ (emacs-tui--view-selected view) (or delta 1)) count))
-      (emacs-tui--render-view session view))))
+         (buffer (emacs-tui--view-buffer view)))
+    (when (buffer-live-p buffer)
+      (with-current-buffer buffer
+        (let* ((cached (and (not (emacs-tui--view-text view))
+                            (vectorp emacs-tui--row-ranges)
+                            (eq emacs-tui--row-items (emacs-tui--view-visible-items view))
+                            (eql emacs-tui--row-tick (buffer-chars-modified-tick))
+                            (not emacs-tui--rendering)))
+               (count (if cached (length emacs-tui--row-ranges)
+                        (length (emacs-tui--view-visible-items view)))))
+          (when (> count 0)
+            (let ((index (mod (+ (emacs-tui--view-selected view) (or delta 1)) count)))
+              (if cached
+                  (save-restriction
+                    (widen)
+                    (emacs-tui--highlight-row index)
+                    (goto-char (car (aref emacs-tui--row-ranges index)))
+                    (when (window-live-p (emacs-tui--view-window view))
+                      (set-window-point (emacs-tui--view-window view) (point))))
+                (let ((candidate (copy-emacs-tui--view view)))
+                  (setf (emacs-tui--view-selected candidate) index)
+                  (emacs-tui--render-view session candidate)))
+              (setf (emacs-tui--view-selected view) index))))))))
 
 (defun emacs-tui-previous-item (&optional session)
   "Move SESSION's focused selection backward."
