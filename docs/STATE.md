@@ -38,7 +38,13 @@ existing TTY runner. This avoids both queued-output blocking and timed-wait
 notification dependency; exact OS/runtime causality is not asserted. Two
 portable real-PTY regressions cover a 2 MiB tail and EOF with a live leader.
 Independent probes also passed dead-leader descendant cleanup and real native
-input. Corrected exact-head review and all current-head CI remain required.
+input. Corrected implementation `e9dd4f5d39743c1b8a43df822ada27b1938f82e9` received
+independent approval; all eight jobs passed in
+[40068830097](https://github.com/vv111y/emacs-tui/actions/runs/40068830097).
+Both macOS versions now complete benchmark validation; Linux/runtime/package
+checks also passed. The final EOF-test handshake and this documentation delta
+still require review and passing final-head CI. The handshake confirms actual
+terminal EOF before testing a live process, avoiding a startup-timing assumption.
 
 The navigation pair remains under bench/results/2026-10-24-navigation and is
 limited interpreted-source evidence. Bytecompiled-library benchmark mode is

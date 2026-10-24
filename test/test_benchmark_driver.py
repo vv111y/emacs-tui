@@ -5,9 +5,11 @@ Assisted-by: Codex:gpt-6.1-sol-wm
 SPDX-License-Identifier: GPL-3.0-or-later
 """
 import importlib.util
+import errno
 import os
 import pathlib
 import pty
+import select
 import signal
 import subprocess
 import sys
@@ -53,6 +55,12 @@ class ExitHandling(unittest.TestCase):
 
     def test_terminal_eof_does_not_mean_process_has_exited(self):
         def check(process, master):
+            self.assertTrue(select.select([master], [], [], 5)[0])
+            try:
+                self.assertEqual(os.read(master, 1), b"")
+            except OSError as error:
+                self.assertEqual(error.errno, errno.EIO)
+            self.assertIsNone(process.poll())
             with self.assertRaises(subprocess.TimeoutExpired):
                 DRIVER.wait_for_exit(process, master, .2, bytearray())
             self.assertIsNone(process.poll())
