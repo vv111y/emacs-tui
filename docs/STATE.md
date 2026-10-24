@@ -7,10 +7,12 @@ Updated 2026-10-23 (America/Toronto).
 The foundation [PR #1](https://github.com/vv111y/emacs-tui/pull/1) is merged.
 Automatic viewport reflow and real terminal resize tests shipped in merged
 [PR #2](https://github.com/vv111y/emacs-tui/pull/2), commit `80e552d`.
-Cancellable asynchronous query providers are implemented in
-[PR #3](https://github.com/vv111y/emacs-tui/pull/3). Inspect its live review/check
-and merge status before starting overlapping work. The current worker owns
-core, provider tests, examples, terminal smoke and README until integration.
+Cancellable asynchronous query providers shipped in merged
+[PR #3](https://github.com/vv111y/emacs-tui/pull/3), commit `e6d6749`.
+The next active scope is opt-in multi-selection per view with stable identities,
+non-color mark indicators, explicit batch commits, regression tests and docs.
+The current worker owns core, mark tests, graph example, terminal smoke and
+README; inspect active drafts before starting overlapping work.
 The repository started empty; this is still an experimental development release.
 
 Implemented: pure columns/rows/grid geometry, editable temporary queries,
@@ -39,8 +41,10 @@ actually stop its own processes/timers.
 Local PR #3 validation: 68 ERT tests pass on Emacs 29.3, including real `cat`
 process streaming/disposal and lifecycle races. Strict compilation and checkdoc
 include both examples and pass. The interactive TTY smoke now waits for async
-results before selection/resize/commit and verifies cancellation. Final-head CI
-and independent review must pass before integration. The buffer-search example
+results before selection/resize/commit and verifies cancellation. Independent review completed without blockers.
+[Final-head CI 40043420927](https://github.com/vv111y/emacs-tui/actions/runs/40043420927)
+passed all 68 tests, strict compilation, checkdoc and real PTY async/resize
+smoke on Emacs 28.2, 29.4, 30.2 and 31.1, with native child frames on 31.1. The buffer-search example
 is available with `make async-demo`; its snapshots are collected synchronously,
 then searched in bounded batches. No performance claims are established.
 
@@ -53,8 +57,9 @@ the extracted test runtime has no configured native compiler toolchain.
 
 ## Next work
 
-1. Finish PR #3 independent review and final-head CI if still open, then
-   integrate the reviewed head. Do not reimplement shipped provider lifecycle.
+1. Implement opt-in multi-selection without changing existing commit callback
+   signatures. Keep marks stable across local filtering/reordering, invalidate
+   absent identities and obsolete provider results, and validate batch commits.
 2. Broaden TTY coverage beyond Linux pseudo-terminals, including macOS terminals,
    multiple clients and visual behavior; CI smoke alone is not complete UI QA.
 3. Expand narrow-terminal and multiple-client coverage. Automatic reflow and
