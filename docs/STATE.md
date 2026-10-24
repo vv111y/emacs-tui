@@ -4,6 +4,32 @@ Updated 2026-10-24 (America/Toronto).
 
 ## Active implementation
 
+PR #29 merged at `caffcd7a998a7c424702e022e0787e4eada84a16` after independent
+review and all eight final-head jobs in
+[40075028893](https://github.com/vv111y/emacs-tui/actions/runs/40075028893).
+Layout is now a bundled helper with authoritative package metadata in the main
+library. Executable forms are unchanged; only the main-name lint warning remains.
+
+Collection navigation adds first/last-item commands on C-c < and C-c >, using
+the current filtered/sorted/tree projection without exploration or commit.
+Empty projections remain unchanged; text/input views and invalidated surfaces
+are rejected. Existing cached rows avoid reprojection, preserving marks and
+queries. Native query M-< / M-> editing stays available. Item movement now accepts
+interactive numeric prefixes; previous-item also accepts an optional backward
+count, with zero/negative/wrapping semantics matching next-item's existing delta.
+
+Local 263 ERT, strict compilation/checkdoc, seven PTY scripts, three Python
+regressions and both benchmark smoke modes passed on Emacs 29.3/Linux. Six new
+ERT cases cover cached table/Unicode behavior, no actions or text replacement,
+counted native movement, sorting/filtering/empty projections, collapsed trees,
+foreign surfaces and ephemeral query cursor/focus. The persistent PTY fixture
+now exercises both endpoint bindings. Independent exact-head review and all
+current-head CI remain integration gates; no new performance baseline is claimed.
+MELPA policy blobs were rechecked on 2026-10-24 and match docs/MELPA.md. Public
+maintenance and human review remain external gates. Next: consumer-driven
+navigation/controls, measured large-table rendering work and broader actual
+GUI/emulator/multiplexer/multiple-terminal validation.
+
 PR #28 merged at `32b558f360b5c83d6c0579b36a5c8644069e6c0f` after exact-head
 independent review and all eight final-head CI jobs in
 [40074519434](https://github.com/vv111y/emacs-tui/actions/runs/40074519434).
