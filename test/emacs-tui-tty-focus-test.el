@@ -126,9 +126,71 @@
       (emacs-tui--remember-tty-focus)
       (should (equal '((switch-frame ac)) (emacs-tui--tty-switch-frame '((switch-frame ar))))))))
 
+(ert-deftest emacs-tui-tty-focus-client-deletion-restores-only-implicit-survivor-selection ()
+  (emacs-tui-tty-focus-test--with
+    (let ((emacs-tui--tty-deleting-frames nil) (selections 0))
+      (cl-letf (((symbol-function 'frame-selected-window) (lambda (frame) frame))
+                ((symbol-function 'select-window)
+                 (lambda (window) (cl-incf selections) (setq selected window))))
+        (emacs-tui--tty-frame-deleting 'br)
+        ;; A repeated pre-deletion notification must retain the original frame.
+        (setq selected 'ar)
+        (emacs-tui--tty-frame-deleting 'br)
+        (emacs-tui--tty-frame-deleted 'br)
+        (should (eq 'ac selected))
+        (should (= 1 selections))
+        (should-not emacs-tui--tty-deleting-frames)
+        ;; Closing a background frame leaves native focus unchanged.
+        (setq selected 'ar)
+        (emacs-tui--tty-frame-deleting 'br)
+        (emacs-tui--tty-frame-deleted 'br)
+        (should (eq 'ar selected))
+        (should (= 1 selections))
+        ;; An application's focus change during a background deletion is explicit.
+        (setq selected 'ac)
+        (emacs-tui--tty-frame-deleting 'br)
+        (setq selected 'ar)
+        (emacs-tui--tty-frame-deleted 'br)
+        (should (eq 'ar selected))
+        (should (= 1 selections))
+        ;; An explicitly focused parent must remain selected after deletion.
+        (setf (emacs-tui--workspace-tty-focus a) nil)
+        (setq selected 'bc)
+        (emacs-tui--tty-frame-deleting 'br)
+        (setq selected 'ar)
+        (emacs-tui--tty-frame-deleted 'br)
+        (should (eq 'ar selected))
+        (should (= 1 selections))
+        ;; Nor may a foreign subtree be recaptured by the fallback selection.
+        (setf (emacs-tui--workspace-tty-focus a) t)
+        (setq selected 'bc owned (list b))
+        (emacs-tui--tty-frame-deleting 'br)
+        (setq selected 'ar)
+        (emacs-tui--tty-frame-deleted 'br)
+        (should (eq 'ar selected))
+        (should (= 1 selections))))))
+
+(ert-deftest emacs-tui-tty-focus-close-callback-parent-choice-is-remembered ()
+  (emacs-tui-tty-focus-test--with
+    (let ((post-command-hook nil) (delete-frame-functions nil)
+          (after-delete-frame-functions nil) (emacs-tui--tty-deleting-frames nil)
+          (closing (emacs-tui--make-workspace
+                    :active t :on-close (lambda (_) (setq selected 'ar)))))
+      (unwind-protect
+          (progn
+            (push closing emacs-tui--sessions)
+            (emacs-tui-close closing)
+            (should (eq 'ar selected))
+            (should-not (emacs-tui--workspace-tty-focus a))
+            (should (emacs-tui--workspace-tty-focus b)))
+        (advice-remove #'handle-switch-frame #'emacs-tui--tty-switch-frame)))))
+
 (ert-deftest emacs-tui-tty-focus-hook-lifetime-preserves-other-advice-and-window-sessions ()
   (emacs-tui-tty-focus-test--with
     (let ((post-command-hook (list #'ignore))
+          (delete-frame-functions (list #'ignore))
+          (after-delete-frame-functions (list #'ignore))
+          (emacs-tui--tty-deleting-frames nil)
           (other-advice (lambda (&rest _) nil)))
       (unwind-protect
           (progn
@@ -144,7 +206,12 @@
             (emacs-tui--sync-tty-focus-hooks)
             (should-not (advice-member-p #'emacs-tui--tty-switch-frame #'handle-switch-frame))
             (should (advice-member-p other-advice #'handle-switch-frame))
-            (should (equal '(ignore) post-command-hook)))
+            (should (equal '(ignore) post-command-hook))
+            (should (equal '(ignore) delete-frame-functions))
+            (should (equal '(ignore) after-delete-frame-functions))
+            ;; Emacs may still call a late hook from an earlier hook-list snapshot.
+            (emacs-tui--tty-frame-deleting 'br)
+            (should-not emacs-tui--tty-deleting-frames))
         (advice-remove #'handle-switch-frame #'emacs-tui--tty-switch-frame)
         (advice-remove #'handle-switch-frame other-advice)))))
 

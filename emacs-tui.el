@@ -1071,14 +1071,50 @@ Do not select a frame or resurrect focus after explicit parent selection."
                    (emacs-tui--subtree app))
           (setf (emacs-tui--workspace-tty-focus app) t))))))
 
+(defvar emacs-tui--tty-deleting-frames nil
+  "Frames being deleted and their previously selected frame.")
+
+(defun emacs-tui--tty-frame-deleting (frame)
+  "Remember native selection before deleting live FRAME."
+  (when (and (cl-some #'emacs-tui--tty-child-p emacs-tui--sessions)
+             (frame-live-p frame) (not (assq frame emacs-tui--tty-deleting-frames)))
+    (push (list frame (selected-frame)
+                (emacs-tui--frame-below-p (selected-frame) frame))
+          emacs-tui--tty-deleting-frames)))
+
+(defun emacs-tui--tty-frame-deleted (frame)
+  "Preserve a surviving terminal interface after deleting FRAME.
+Restore remembered child focus only when Emacs implicitly selected its
+parent during deletion.  Background deletion and intentional parent focus
+must not take another interface's native selection."
+  (let ((entry (assq frame emacs-tui--tty-deleting-frames)))
+    (setq emacs-tui--tty-deleting-frames (delq entry emacs-tui--tty-deleting-frames))
+    (when (and (nth 2 entry) (not (eq (nth 1 entry) (selected-frame))))
+      (let ((app (cl-find-if
+                  (lambda (session)
+                    (and (emacs-tui--workspace-tty-focus session)
+                         (emacs-tui--tty-child-p session)
+                         (emacs-tui--frame-below-p
+                          (emacs-tui--workspace-frame session) (selected-frame))
+                         (emacs-tui--subtree session)))
+                  emacs-tui--sessions)))
+        (when app
+          (select-window (frame-selected-window (emacs-tui--workspace-frame app)))
+          (emacs-tui--remember-tty-focus))))))
+
 (defun emacs-tui--sync-tty-focus-hooks ()
   "Install terminal routing only while native terminal interfaces are live."
   (if (cl-some #'emacs-tui--tty-child-p emacs-tui--sessions)
       (progn
         (add-hook 'post-command-hook #'emacs-tui--remember-tty-focus)
+        (add-hook 'delete-frame-functions #'emacs-tui--tty-frame-deleting t)
+        (add-hook 'after-delete-frame-functions #'emacs-tui--tty-frame-deleted)
         (unless (advice-member-p #'emacs-tui--tty-switch-frame #'handle-switch-frame)
           (advice-add #'handle-switch-frame :filter-args #'emacs-tui--tty-switch-frame)))
     (remove-hook 'post-command-hook #'emacs-tui--remember-tty-focus)
+    (remove-hook 'delete-frame-functions #'emacs-tui--tty-frame-deleting)
+    (remove-hook 'after-delete-frame-functions #'emacs-tui--tty-frame-deleted)
+    (setq emacs-tui--tty-deleting-frames nil)
     (advice-remove #'handle-switch-frame #'emacs-tui--tty-switch-frame)))
 
 (defun emacs-tui--fit-child (session)
@@ -1701,7 +1737,8 @@ windows are preserved."
           (when callback
             (condition-case err (funcall callback session)
               ((error quit)
-               (message "emacs-tui close callback: %s" (error-message-string err)))))))))
+               (message "emacs-tui close callback: %s" (error-message-string err))))
+            (emacs-tui--remember-tty-focus))))))
   nil)
 
 (defun emacs-tui-next-view (&optional session delta)

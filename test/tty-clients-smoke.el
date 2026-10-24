@@ -193,6 +193,9 @@
            (cl-assert (not (memq #'emacs-tui--window-state-changed window-state-change-hook)))
            (cl-assert (not (memq #'emacs-tui--remember-tty-focus post-command-hook)))
            (cl-assert (not (advice-member-p #'emacs-tui--tty-switch-frame #'handle-switch-frame)))
+           (cl-assert (not (memq #'emacs-tui--tty-frame-deleting delete-frame-functions)))
+           (cl-assert (not (memq #'emacs-tui--tty-frame-deleted after-delete-frame-functions)))
+           (cl-assert (null emacs-tui--tty-deleting-frames))
            (cl-assert (= 1 (length (frame-list))))
            (emacs-tui-test--clients-write
             "result" (format "PASS Emacs %s; two real terminals; backend=%s; native input, background updates, independent resize, frame deletion, stale publication and cleanup\n"

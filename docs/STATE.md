@@ -48,10 +48,20 @@ selection and could send one terminal's input to another. The observer/advice
 exist only while native TTY child sessions remain; nested close restores an
 owned ancestor's remembered focus without selecting a background frame.
 
-Local 294 ERT, strict compilation/checkdoc passed on Emacs 29.3/Linux. Eight new
+The first routing fix passed native terminal returns and numeric prefixes, but
+run 40093402855 exposed a second case: deleting B implicitly selects A's parent.
+Scoped before/after frame-deletion hooks now restore A's remembered owned child
+only if deletion removed the selected frame and changed native selection.
+The late tracker honors application delete hooks and close-callback focus effects;
+a captured late hook cannot recreate pending records after the last interface closes. Background deletion, explicit parent
+focus and repurposed surfaces do not capture focus. Pending deletion records and
+all routing hooks are released with the last native terminal interface.
+
+Local 296 ERT, strict compilation/checkdoc passed on Emacs 29.3/Linux. Ten new
 modeled routing tests cover event identity, prefix preservation, explicit parent
 selection, background memory, dead/foreign/GUI roots, terminal mismatch, nested
-close, immediate application focus changes and final observer/advice cleanup with unrelated advice retained. These
+close, immediate application focus changes, implicit deletion fallback versus
+background/explicit/foreign selection and final observer/advice cleanup with unrelated advice retained. These
 are unit boundaries, not positive native display evidence. The actual two-PTY
 fixture now also checks a numeric prefix across terminal return, continued
 survivor editing and final routing-hook cleanup. Independent exact-head review
