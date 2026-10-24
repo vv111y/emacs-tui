@@ -10,11 +10,18 @@ concurrency:
   cancel-in-progress: true
 jobs:
   check:
-    runs-on: ubuntu-latest
+    name: check (${{ matrix.os }}, ${{ matrix.emacs }})
+    runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
+        os: [ubuntu-latest]
         emacs: ['28.2', '29.4', '30.2', '31.1']
+        include:
+          - os: macos-latest
+            emacs: '30.2'
+          - os: macos-latest
+            emacs: '31.1'
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
@@ -22,5 +29,10 @@ jobs:
       - uses: purcell/setup-emacs@34c6ded44899fd1bf74d2889558befd1750e61a7
         with:
           version: ${{ matrix.emacs }}
+      - name: Runtime information
+        run: |
+          uname -sm
+          emacs --version
+          emacs -Q --batch --eval '(princ (format "Features: %s\n" system-configuration-features))'
       - run: make check
       - run: make tty-smoke

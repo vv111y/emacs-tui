@@ -4,52 +4,27 @@ Updated 2026-10-23 (America/Toronto).
 
 ## Active implementation
 
-PR #12 merged at `07612ba43c82430bfedadf9b260776ab158ccd22` after independent
-agent review and final-head CI
-[40055670701](https://github.com/vv111y/emacs-tui/actions/runs/40055670701).
-All four versions passed 180 ERT tests, strict compilation, checkdoc and six
-real PTY scripts. Trees retain original objects, expansion and hidden marks
-through source snapshots, expose ancestor paths for local queries, and work
-in persistent, embedded and ephemeral interfaces. `make tree` demonstrates a
-mode-grouped buffer browser. Snapshots are eager finite forests with globally
-unique IDs; lazy/shared graph occurrences remain future work.
+PR #13 merged at `288a1b54c129067f78e29d763a4eb5cfd73903b8` after independent
+agent review, resolution of the hidden-native-edit cursor finding and final-head
+CI [40056387223](https://github.com/vv111y/emacs-tui/actions/runs/40056387223).
+All four Linux Emacs versions passed 190 ERT tests, strict compilation, checkdoc
+and six real PTY scripts. Maximize/restore preserves native input and reading
+state while keeping all views accessible and respecting unrelated windows.
 
-Current work adds `emacs-tui-toggle-maximize` on C-c C-f: enlarge the focused
-view within the owned TUI surface and restore the chosen layout. Query input
-and unrelated windows retain their space. Focus navigation still reaches all
-views while maximized. Native text cursor/scroll is cached per view across
-hiding/reflow; edits, undo, narrowing, selection, marks and tree expansion
-remain intact. Changed text invalidates stale reading positions. Single-view
-panels are unchanged. Maximization invokes no application actions/providers.
+Current work extends the same checks to hosted macOS on Emacs 30.2 and 31.1,
+while retaining the four-version Linux matrix. Both macOS jobs must execute the
+entire ERT/compile/checkdoc and real PTY suite; no platform-specific checks are
+skipped. Runtime OS/architecture, Emacs version and build features are printed
+so capability-based backend results can be interpreted accurately.
 
-Local Emacs 29.3 passes 190 ERT tests, strict compilation, checkdoc and all six
-PTY scripts. New tests cover every-view access, layout restoration, hidden
-preview updates, input undo/narrowing, ephemeral query editing, quiet callbacks,
-single embedded views, unrelated-window geometry and cleanup. The tree PTY
-script now focuses both maximized views, resizes with only one visible panel,
-restores both panels, and explicitly previews again.
+The pinned setup-emacs action documents Linux and macOS support. This is a new
+validation target, not evidence of a pass yet: independent review and actual
+macOS CI results are pending. Hosted PTYs do not establish Ghostty/iTerm2,
+zellij/tmux, GUI child-frame or physical Apple M5 compatibility.
 
-Independent review found one stale-position bug: native edits to a hidden input
-moved its native point but an old cached integer overrode it on return. Native
-input changes now invalidate that cache without clearing undo. A regression
-reproduced point 500 instead of 506 before the fix and now passes, including
-undo recovery. Independent review and a local probe also verified a 30-view
-compact-layout round trip retains point and horizontal scroll.
-
-Corrected implementation `5ddd8d34f45b56f11c32880c1ff85968b3453993` received
-independent approval after the reviewer repeated all 190 ERT tests, strict
-compilation, checkdoc and six PTY scripts. Its additional probes confirmed
-repeated hidden edits and later layout restoration keep native point and undo.
-Corrected implementation CI
-[40056269656](https://github.com/vv111y/emacs-tui/actions/runs/40056269656)
-passed all checks on Emacs 28.2, 29.4, 30.2 and 31.1, including the real native
-TTY child-frame maximize/resize/restore path on 31.1. Final-head CI remains
-required for the final handoff-only checkpoint.
-
-The implementation is complete and independently reviewed; this handoff-only
-checkpoint needs final-head review and CI before integration. Next:
-broader terminal/platform validation, navigation history or richer controls
-through concrete consumers. No stability or MELPA-readiness claim is made.
+Active worker owns CI platform expansion and this handoff through review and
+passing current-head CI. Next: richer application controls, broader display
+validation and measured performance. No stability or MELPA-readiness claim.
 
 ## Implementation and handoff
 
@@ -90,6 +65,8 @@ dashboard. PR #7 added borrowed-window embedding over the same primitives.
   application change callbacks and a persistent composer with explicit copying.
 - [PR #12](https://github.com/vv111y/emacs-tui/pull/12): finite tree views, stable
   expansion/hidden marks, ancestor search context and a buffer-tree application.
+- [PR #13](https://github.com/vv111y/emacs-tui/pull/13): maximize/restore and
+  per-view hidden reading state, including native background input edits.
 
 API and runnable examples are in README.md. `make demo` explores an in-memory
 sample graph; `make async-demo` searches buffer snapshots. Marks are per view
@@ -103,8 +80,8 @@ navigable. Query edits there may prune marks as its source results change.
 Current evidence is recorded above. The suite covers persistent, embedded and
 ephemeral presentations, async cancellation/streaming, stable selection and
 marks, tables, editable inputs, callback failure rollback and preview position. The merged four-version CI suite runs strict package/example byte compilation,
-checkdoc and six real terminal smoke scripts; the pending maximize change
-extends tree coverage through maximize/restore and resizes. Emacs 31.1 uses native TTY child frames in the ephemeral
+checkdoc and six real terminal smoke scripts, including maximize/restore
+through terminal resizes. The macOS extension is not yet validated. Emacs 31.1 uses native TTY child frames in the ephemeral
 persistent and input scripts; earlier versions use ordinary windows. Embedded/table
 scripts use a borrowed window. Resize coverage is 120x40 -> 90x30 -> 140x45.
 A separate real `cat` subprocess test verifies streaming and process disposal.
@@ -118,7 +95,7 @@ because it has no configured native compiler toolchain.
 
 ## Remaining work
 
-1. Review and integrate maximize/restore, then extend application controls
+1. Validate and integrate macOS CI, then extend application controls
    through concrete consumers. Preserve ephemeral behavior. Extend layouts, history, per-view
    input, maximize/restore and tree/form controls as real consumers require them. Avoid treating every preview as navigation.
 2. Broaden actual display validation: GUI child frames, macOS terminal emulators,
