@@ -20,9 +20,18 @@ counters, environment and source hashes. This measures terminal output rather
 than physical paint. No universal latency threshold or performance claim is
 made. See docs/PERFORMANCE.md for methodology and limitations.
 
-The 100-row five-workload protocol passed locally on Emacs 29.3, including
-selected-identity/result-count validation. Full baseline measurement and
-independent review/CI are pending. No rendering optimization is included yet.
+The 100-row five-workload protocol and 218 ERT tests, strict compilation,
+checkdoc and six PTY scripts passed locally on Emacs 29.3. Independent agent
+review caught missing benchmark-file provenance; corrected head
+`1b46bd33635511aceceb5fb49f4fac8b6812a7e5` hashes both benchmark files and all
+libraries, and received approval. Separate wrong-key, malformed-marker,
+stale-bytecode and tracked-dirty probes passed. CI
+[40065141305](https://github.com/vv111y/emacs-tui/actions/runs/40065141305)
+passed all eight jobs, including benchmark protocol smoke on all seven runtime
+jobs and package builds/installs. This final documentation checkpoint still
+requires review and final-head CI. Full baseline evidence remains next; an
+early development run with a faulty final-ack parser is not publishable data.
+No rendering optimization is included in this PR.
 Next: publish the measured baseline, then address the observed full-table
 reconstruction on selection movement with regression tests and repeat timings.
 Public-history and human-review MELPA gates remain; policy was rechecked today.
