@@ -29,7 +29,8 @@ navigation, maximization and disposal through public APIs. No archive server or
 package dependency downloads are needed during installation.
 
 CI builds/installs using Emacs 31.1, then installs the identical archive in a
-second fresh directory using Emacs 28.1. Source SHA, artifact name and SHA256
+second fresh directory using Emacs 28.1 through an isolated pinned Nix
+invocation, avoiding conflicts from installing two versions into one profile. Source SHA, artifact name and SHA256
 are printed. Set `EMACS_TUI_PACKAGE_OUTPUT` to retain the tar, source-commit
 record, checksum and artifact-path file after a local run. No tagged release,
 stable API, MELPA submission or acceptance is implied by these checks.

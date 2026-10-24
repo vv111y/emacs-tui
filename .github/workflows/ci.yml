@@ -64,16 +64,12 @@ jobs:
           EMACS_TUI_PACKAGE_OUTPUT: ${{ runner.temp }}/emacs-tui-package
           EMACS_TUI_EXPECT_VERSION: '31.1'
         run: make package-check
-      - uses: purcell/setup-emacs@34c6ded44899fd1bf74d2889558befd1750e61a7
-        with:
-          version: '28.1'
       - name: Install identical archive in clean Emacs 28.1
         env:
           EMACS_TUI_PACKAGE_OUTPUT: ${{ runner.temp }}/emacs-tui-package
           EMACS_TUI_INSTALL_ROOT: ${{ runner.temp }}/emacs-tui-install-28
           EMACS_TUI_EXPECT_VERSION: '28.1'
         run: |
-          emacs --version
           export EMACS_TUI_PACKAGE_ARCHIVE="$(cat "$EMACS_TUI_PACKAGE_OUTPUT/artifact-path.txt")"
           cd "$RUNNER_TEMP"
-          env -u EMACSLOADPATH emacs -Q --batch -l "$GITHUB_WORKSPACE/test/package-install-smoke.el"
+          env -u EMACSLOADPATH nix run --accept-flake-config 'github:purcell/nix-emacs-ci/c271f180d41213f156267d987b306d01cfd086b4#emacs-28-1' -- -Q --batch -l "$GITHUB_WORKSPACE/test/package-install-smoke.el"

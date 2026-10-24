@@ -25,8 +25,12 @@ input undo, tree navigation, maximize and disposal all passed. Python syntax
 and strict compilation of the two build/install Lisp scripts passed. This is
 local fixture evidence, not yet a CI pass for the repository commit.
 
-The new CI job will build/install using 31.1, then install the identical tar
-in a fresh 28.1 process with explicit version assertions. The ordinary matrix
+The new CI job builds/installs using 31.1, then installs the identical tar
+in a fresh 28.1 process with explicit version assertions. Initial CI built and
+clean-installed the exact repository artifact on 31.1, but switching versions
+through the shared Nix profile failed with a package-file collision. The older
+install now uses a pinned profile-free Nix invocation; this correction still
+needs review and a passing CI run. The ordinary matrix
 also adds Linux 28.1, matching the declared API floor. All seven runtime jobs
 and the package job must pass; independent review and actual CI are pending.
 This verifies recipe layout/build/install, not network fetching, a live MELPA

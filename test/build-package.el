@@ -20,6 +20,7 @@
   (unless (and sha (string-match-p "\\`[0-9a-f]\\{40\\}\\'" sha))
     (error "Invalid source commit: %S" sha))
   (unless (and (eq (car recipe) 'emacs-tui)
+               (eq (plist-get (cdr recipe) :fetcher) 'github)
                (equal (plist-get (cdr recipe) :repo) "vv111y/emacs-tui"))
     (error "Unexpected candidate recipe"))
   (setq package-build-working-dir (expand-file-name "working/" root)
