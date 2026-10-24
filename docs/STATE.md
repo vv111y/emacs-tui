@@ -14,7 +14,7 @@ establish Ghostty/iTerm2/zellij, GUI or physical M5 compatibility.
 
 Current work adds `emacs-tui-set-query` for independent local list/table/tree
 filters and extends `emacs-tui-query` with optional view ID. String overrides
-are literal case-insensitive terms; empty string shows all source items, while
+are literal case-insensitive terms; empty string disables query filtering, while
 nil inherits workspace/application query policy. Local filters retain source
 objects, hidden marks, sorting and surviving visible selection through updates.
 They can narrow provider-owned results without restarting/cancelling the
@@ -26,10 +26,19 @@ and preview. Refresh retains the local filter; clearing input reveals hidden
 marked objects. `make filter-demo` runs it. Local Emacs 29.3 passes 201 ERT tests,
 strict compilation, checkdoc and six PTY scripts. The native input PTY scenario
 now filters an independent third view through typing, undo and real resizes.
-Independent review and the expanded six-job CI matrix are pending.
+Implementation `00dedf0e5b4e6abceda1cfc6f051c76a6ccaff96` received independent
+agent approval. The reviewer repeated the full local suite and probed provider
+supersession/stale callbacks/cancellation, tree filter inheritance and rollback
+after render-only nonlocal projection failure. No blocking findings.
 
-Active worker owns per-view query support, demo/regressions, input PTY extension,
-Makefile and documentation through review and current-head CI. Next: richer
+Implementation CI
+[40057174416](https://github.com/vv111y/emacs-tui/actions/runs/40057174416)
+passed all six Linux/macOS jobs: 201 ERT tests, strict compilation, checkdoc and
+six real PTY scripts in each. ARM64 macOS 31.1 logs confirm native child-frame
+input-driven local filtering. Final docstrings/README/handoff-only changes
+still require separate review and passing final-head CI before integration.
+
+No other scope is claimed in this PR during final-head validation. Next: richer
 controls, display validation and measured performance through concrete consumers.
 No stability or MELPA-readiness claim is made.
 

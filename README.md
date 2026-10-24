@@ -195,7 +195,8 @@ It preserves the source objects, hidden marks, sorting and surviving visible
 selection. Later source updates keep the query. `emacs-tui-query SESSION ID`
 reads the effective view query; omitting ID still reads the workspace query.
 
-An empty string explicitly shows all source items. Nil removes the override
+An empty string disables query filtering; tree expansion still applies.
+Nil removes the override
 and inherits the workspace query policy. Explicit local filters also narrow
 application/provider-owned results, without invoking callbacks or restarting
 providers. Text previews and editable inputs are not filter targets.

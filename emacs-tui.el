@@ -443,7 +443,7 @@ nil local state inherits it.  Use `emacs-tui-set-query' to set an override."
 (defun emacs-tui-set-query (session id query)
   "Set SESSION's view ID to local literal QUERY and return SESSION.
 Nil ID means the focused view.  QUERY is a string; nil removes the override
-and inherits the workspace query.  An empty string explicitly shows all items.
+and inherits the workspace query.  An empty string disables query filtering.
 Match whitespace-separated terms case-insensitively against labels and table
 values, or reveal matching tree paths.  Retain source data, sort, hidden marks
 and surviving visible selection.  Updates keep the local override.
@@ -1153,7 +1153,8 @@ VIEWS is a nonempty list of `emacs-tui-view' descriptions.  LAYOUT is
 falls back to owned ordinary windows if creation fails.
 
 ON-QUERY, when non-nil, receives (SESSION QUERY) initially and after
-query edits; it replaces built-in case-insensitive substring matching.
+query edits; it replaces workspace-query substring matching.  Explicit local
+view filters still apply.
 It can publish results with `emacs-tui-update'.  ON-COMMIT receives
  (SESSION ITEM ORIGIN-MARKER) in the live origin buffer in an atomic
 change group.  Only a successful commit closes the workspace.
