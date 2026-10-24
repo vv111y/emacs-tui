@@ -26,6 +26,20 @@ and backlinks. It does not access your knowledge base. Explicit commitment
 inserts a `demo:` link into the originating buffer, or one link per marked item
 in the focused view.
 
+RET inspects nodes and follows forward/backlinks. Back and Forward are explicit
+named actions (`C-c C-a`, also available while editing the query); in view
+buffers, `C-c [` / `C-c ]` invoke them directly. Reinspecting the same node does
+not add a duplicate visit. Following a new branch after Back discards the old
+forward route. Histories belong to individual demo sessions. They restore the
+inspected node's preview and links, not query text, focus or snapshots of marks.
+Normal source replacement rules still prune marks for links that disappear.
+Commit continues to use the focused view's current selection or marks, rather
+than the inspected node. Browsing never writes to the origin buffer.
+
+The example implements history with private application state and the existing
+selection/actions API. Other applications can define different traversal or
+transaction policies without adopting graph history or ephemeral workspaces.
+
 Requires Emacs 28.1 or later. Native terminal child frames require an Emacs build
 advertising `tty-child-frames` (introduced in 31.1). Older terminal builds use
 ordinary windows. Graphical builds can also use native child frames. There are
@@ -572,7 +586,7 @@ workspace surface closes safely; unrelated windows and application buffers are
 preserved. `emacs-tui-refresh` is also available for an explicit reflow.
 
 The four-sided around-point layout, multiple floating surfaces,
-history, per-view asynchronous providers and richer form controls are planned in
+broader application history, per-view asynchronous providers and richer form controls are planned in
 [ROADMAP.md](ROADMAP.md). Source/filter updates render full view content;
 selection movement reuses rendered rows. The first interpreted-source
 [navigation baseline](bench/results/2026-10-24-navigation/README.md) records
@@ -610,6 +624,8 @@ batch lifetimes and 45 additional lifetimes in a real TTY at three sizes. It
 rotates ephemeral, persistent and embedded interfaces, keeps another session
 live, dispatches actual provider timers, and checks cancellation, stale replies,
 owned buffers/processes/timers/markers, display resources and host edits.
+The graph demo's eighth terminal script exercises Back/Forward keys, retained
+query/marks, maximize/restore, both resizes and explicit selection commitment.
 These checks are not a visual
 quality or performance benchmark.
 
