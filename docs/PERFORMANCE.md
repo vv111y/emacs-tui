@@ -68,7 +68,7 @@ adjustments are an additional reason to retain raw data and repeat runs.
 The report includes raw records, all-row/filtered-row counts, aggregate and
 per-command p50/p95/p99 using nearest rank, sample counts, runtime/features,
 backend, actual frame geometry, requested PTY geometry, GC settings, host/CPU,
-source hashes and tracked Git revision/dirty state when available. Untracked
+library/benchmark source hashes and tracked Git revision/dirty state when available. Untracked
 local copies report a null Git revision rather than inventing provenance.
 
 Defaults use 10 warmups then 100 measured commands per workload. Alternating

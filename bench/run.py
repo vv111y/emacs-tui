@@ -42,8 +42,8 @@ def quantiles(values):
 
 
 def source_identity():
-    files = sorted(ROOT.glob("emacs-tui*.el"))
-    hashes = {p.name: hashlib.sha256(p.read_bytes()).hexdigest() for p in files}
+    files = sorted(ROOT.glob("emacs-tui*.el")) + [ROOT / "bench/run.py", ROOT / "bench/interactive.el"]
+    hashes = {str(p.relative_to(ROOT)): hashlib.sha256(p.read_bytes()).hexdigest() for p in files}
     try:
         subprocess.run(["git", "ls-files", "--error-unmatch", *hashes], cwd=ROOT,
                        check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
