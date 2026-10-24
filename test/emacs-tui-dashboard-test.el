@@ -99,5 +99,53 @@
         (kill-buffer small)
         (kill-buffer large)))))
 
+(ert-deftest emacs-tui-dashboard-process-action-routes-to-buffer-without-editing ()
+  (save-window-excursion
+    (let* ((buffer (generate-new-buffer "*Dashboard process output*"))
+           (process (make-pipe-process :name "dashboard-output" :buffer buffer :noquery t))
+           session)
+      (unwind-protect
+          (progn
+            (with-current-buffer buffer (insert "Unchanged process output"))
+            (setq session (emacs-tui-dashboard))
+            (emacs-tui-set-query session 'buffers "excluded-by-local-query")
+            (emacs-tui-focus-view session 'processes)
+            (emacs-tui-set-selection session 'processes process)
+            (emacs-tui-act session 'buffer)
+            (should (eq (emacs-tui-current-view session) 'buffers))
+            (should (equal (emacs-tui-query session 'buffers) ""))
+            (should (eq (plist-get (emacs-tui-current-item session) :value) buffer))
+            (should (eq (emacs-tui-current-session) session))
+            (should (emacs-tui-live-p session))
+            (should (process-live-p process))
+            (should (equal (with-current-buffer buffer (buffer-string))
+                           "Unchanged process output"))
+            (let ((preview (emacs-tui--resolve-view session 'preview)))
+              (should (string-match-p "Unchanged process output"
+                                      (with-current-buffer (emacs-tui--view-buffer preview)
+                                        (buffer-string))))))
+        (when session (emacs-tui-close session))
+        (delete-process process)
+        (kill-buffer buffer)))))
+
+(ert-deftest emacs-tui-dashboard-process-action-refuses-hidden-or-killed-buffer ()
+  (save-window-excursion
+    (let* ((buffer (generate-new-buffer " *Hidden dashboard output*"))
+           (process (make-pipe-process :name "dashboard-hidden" :buffer buffer :noquery t))
+           session)
+      (unwind-protect
+          (progn
+            (setq session (emacs-tui-dashboard))
+            (emacs-tui-focus-view session 'processes)
+            (emacs-tui-set-selection session 'processes process)
+            (should-error (emacs-tui-act session 'buffer) :type 'user-error)
+            (should (eq (emacs-tui-current-view session) 'processes))
+            (kill-buffer buffer)
+            (should-error (emacs-tui-act session 'buffer) :type 'user-error)
+            (should (emacs-tui-live-p session)))
+        (when session (emacs-tui-close session))
+        (when (process-live-p process) (delete-process process))
+        (when (buffer-live-p buffer) (kill-buffer buffer))))))
+
 (provide 'emacs-tui-dashboard-test)
 ;;; emacs-tui-dashboard-test.el ends here

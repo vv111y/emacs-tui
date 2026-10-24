@@ -4,49 +4,41 @@ Updated 2026-10-24 (America/Toronto).
 
 ## Active implementation
 
-PR #20 merged at `dc39a60782e5634ba613e8c58dc99dbd7863aa7c` after independent
-implementation/evidence/rebase reviews and all eight fresh final-head jobs in
-[40069370928](https://github.com/vv111y/emacs-tui/actions/runs/40069370928).
+PR #22 merged at `336b446a1a06f5e0e89a42ff57cb10c10ae9aa0a` after independent
+implementation/evidence review and all eight final-head CI jobs in
+[40070611245](https://github.com/vv111y/emacs-tui/actions/runs/40070611245).
 Runtime jobs passed 229 ERT, strict compilation/checkdoc, six PTY scripts,
-two Python regressions and source benchmark smoke. Package build/clean-install
-passed on 31.1/28.1. PR #21's bounded poll-and-drain exit handling is preserved;
-old stalled/cancelled runs were never treated as passes.
+three Python regressions and all five benchmark workloads in both source and
+fresh-bytecode modes. Package build/clean-install passed on 31.1/28.1.
 
-Reviewed source-mode navigation/query-clear pairs retain every warmup/measured
-sample, hashes/environment and percentiles under bench/results. Source-mode
-10,000-row table navigation p50 changed 1465.987ms -> 0.544ms; list query clearing
-changed 654.340ms -> 61.093ms on one Emacs 29.3/Linux host. Full table rendering and
-nonempty matching remain expensive. These are not compiled/native-code or paint
-performance claims. MELPA public-history/human-review gates remain.
+Source-mode paired profiles and the full fresh-bytecode profile retain all raw
+records, environment, source/artifact hashes and percentiles under bench/results.
+The compiled profile has 1,100 records and separate controlled provider stages.
+On this Emacs 29.3/Linux host, 10,000-row table navigation p50/p95/p99 is
+0.546/0.789/0.849ms, while full table query clearing is 272.447/320.990/333.227ms.
+This is one configuration with interpreted fixture callbacks and native JIT off;
+GUI/emulator paint and native compilation remain unmeasured. Full table rebuilds
+and nonempty matching remain candidates for later measured work.
 
-Current work adds explicit source/bytecode benchmark modes on the final bounded
-driver. Both snapshot library sources, bytecode mode strictly compiles fresh
-copies using the selected Emacs, and runtime checks verify actual loaded paths
-and definition types. Reports retain mode and bytecode hashes. Original source
-changes during a run reject results; no original checkout reset/compile occurs.
-Compiler exit handling reuses bounded polling, retaining PR #21's process-lifecycle
-fix. CI smoke exercises all five workloads in both modes. The fixture remains
-interpreted and deferred native compilation remains disabled in either mode.
+Current work adds named application navigation: current-view/focus-view,
+identity-based set-selection, and named current-item reads including hidden
+panels. Selection reuses the existing cached-row path, preserves queries/marks/
+sort and does not invoke exploration/commit/context actions. Missing, filtered,
+collapsed and text/input targets fail explicitly. Focus follows existing layout,
+maximize and ephemeral query-focus policies. Repurposed surfaces are rejected.
+The dashboard uses these APIs to inspect a process's associated named live
+buffer through its actions menu, keeping application buffers/processes intact.
 
-Local Emacs 29.3 passes both five-workload protocol runs, strict fixture compile,
-Python syntax and process/PTY regressions. Independent agent review approved implementation `8f3718defd561238a46c13bb7df3601044838fae`.
-All eight implementation CI jobs passed in
-[40069924764](https://github.com/vv111y/emacs-tui/actions/runs/40069924764), including
-both load modes on every supported runtime. Negative probes reject stale-source
-bytecode, compiler failure and original-source mutation; compiler deadline cleanup
-also passed. PR #21's bounded lifecycle and exit drainage remain intact.
-
-A full fresh-bytecode profile is under bench/results/2026-10-24-bytecode, retaining
-all 1,100 records, warmups, per-command/pooled percentiles, environment and source/
-bytecode fingerprints. On this Emacs 29.3/Linux host, 10,000-row table navigation
-p50/p95/p99 is 0.546/0.789/0.849ms; table query clearing is 272.447/320.990/333.227ms.
-Provider waiting and publish/redisplay stages remain separate. This is one current
-bytecode profile with interpreted fixture callbacks and native JIT disabled, not
-a before/after compiled-code or physical-paint comparison. Artifact/doc review
-and all eight final-head CI jobs remain integration gates. Next: record compiled-library costs before selecting another
-rendering optimization, add repeated lifecycle/resource stress, broaden display
-validation and extend applications through concrete feature needs. No maturity
-or MELPA acceptance claim is made.
+Local 241 ERT tests, strict compilation/checkdoc, six PTY scripts, three Python
+regressions and both-mode benchmark smoke passed. Persistent PTY coverage now
+explicitly exercises named focus/selection and verifies no exploration callback
+until the original keyboard action. Twelve new tests cover named
+navigation, hidden/maximized panels, native input/preview/query positions,
+identity/sort/marks, tree collapse, invalid/closed/foreign surfaces and dashboard
+routing/unavailable buffers. Independent review and all current-head CI remain
+required. Next: repeated lifecycle/resource stress and further consumer-driven
+capabilities. No stable/MELPA acceptance claim is made; public maintenance and
+human-review gates remain.
 
 ## Implementation and handoff
 
@@ -105,6 +97,8 @@ dashboard. PR #7 added borrowed-window embedding over the same primitives.
   lifecycle, PTY exit drainage, diagnostics and descendant cleanup.
 - [PR #20](https://github.com/vv111y/emacs-tui/pull/20): empty-term predicate
   fast path and reviewed native query-clear latency/allocation evidence.
+- [PR #22](https://github.com/vv111y/emacs-tui/pull/22): isolated source/bytecode
+  benchmark modes and a reviewed full compiled-library workload profile.
 
 API and runnable examples are in README.md. `make demo` explores an in-memory
 sample graph; `make async-demo` searches buffer snapshots. Marks are per view

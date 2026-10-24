@@ -54,6 +54,15 @@
                                     (process-name process) (process-status process)
                                     (process-command process)))))
 
+(defun emacs-tui-dashboard--process-buffer (items)
+  "Return the named live buffer associated with a single process in ITEMS."
+  (when (= (length items) 1)
+    (let* ((process (plist-get (car items) :value))
+           (buffer (and (processp process) (process-buffer process))))
+      (when (and (buffer-live-p buffer)
+                 (not (string-prefix-p " " (buffer-name buffer))))
+        buffer))))
+
 ;;;###autoload
 (defun emacs-tui-dashboard ()
   "Open a persistent dashboard of buffers and processes.
@@ -63,6 +72,9 @@
 The Actions view refreshes or pauses/resumes updates without closing.
 The g key refreshes and P pauses/resumes updates from any view.
 In a table, s selects a sort column; a prefix argument sorts descending.
+The process table's actions menu can inspect its associated buffer in the
+Buffers view, clearing that view's local filter while retaining the dashboard
+and all application buffer contents.
 \\[emacs-tui-close] closes the interface and cancels its update timer."
   (interactive)
   (let ((keymap (make-sparse-keymap)) session timer paused initialized)
@@ -102,6 +114,20 @@ In a table, s selects a sort column; a prefix argument sorts descending.
                                                             :width 20 :value :mode))
                                     :on-select #'emacs-tui-dashboard--inspect-buffer)
                     (emacs-tui-view :id 'processes :title "Processes"
+                                    :actions
+                                    (list
+                                     (emacs-tui-action
+                                      :id 'buffer :title "Inspect process buffer"
+                                      :enabled (lambda (_app items)
+                                                 (emacs-tui-dashboard--process-buffer items))
+                                      :run (lambda (app items)
+                                             (let ((buffer (emacs-tui-dashboard--process-buffer items)))
+                                               (unless buffer (user-error "No associated named live buffer"))
+                                               (refresh)
+                                               (emacs-tui-set-query app 'buffers "")
+                                               (emacs-tui-set-selection app 'buffers buffer)
+                                               (emacs-tui-focus-view app 'buffers)
+                                               (emacs-tui-select app)))))
                                     :columns
                                     (list (emacs-tui-column :id 'name :title "Process"
                                                             :width 20 :value :label)
