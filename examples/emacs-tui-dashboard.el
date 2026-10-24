@@ -3,6 +3,7 @@
 ;; Copyright (C) 2026 Willy Rempel
 ;; Author: Willy Rempel <https://github.com/vv111y>
 ;; Assisted-by: Codex:GPT-6
+;; Assisted-by: Codex:gpt-6.1-sol-wm
 ;; SPDX-License-Identifier: GPL-3.0-or-later
 
 ;;; Commentary:
@@ -80,22 +81,26 @@ and all application buffer contents.
   (let ((keymap (make-sparse-keymap)) session timer paused initialized)
     (cl-labels
         ((refresh
-          ()
-          (when (emacs-tui-live-p session)
-            (emacs-tui-update session 'buffers :items (emacs-tui-dashboard--buffers))
-            (emacs-tui-update session 'processes :items (emacs-tui-dashboard--processes))
-            (emacs-tui-update
-             session 'actions
-             :items (list '(:id refresh :label "Refresh now")
-                          (list :id 'toggle :label (if paused "Resume updates" "Pause updates"))))))
+           ()
+           (when (emacs-tui-live-p session)
+             (let ((buffers (emacs-tui-dashboard--buffers))
+                   (processes (emacs-tui-dashboard--processes)))
+               (emacs-tui-update session 'buffers :items buffers
+                                 :title (format "Buffers (%d)" (length buffers)))
+               (emacs-tui-update session 'processes :items processes
+                                 :title (format "Processes (%d)" (length processes))))
+             (emacs-tui-update
+              session 'actions :title (if paused "Updates paused" "Updates running")
+              :items (list '(:id refresh :label "Refresh now")
+                           (list :id 'toggle :label (if paused "Resume updates" "Pause updates"))))))
          (tick
-          ()
-          (when (and (not paused) (emacs-tui-live-p session))
-            (condition-case err (refresh)
-              (error (message "emacs-tui dashboard: %s" (error-message-string err)))))))
+           ()
+           (when (and (not paused) (emacs-tui-live-p session))
+             (condition-case err (refresh)
+               (error (message "emacs-tui dashboard: %s" (error-message-string err)))))))
       (define-key keymap (kbd "g") (lambda () (interactive) (refresh)))
       (define-key keymap (kbd "P")
-        (lambda () (interactive) (setq paused (not paused)) (refresh)))
+                  (lambda () (interactive) (setq paused (not paused)) (refresh)))
       (unwind-protect
           (progn
             (setq session

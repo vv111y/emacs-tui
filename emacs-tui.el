@@ -635,7 +635,8 @@ an empty answer restores source order, and a prefix requests descending order."
   "Return VIEW's focus and mark header within SESSION."
   (concat (if (equal (emacs-tui--view-id view)
                          (emacs-tui--view-id (emacs-tui--focused-view session))) "* " "  ")
-          (emacs-tui--view-title view)
+          (replace-regexp-in-string "%" (lambda (match) (concat match match))
+                                    (emacs-tui--view-title view) t t)
           (when (emacs-tui--workspace-maximized session) " | maximized")
           (when (emacs-tui--view-actions view)
             (if (emacs-tui--view-editable view) " | C-c C-a actions" " | a actions"))
@@ -786,7 +787,7 @@ to propagate initialization failures to the workspace opener."
           (emacs-tui--render-view session view))))))
 
 (cl-defun emacs-tui-update (session id &key (items nil items-p)
-                                    (text nil text-p))
+                                    (text nil text-p) (title nil title-p))
   "Update SESSION's view ID, reusing its display resources.
 Supplying ITEMS, including nil, replaces its source items.  Supplying
 TEXT, including nil, replaces or clears the preview.  Omitted fields
@@ -796,7 +797,11 @@ be unique.  Identical preview text, including properties, retains its reading
 position; changed text starts at the beginning.  Editable views accept only
 string TEXT updates; changed values reset undo without calling ON-CHANGE.
 Tree ITEMS are root snapshots; descendants are indexed through CHILDREN.
-Non-nil TEXT is rejected for trees.  Return SESSION."
+Non-nil TEXT is rejected for trees.
+TITLE, when supplied, must be a string (empty clears it).  Title-only updates
+change the header without filtering, projecting or editing view contents.
+Combined updates commit the title only after successful rendering.
+Return SESSION."
   (emacs-tui--require-session session)
   (let ((view (cl-find id (emacs-tui--workspace-views session)
                        :key #'emacs-tui--view-id :test #'equal)))
@@ -810,27 +815,35 @@ Non-nil TEXT is rejected for trees.  Return SESSION."
       (emacs-tui--validate-items items (emacs-tui--view-multi-select view)))
     (when (and text-p (not (or (null text) (stringp text))))
       (error "TEXT must be a string or nil"))
+    (when (and title-p (not (stringp title)))
+      (error "TITLE must be a string"))
     (let ((candidate (copy-emacs-tui--view view)))
+      (when title-p (setf (emacs-tui--view-title candidate) title))
       (when items-p
         (when (emacs-tui--view-tree view)
           (let ((data (emacs-tui--tree-index items (emacs-tui--view-children view)
-                                            (emacs-tui--view-tree view))))
+                                             (emacs-tui--view-tree view))))
             (setf (emacs-tui--view-tree candidate) data)
             (setq items (emacs-tui--tree-data-items data))))
         (setf (emacs-tui--view-items candidate) items))
       (when text-p (setf (emacs-tui--view-text candidate) text))
-      (when (emacs-tui--view-marks candidate)
-	(if (emacs-tui--view-text candidate)
-            (setf (emacs-tui--view-marks candidate) nil)
-          (when items-p
-            (let ((marks (make-hash-table :test #'equal)))
-              (dolist (item items)
-		(when (emacs-tui--marked-p view item)
-                  (puthash (emacs-tui--item-id item) t marks)))
-              (setf (emacs-tui--view-marks candidate) marks)))))
-      (emacs-tui--filter session candidate)
-      (emacs-tui--render-view session candidate)
-      (setf (emacs-tui--view-items view) (emacs-tui--view-items candidate)
+      (if (and title-p (not items-p) (not text-p))
+          (with-current-buffer (emacs-tui--view-buffer view)
+            (setq header-line-format (emacs-tui--view-header session candidate)))
+        (progn
+          (when (emacs-tui--view-marks candidate)
+	    (if (emacs-tui--view-text candidate)
+                (setf (emacs-tui--view-marks candidate) nil)
+              (when items-p
+                (let ((marks (make-hash-table :test #'equal)))
+                  (dolist (item items)
+		    (when (emacs-tui--marked-p view item)
+                      (puthash (emacs-tui--item-id item) t marks)))
+                  (setf (emacs-tui--view-marks candidate) marks)))))
+          (emacs-tui--filter session candidate)
+          (emacs-tui--render-view session candidate)))
+      (setf (emacs-tui--view-title view) (emacs-tui--view-title candidate)
+            (emacs-tui--view-items view) (emacs-tui--view-items candidate)
             (emacs-tui--view-tree view) (emacs-tui--view-tree candidate)
             (emacs-tui--view-tree-open view) (emacs-tui--view-tree-open candidate)
             (emacs-tui--view-tree-search view) (emacs-tui--view-tree-search candidate)

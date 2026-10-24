@@ -47,6 +47,12 @@
           (cl-assert (null (emacs-tui--workspace-origin session)))
           (cl-assert (equal (emacs-tui--workspace-geometry session) (emacs-tui--geometry session)))
           (cl-assert (equal (emacs-tui-marked-items session 'items) '("beta")))
+          (cl-assert (equal "Live 50%busy" (emacs-tui--view-title
+                                          (car (emacs-tui--workspace-views session)))))
+          (with-current-buffer (emacs-tui--view-buffer
+                                (car (emacs-tui--workspace-views session)))
+            (cl-assert (string-match-p (regexp-quote "Live 50%busy")
+                                       (format-mode-line header-line-format))))
           (cl-assert (eq (window-buffer (selected-window))
                          (emacs-tui--view-buffer (cadr (emacs-tui--workspace-views session)))))
           (cl-assert (= emacs-tui-test--mount-actions 1))
@@ -87,6 +93,7 @@
                                           (emacs-tui-update app 'preview :text item)))
                             (emacs-tui-view :id 'preview :text "pending"))
                :on-close (lambda (_) (cl-incf emacs-tui-test--mount-closed))))
+        (emacs-tui-update emacs-tui-test--mount-session 'items :title "Live 50%busy")
         (execute-kbd-macro (kbd "C-c >"))
         (cl-assert (equal "beta" (emacs-tui-current-item emacs-tui-test--mount-session)))
         (execute-kbd-macro (kbd "C-c <"))
