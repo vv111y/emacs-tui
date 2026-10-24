@@ -72,6 +72,7 @@
 \\[emacs-tui-select] inspects an object or invokes the selected action.
 The Actions view refreshes or pauses/resumes updates without closing.
 The g key refreshes and P pauses/resumes updates from any view.
+Actions also select columns, rows or grid directly without restarting updates.
 In a table, s selects a sort column; a prefix argument sorts descending.
 The process table's actions menu can inspect its associated buffer in the
 Buffers view, clearing that view's local filter while retaining the dashboard
@@ -92,7 +93,10 @@ and all application buffer contents.
              (emacs-tui-update
               session 'actions :title (if paused "Updates paused" "Updates running")
               :items (list '(:id refresh :label "Refresh now")
-                           (list :id 'toggle :label (if paused "Resume updates" "Pause updates"))))))
+                           (list :id 'toggle :label (if paused "Resume updates" "Pause updates"))
+                           '(:id columns :label "Use columns layout")
+                           '(:id rows :label "Use rows layout")
+                           '(:id grid :label "Use grid layout")))))
          (tick
            ()
            (when (and (not paused) (emacs-tui-live-p session))
@@ -145,10 +149,13 @@ and all application buffer contents.
                                     :text "Select a buffer or process to inspect it.")
                     (emacs-tui-view
                      :id 'actions :title "Actions"
-                     :on-select (lambda (_app item)
-                                  (when (eq (plist-get item :id) 'toggle)
-                                    (setq paused (not paused)))
-                                  (refresh))))
+                     :on-select (lambda (app item)
+                                  (let ((id (plist-get item :id)))
+                                    (if (memq id '(columns rows grid))
+                                        (emacs-tui-set-layout app id)
+                                      (when (eq id 'toggle)
+                                        (setq paused (not paused)))
+                                      (refresh))))))
                    :on-close (lambda (_app)
                                (when timer (cancel-timer timer) (setq timer nil)))))
             (refresh)
