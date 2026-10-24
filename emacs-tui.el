@@ -1536,7 +1536,9 @@ windows are preserved."
           (when (> count 0)
             (let ((index (mod (+ (emacs-tui--view-selected view) (or delta 1)) count)))
               (if cached
-                  (save-restriction
+                  (progn
+                    ;; Full list rendering widens via `erase-buffer'.  Cached
+                    ;; navigation must likewise expose the row being selected.
                     (widen)
                     (emacs-tui--highlight-row index)
                     (goto-char (car (aref emacs-tui--row-ranges index)))

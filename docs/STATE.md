@@ -18,14 +18,17 @@ invalidate the cache; fallback rendering stages selection before committing.
 Full source/query/sort/mark/tree updates still prepare and replace contents.
 Overlay positions are restored if an atomic buffer edit fails.
 
-Local Emacs 29.3 passes 227 ERT tests, strict compilation, checkdoc and six
-PTY scripts. Nine new regressions cover unchanged content/properties/hooks,
+Local Emacs 29.3 passes 228 ERT tests, strict compilation, checkdoc and six
+PTY scripts. Ten new regressions cover unchanged content/properties/hooks,
 Unicode/multiline rows, projection-free table navigation, query/sort/source
 replacement, external edits, preview transitions/disposal, tree marks and
 failed-update rollback. Independent review found that a list-to-identical-text transition retained
 its highlight. Successful text renders now retire list state even when no
 buffer replacement is needed; a regression retains preview point/tick while
-checking the overlay/cache are removed. Corrected review/CI are pending.
+checking the overlay/cache are removed. Review also found narrowing could hide
+a newly selected row; cached navigation now widens, matching full-list rendering,
+with a regression asserting actual buffer/window point and unchanged characters.
+Corrected review/CI are pending.
 An interpreted-source before/after navigation baseline (1,000/10,000 rows,
 100 measured samples plus 10 warmups) is in progress; no numbers are claimed
 yet. Benchmark methodology and limits are in docs/PERFORMANCE.md.

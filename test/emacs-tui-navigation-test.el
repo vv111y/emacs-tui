@@ -138,6 +138,19 @@
       (should (= position (point)))
       (should (equal-including-properties text (buffer-string))))))
 
+(ert-deftest emacs-tui-navigation-exposes-selected-row-in-narrowed-list ()
+  (emacs-tui-test--navigation
+      (emacs-tui-view :id 'rows :items '("alpha" "beta" "gamma"))
+    (let ((tick (buffer-chars-modified-tick)))
+      (narrow-to-region 1 6)
+      (emacs-tui-next-item session)
+      (should-not (buffer-narrowed-p))
+      (should (equal (emacs-tui-current-item session) "beta"))
+      (should (= (point) 7))
+      (should (= (window-point (emacs-tui--view-window view)) 7))
+      (should (= (overlay-start emacs-tui--selection-overlay) 7))
+      (should (= tick (buffer-chars-modified-tick))))))
+
 (ert-deftest emacs-tui-navigation-failed-fallback-does-not-move-selection ()
   (let (fail)
     (emacs-tui-test--navigation
