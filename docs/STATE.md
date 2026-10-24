@@ -4,33 +4,43 @@ Updated 2026-10-23 (America/Toronto).
 
 ## Active implementation
 
-PR #13 merged at `288a1b54c129067f78e29d763a4eb5cfd73903b8` after independent
-agent review, resolution of the hidden-native-edit cursor finding and final-head
-CI [40056387223](https://github.com/vv111y/emacs-tui/actions/runs/40056387223).
-All four Linux Emacs versions passed 190 ERT tests, strict compilation, checkdoc
-and six real PTY scripts. Maximize/restore preserves native input and reading
-state while keeping all views accessible and respecting unrelated windows.
+PR #14 merged at `e1f80abd162c7774bac07a3c82663eb70f914b76` after independent
+agent review and final-head CI
+[40056900801](https://github.com/vv111y/emacs-tui/actions/runs/40056900801).
+All six jobs passed 190 ERT tests, strict compilation, checkdoc and six PTY
+scripts: Linux 28.2/29.4/30.2/31.1 and ARM64 macOS 30.2/31.1. Emacs 31.1 used
+native terminal child frames on both platforms. Hosted PTY coverage does not
+establish Ghostty/iTerm2/zellij, GUI or physical M5 compatibility.
 
-Current work extends the same checks to hosted macOS on Emacs 30.2 and 31.1,
-while retaining the four-version Linux matrix. Both macOS jobs must execute the
-entire ERT/compile/checkdoc and real PTY suite; no platform-specific checks are
-skipped. Runtime OS/architecture, Emacs version and build features are printed
-so capability-based backend results can be interpreted accurately.
+Current work adds `emacs-tui-set-query` for independent local list/table/tree
+filters and extends `emacs-tui-query` with optional view ID. String overrides
+are literal case-insensitive terms; empty string disables query filtering, while
+nil inherits workspace/application query policy. Local filters retain source
+objects, hidden marks, sorting and surviving visible selection through updates.
+They can narrow provider-owned results without restarting/cancelling the
+provider or invoking application callbacks. Text/input views are not targets.
+Queries are staged before publication, including table projection/render errors.
 
-Implementation `e9c3b0ca5880ab41f14836ccae3e64e8e2bea3f6` received independent
-agent approval. CI [40056716049](https://github.com/vv111y/emacs-tui/actions/runs/40056716049)
-passed all six jobs: Linux 28.2/29.4/30.2/31.1 and ARM64 macOS 30.2/31.1.
-Each passed 190 ERT tests, strict compilation, checkdoc and six PTY scripts.
-Mac logs identify Darwin arm64; 31.1 used native terminal child frames in the
-ephemeral, persistent, editable-input and tree/maximize scripts. 30.2 used
-ordinary windows. Embedded/table scripts used borrowed windows on both.
+The new persistent filter demo connects native input to a sortable buffer table
+and preview. Refresh retains the local filter; clearing input reveals hidden
+marked objects. `make filter-demo` runs it. Local Emacs 29.3 passes 201 ERT tests,
+strict compilation, checkdoc and six PTY scripts. The native input PTY scenario
+now filters an independent third view through typing, undo and real resizes.
+Implementation `00dedf0e5b4e6abceda1cfc6f051c76a6ccaff96` received independent
+agent approval. The reviewer repeated the full local suite and probed provider
+supersession/stale callbacks/cancellation, tree filter inheritance and rollback
+after render-only nonlocal projection failure. No blocking findings.
 
-This final documentation checkpoint still needs independent review and CI.
-Hosted PTYs do not establish Ghostty/iTerm2, zellij/tmux, GUI child-frame or
-physical Apple M5 compatibility.
+Implementation CI
+[40057174416](https://github.com/vv111y/emacs-tui/actions/runs/40057174416)
+passed all six Linux/macOS jobs: 201 ERT tests, strict compilation, checkdoc and
+six real PTY scripts in each. ARM64 macOS 31.1 logs confirm native child-frame
+input-driven local filtering. Final docstrings/README/handoff-only changes
+still require separate review and passing final-head CI before integration.
 
-No other scope is claimed in this platform PR during final-head validation. Next: richer application controls, broader display
-validation and measured performance. No stability or MELPA-readiness claim.
+No other scope is claimed in this PR during final-head validation. Next: richer
+controls, display validation and measured performance through concrete consumers.
+No stability or MELPA-readiness claim is made.
 
 ## Implementation and handoff
 
@@ -73,6 +83,8 @@ dashboard. PR #7 added borrowed-window embedding over the same primitives.
   expansion/hidden marks, ancestor search context and a buffer-tree application.
 - [PR #13](https://github.com/vv111y/emacs-tui/pull/13): maximize/restore and
   per-view hidden reading state, including native background input edits.
+- [PR #14](https://github.com/vv111y/emacs-tui/pull/14): required ARM64 macOS
+  30.2/31.1 validation alongside the four-version Linux matrix.
 
 API and runnable examples are in README.md. `make demo` explores an in-memory
 sample graph; `make async-demo` searches buffer snapshots. Marks are per view
@@ -93,7 +105,7 @@ scripts use a borrowed window. Resize coverage is 120x40 -> 90x30 -> 140x45.
 A separate real `cat` subprocess test verifies streaming and process disposal.
 
 Package-lint at upstream commit `1865be780a16098f972fef50a52b21ca6ee04df9`
-was rerun against the current maximize implementation. Its only findings are the two warnings
+was rerun against the current local-query implementation. Its only findings are the two warnings
 that `emacs` is redundant in the main/layout package names; the table and tree modules
 are clean. This remains a packaging question, not an overall clean lint pass.
 The extracted local runtime disables native compiler trampoline generation
@@ -101,7 +113,7 @@ because it has no configured native compiler toolchain.
 
 ## Remaining work
 
-1. Validate and integrate macOS CI, then extend application controls
+1. Review and integrate per-view queries, then extend application controls
    through concrete consumers. Preserve ephemeral behavior. Extend layouts, history, per-view
    input, maximize/restore and tree/form controls as real consumers require them. Avoid treating every preview as navigation.
 2. Broaden actual display validation: GUI child frames, macOS terminal emulators,

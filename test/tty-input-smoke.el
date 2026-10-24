@@ -1,4 +1,14 @@
 ;;; tty-input-smoke.el --- Native editable views in a real TTY -*- lexical-binding: t; -*-
+
+;; Copyright (C) 2026 Willy Rempel
+;; Author: Willy Rempel <https://github.com/vv111y>
+;; Assisted-by: Codex:gpt-6.1-sol-wm
+;; SPDX-License-Identifier: GPL-3.0-or-later
+
+;;; Commentary:
+;; Exercise multiline input, native undo, local filtering and real resizes.
+
+;;; Code:
 (setq load-prefer-newer t)
 (require 'cl-lib)
 (require 'emacs-tui)
@@ -34,6 +44,10 @@
                             (or (= phase 1) (> (frame-width child) emacs-tui-test--input-small-width)))))
           (cl-assert (emacs-tui-live-p session))
           (cl-assert (equal "alpha\nbeta" (emacs-tui-input-value session 'body)))
+          (cl-assert (equal "alpha\nbeta" (emacs-tui-query session 'filtered)))
+          (cl-assert (equal '("alpha beta")
+                            (emacs-tui--view-visible-items
+                             (emacs-tui--resolve-view session 'filtered))))
           (cl-assert (= 11 (window-point (selected-window))))
           (cl-assert (= emacs-tui-test--input-expected-calls emacs-tui-test--input-calls))
           (with-current-buffer (window-buffer (selected-window))
@@ -50,7 +64,7 @@
             (cl-assert (not (emacs-tui-live-p session)))
             (cl-assert (null emacs-tui--sessions))
             (with-temp-file (getenv "EMACS_TUI_SMOKE_REPORT")
-              (insert (format "PASS Emacs %s; real TTY; backend=%s; input=multiline; undo=passed; resize=120x40->90x30->140x45\n"
+              (insert (format "PASS Emacs %s; real TTY; backend=%s; input=multiline; filter=passed; undo=passed; resize=120x40->90x30->140x45\n"
                               emacs-version (emacs-tui--workspace-backend session))))
             (kill-emacs 0))))
     ((error quit) (emacs-tui-test--input-failure err))))
@@ -65,8 +79,10 @@
                              :id 'body
                              :on-change (lambda (app _id value)
                                           (cl-incf emacs-tui-test--input-calls)
-                                          (emacs-tui-update app 'preview :text (upcase value))))
-                            (emacs-tui-view :id 'preview :text ""))))
+                                          (emacs-tui-update app 'preview :text (upcase value))
+                                          (emacs-tui-set-query app 'filtered value)))
+                            (emacs-tui-view :id 'preview :text "")
+                            (emacs-tui-view :id 'filtered :items '("alpha beta" "gamma")))))
         (execute-kbd-macro (kbd "a l p h a RET b e t a"))
         (undo-boundary)
         (insert "!")
@@ -84,3 +100,5 @@
     ((error quit) (emacs-tui-test--input-failure err))))
 
 (add-hook 'emacs-startup-hook (lambda () (run-at-time 0.1 nil #'emacs-tui-test--input-start)))
+
+;;; tty-input-smoke.el ends here
