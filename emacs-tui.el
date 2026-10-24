@@ -568,22 +568,22 @@ can filter another view without replacing its source items."
           (if projection (car projection)
             (if (or application-query (null terms))
 		(emacs-tui--view-items view)
-              (cl-remove-if-not
-               (lambda (item)
-		 (cl-every
-                  (lambda (term)
-                    (string-match-p
-                     (regexp-quote term)
-                     (concat (emacs-tui--item-label item)
-                             (when (emacs-tui--view-columns view)
-                               (concat " "
-                                       (mapconcat
-					(lambda (column)
-                                          (emacs-tui--cell-text
-                                           (emacs-tui--table-value column item)))
-					(emacs-tui--view-columns view) " "))))))
-                  terms))
-               (emacs-tui--view-items view))))))
+              ;; Snapshot pure projections once for this search, not per term.
+              ;; Rebuild on every filter operation so new values stay visible.
+              (let ((patterns (mapcar #'regexp-quote terms)))
+                (cl-remove-if-not
+                 (lambda (item)
+                   (let ((text
+                          (concat (emacs-tui--item-label item)
+                                  (when (emacs-tui--view-columns view)
+                                    (concat " "
+                                            (mapconcat
+                                             (lambda (column)
+                                               (emacs-tui--cell-text
+                                                (emacs-tui--table-value column item)))
+                                             (emacs-tui--view-columns view) " "))))))
+                     (cl-every (lambda (pattern) (string-match-p pattern text)) patterns)))
+                 (emacs-tui--view-items view)))))))
     (when projection
       (setf (emacs-tui--view-tree-open view) (cdr projection)
             (emacs-tui--view-tree-search view) (and tree-terms t)))

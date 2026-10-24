@@ -9,6 +9,8 @@ native insertion from deletion and measures skipping predicates for empty terms.
 Both retain every sample. The [fresh-bytecode profile](../bench/results/2026-10-24-bytecode/README.md)
 adds all five workloads on one compiled-library configuration; native-code
 performance remains unmeasured.
+The [multi-term pair](../bench/results/2026-10-24-multiterm/README.md)
+measures list/table searches after removing per-term projection work.
 
 Run `make clean benchmark` with Python 3 and a real terminal-capable Emacs.
 The driver creates its own 120x40 PTY and starts `emacs -Q -nw`; it does not
@@ -44,6 +46,18 @@ still needs separate measurement. Earlier published pairs used source mode.
 `--label`. Mode selection and loaded definitions are recorded rather than
 inferred from file existence. Compilation and snapshot preparation occur outside
 measured commands. Normal GC thresholds are retained and recorded; fixture setup runs GC before each workload, outside measured samples.
+
+`--filter-prefix 'row 日本語 '` starts filter workloads with two terms that match
+every fixture row, then measures native insertion/deletion of a third `x` term.
+The prefix must be a single line ending in whitespace, and must match every
+fixture row; the initial result count is checked before measuring. It is placed
+in the actual editable field before warmups, with point at the end. The report's
+`filter_fixture.prefix` records it. Other workloads ignore it. The default empty
+prefix retains the original one-term/empty-query workload. For example:
+
+```sh
+make benchmark BENCH_ARGS="--load-mode bytecode --filter-prefix 'row 日本語 ' --kinds filter-list filter-table --sizes 1000 10000"
+```
 
 ## Workloads and clocks
 
@@ -136,7 +150,8 @@ for finding bottlenecks, not universal performance promises.
 `make clean benchmark-smoke` checks compilation, three process/PTY regressions,
 all five workloads, real native input and the acknowledgement protocol in both
 source and freshly bytecompiled modes, with six samples and two warmups at
-100 rows. CI runs this on each supported runtime; it has **no timing threshold**
+100 rows. Additional source/bytecode smoke cases exercise multi-term list/table
+filtering with the recorded prefix. CI runs this on each supported runtime; it has **no timing threshold**
 and is not a published performance baseline. Required functional ERT/PTY tests
 remain separate. Optimize only after measuring, and preserve native buffer
 semantics, source identity, application effects and failure-safe updates.

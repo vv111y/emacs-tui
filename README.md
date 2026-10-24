@@ -106,6 +106,9 @@ numerically before other values, then compares their displayed strings;
 
 Local ephemeral queries search full column values and item labels, including
 text clipped from display. Provider-driven filtering stays application-owned.
+Multi-term matching prepares the full search text once per item per filter
+operation. New queries and source replacements read current projected values;
+there is no persistent search cache.
 The dashboard demonstrates sortable buffer sizes, modes and process metadata.
 A failed cell projection or comparator leaves the previous source, selection,
 marks and rendered content intact. Failed provider publications terminate that

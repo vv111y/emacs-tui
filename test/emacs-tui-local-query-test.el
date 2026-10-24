@@ -222,5 +222,72 @@
         (when session (emacs-tui-close session))
         (when (buffer-live-p source) (kill-buffer source))))))
 
+(ert-deftest emacs-tui-local-query-multiple-terms-project-each-row-once-for-search ()
+  (let ((calls 0)
+        (rows '((:id a :label "Alpha [x]" :detail "日本語")
+                (:id b :label "Alpha [x]" :detail "Other")
+                (:id c :label "Alpha other" :detail "日本語"))))
+    (emacs-tui-local-query-test--with
+        (list (emacs-tui-view
+               :id 'a :items rows
+               :columns (list (emacs-tui-column
+                               :id 'label :value (lambda (item)
+                                                   (cl-incf calls) (plist-get item :label)))
+                              (emacs-tui-column
+                               :id 'detail :value (lambda (item)
+                                                    (cl-incf calls) (plist-get item :detail))))))
+      (setq calls 0)
+      (emacs-tui-set-query session 'a "ALPHA [x] 日本語")
+      (should (eq (car rows) (emacs-tui-current-item session)))
+      (should (= 1 (length (emacs-tui--view-visible-items
+                            (emacs-tui--focused-view session)))))
+      ;; Six projections prepare search text, two render the surviving row.
+      ;; Adding literal terms must not multiply application projection work.
+      (should (= 8 calls)))))
+
+(ert-deftest emacs-tui-local-query-multiple-literal-terms-retain-sort-and-hidden-marks ()
+  (let* ((a (list :id 'a :label "Alpha.*" :detail "日本語 é" :rank 3))
+         (b (list :id 'b :label "Alpha.*" :detail "日本語 é" :rank 1))
+         (c (list :id 'c :label "AlphaZZ" :detail "日本語 é" :rank 2))
+         (rows (list a b c)))
+    (emacs-tui-local-query-test--with
+        (list (emacs-tui-view
+               :id 'a :items rows :multi-select t
+               :on-select (lambda (&rest _) (ert-fail "Implicit inspection"))
+               :columns (list (emacs-tui-column :id 'detail :value :detail :width 3)
+                              (emacs-tui-column :id 'rank :value :rank))))
+      (emacs-tui-set-selection session 'a 'c)
+      (emacs-tui-toggle-mark session)
+      (emacs-tui-sort session 'a 'rank t)
+      (emacs-tui-set-query session 'a "日本語 alpha.* é alpha.*")
+      (should (equal (list a b) (emacs-tui--view-visible-items
+                                (emacs-tui--focused-view session))))
+      (should (eq a (emacs-tui-current-item session)))
+      (should (equal (list c) (emacs-tui-marked-items session)))
+      (should (equal rows (list a b c))))))
+
+(ert-deftest emacs-tui-local-query-multiple-terms-read-fresh-replacement-values ()
+  (emacs-tui-local-query-test--with
+      (list (emacs-tui-view :id 'a :items '((:id a :label "Alpha" :detail "Old"))
+                            :columns (list (emacs-tui-column :id 'detail :value :detail))))
+    (emacs-tui-set-query session 'a "alpha old")
+    (should (emacs-tui-current-item session))
+    (let ((fresh (list :id 'a :label "Alpha" :detail "New")))
+      (emacs-tui-update session 'a :items (list fresh))
+      (should-not (emacs-tui-current-item session))
+      (emacs-tui-set-query session 'a "alpha new")
+      (should (eq fresh (emacs-tui-current-item session))))))
+
+(ert-deftest emacs-tui-local-query-multiple-terms-handle-propertized-plain-strings ()
+  (let* ((a (propertize "日本語 [x]\nAlpha.* é" 'face 'bold))
+         (b "日本語 x\nAlphaZZ é"))
+    (emacs-tui-local-query-test--with
+        (list (emacs-tui-view :id 'a :items (list a b)))
+      (emacs-tui-set-query session 'a "alpha.* 日本語 [x] é")
+      (should (eq a (emacs-tui-current-item session)))
+      (should (= 1 (length (emacs-tui--view-visible-items
+                            (emacs-tui--focused-view session)))))
+      (should (eq 'bold (get-text-property 1 'face a))))))
+
 (provide 'emacs-tui-local-query-test)
 ;;; emacs-tui-local-query-test.el ends here
