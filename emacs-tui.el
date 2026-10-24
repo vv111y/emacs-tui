@@ -1087,22 +1087,31 @@ Do not select a frame or resurrect focus after explicit parent selection."
                 (emacs-tui--frame-below-p (selected-frame) frame))
           emacs-tui--tty-deleting-frames)))
 
+(defun emacs-tui--restore-tty-survivor ()
+  "Restore a remembered owned child below the selected fallback frame.
+Return non-nil only after changing native focus.  Explicit parent selection,
+an already selected child and invalidated or graphical surfaces are unchanged."
+  (let* ((selected (selected-frame))
+         (app
+          (when (and (frame-live-p selected) (not (display-graphic-p selected)))
+            (cl-find-if
+             (lambda (session)
+               (and (emacs-tui--workspace-tty-focus session)
+                    (emacs-tui--tty-child-p session)
+                    (not (eq (emacs-tui--workspace-frame session) selected))
+                    (emacs-tui--frame-below-p
+                     (emacs-tui--workspace-frame session) selected)
+                    (emacs-tui--subtree session)))
+             emacs-tui--sessions))))
+    (when app
+      (select-window (frame-selected-window (emacs-tui--workspace-frame app)))
+      t)))
+
 (defun emacs-tui--restore-tty-deletion (entry)
   "Restore an owned survivor for recorded deletion ENTRY, once.
 Do not change focus for a background deletion or an explicit parent choice."
   (when (and (nth 2 entry) (not (eq (nth 1 entry) (selected-frame))))
-    (let ((app (cl-find-if
-                (lambda (session)
-                  (and (emacs-tui--workspace-tty-focus session)
-                       (emacs-tui--tty-child-p session)
-                       (not (eq (emacs-tui--workspace-frame session) (selected-frame)))
-                       (emacs-tui--frame-below-p
-                        (emacs-tui--workspace-frame session) (selected-frame))
-                       (emacs-tui--subtree session)))
-                emacs-tui--sessions)))
-      (when app
-        (select-window (frame-selected-window (emacs-tui--workspace-frame app)))
-        t))))
+    (emacs-tui--restore-tty-survivor)))
 
 (defun emacs-tui--consume-tty-deletions ()
   "Consume completed deletions before recording implicit fallback focus.
@@ -1670,11 +1679,18 @@ KEYMAP supplies application commands for view buffers."
   (dolist (session (copy-sequence emacs-tui--sessions))
     (when (or (eq frame (emacs-tui--workspace-frame session))
               (eq frame (emacs-tui--workspace-origin-frame session)))
-      ;; Emacs owns deletion of this frame and all descendant windows.  Do
-      ;; not mutate a dying subtree, including when hooks were deferred.
-      (setf (emacs-tui--workspace-frame session) nil
-            (emacs-tui--workspace-windows session) nil)
-      (emacs-tui-close session))))
+      (let ((restore-survivor
+             (and (eq (emacs-tui--workspace-backend session) 'child-frame)
+                  (emacs-tui--workspace-tty-focus session))))
+        ;; Emacs owns deletion of this frame and all descendant windows.  Do
+        ;; not mutate a dying subtree, including when hooks were deferred.
+        (setf (emacs-tui--workspace-frame session) nil
+              (emacs-tui--workspace-windows session) nil)
+        (emacs-tui-close session)
+        ;; Some server implementations report abrupt terminal loss only after
+        ;; native fallback selected a surviving terminal's top-level frame.
+        (when (and restore-survivor (emacs-tui--restore-tty-survivor))
+          (emacs-tui--track-tty-focus))))))
 
 (defun emacs-tui--restore-host (session)
   "Release SESSION's borrowed window and restore its untouched host state."
