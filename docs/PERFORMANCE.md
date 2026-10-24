@@ -44,6 +44,31 @@ sending the next. The marker is written to the PTY **after** `redisplay t`.
 It validates case/sample sequence and Emacs checks selected identities or
 visible result counts, so a silently unbound key or failed filter cannot pass.
 
+The driver starts a new session using `start_new_session`, then attaches the
+controlling PTY in a fresh Python interpreter before executing Emacs. It does
+not run Python via `preexec_fn` after fork. Stage messages are flushed outside
+measured commands. This addresses a process-launch hazard while retaining the
+same native key/redisplay protocol. Repeated macOS 31.1 CI stalls in the older
+driver were not captured with a stack trace, so the exact blocked call is
+unknown; successful checks must verify this change rather than assuming a cause.
+The new stage logs subsequently located both macOS failures in Python 3.15's
+post-protocol timed process wait, including after group termination. The driver
+now drains terminal output and polls process status through exit, as the existing
+TTY smoke runner does. This avoids both a blocked terminal writer and dependence
+on platform timed-wait notifications. It does not establish which caused the
+observed stall. Regressions exercise a 2 MiB terminal tail and EOF while a process
+is still alive; EOF alone never counts as successful exit.
+
+`--timeout SECONDS` covers the entire driver (default 1,800 seconds). Expiry
+dumps the Python stack and fails the run; normal cleanup kills its owned process
+group and waits at most five seconds. A C watchdog dumps/exits after ten extra
+seconds if Python cannot dispatch the deadline. Git and CPU-model subprocesses
+have ten-second limits. Unavailable Git/CPU metadata is recorded as null.
+CI smoke uses a 120-second driver deadline, a five-minute outer step limit and
+a 15-minute runtime-job limit, including compilation and startup. None of these
+limits are performance thresholds. Published earlier pairs retain their original
+versioned coordinator hashes; this hardening does not rewrite their data.
+
 - `pty_output_ms`: Python's monotonic clock, just before writing the key through
   receipt of the acknowledgement after terminal output. Includes dispatch,
   scheduling, instrumentation, validation and PTY transport. For the provider
