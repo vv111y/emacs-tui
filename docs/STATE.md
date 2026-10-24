@@ -2,6 +2,37 @@
 
 Updated 2026-10-23 (America/Toronto).
 
+## Ready for review
+
+[PR #6](https://github.com/vv111y/emacs-tui/pull/6) adds shared construction and
+disposal, queryless `emacs-tui-mount`, native view navigation, `emacs-tui-live-p`,
+and an `:on-close` callback for application resources. A persistent buffer and
+process dashboard demonstrates periodic refresh and actions that keep the UI
+open. Existing ephemeral behavior remains covered by its original regressions.
+
+The owner merged scope clarification PR #5 at
+`040894331b38a6797ff006d5c2f7fbc7a710f11b`. PR #6 now targets main.
+The merged base tree exactly matches the previous scope branch, so integrating
+main into #6 changes no implementation files. The handoff records the new base;
+verify the resulting head and CI before integration. PR #6 still needs independent
+review; author testing does not satisfy that gate. Inspect the latest remote
+head before resuming changes.
+
+Local evidence for #6: 106 ERT tests, strict package/example compilation,
+checkdoc and both real Emacs 29.3 TTY smoke scripts pass. The new script tests
+native view focus, actions without closing, survival of launcher-buffer death,
+marks and resize, and explicit disposal. The additional regression covers a
+queryless mount from a four-row launcher window. Python harness compiles.
+
+Implementation commit `4a4449e31437de628895f4fc9e1ce7210d6e7d1a` passes
+106 ERT tests, strict compilation, checkdoc and both real TTY scripts on Emacs
+28.2, 29.4, 30.2 and 31.1 in
+[CI run 40047094457](https://github.com/vv111y/emacs-tui/actions/runs/40047094457).
+Emacs 31.1 exercised native TTY child frames in both scripts; earlier versions
+used ordinary windows. This handoff update changes documentation only; verify
+the latest head and CI when reviewing. PR #6 has no recorded independent review yet.
+Package-lint was rerun for #6 with only the same two package-name warnings.
+
 ## Implementation and handoff
 
 This is an experimental development release, not a stable or MELPA package.
@@ -10,8 +41,8 @@ Scope clarification from the owner, 2026-10-23: build a general-purpose TUI
 toolkit for Emacs. The ephemeral XOB-style workflow is one supported application
 pattern. Persistent applications and embedded panels must not require query
 input, an origin marker, or commit-then-close. See docs/DESIGN.md and the new
-immediate priorities in ROADMAP.md. Existing lifecycle coupling remains to be
-refactored; this documentation change does not claim those capabilities exist.
+immediate priorities in ROADMAP.md. PR #6 implements the first persistent lifecycle; embedding remains planned.
+Check its live review and CI state before treating it as integrated.
 
 - [PR #1](https://github.com/vv111y/emacs-tui/pull/1): merged foundation with
   editable temporary queries, independent list/text views, explicit selection
@@ -25,6 +56,8 @@ refactored; this documentation change does not claim those capabilities exist.
 - [PR #4](https://github.com/vv111y/emacs-tui/pull/4): merged opt-in
   multi-selection, stable identity marks, non-color indicators and explicit
   batch commits. Final-head CI also passed on all four supported test versions.
+- [PR #5](https://github.com/vv111y/emacs-tui/pull/5): merged by the owner;
+  general-purpose toolkit scope and lifecycle priorities are now on main.
 
 API and runnable examples are in README.md. `make demo` explores an in-memory
 sample graph; `make async-demo` searches buffer snapshots. Marks are per view
@@ -49,17 +82,17 @@ native TTY child frames; earlier versions use ordinary windows. A separate
 real `cat` subprocess test verifies streaming output and process disposal.
 
 Package-lint at upstream commit `1865be780a16098f972fef50a52b21ca6ee04df9`
-was rerun against the current sources. Its only findings are the two warnings
+was rerun against the PR #4 sources. Its only findings are the two warnings
 that `emacs` is redundant in package names. This remains a packaging question,
 not a clean lint pass. The extracted local runtime disables native compiler
 trampoline generation because it has no configured native compiler toolchain.
 
 ## Remaining work
 
-1. Inspect open PRs and current remote heads. First separate general UI lifecycle
-   from the existing ephemeral query/origin/commit policy and demonstrate a
-   persistent dashboard without mandatory query input or commit destination.
-   Preserve existing ephemeral behavior. Then extend shared interactions with
+1. Independently review open PR #6. PR #5 was merged by the owner. The shared lifecycle
+   and persistent dashboard are implemented in #6, pending review and CI. Next
+   prove embedding with explicit ownership of host buffers/windows and add
+   application input/action composition. Preserve ephemeral behavior. Extend
    layouts, history, per-view input, maximize/restore and tables as real consumers
    require them. Avoid treating every preview as navigation.
 2. Broaden actual display validation: GUI child frames, macOS terminal emulators,

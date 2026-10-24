@@ -1,4 +1,4 @@
-;;; emacs-tui.el --- Ephemeral interactive workspaces -*- lexical-binding: t; -*-
+;;; emacs-tui.el --- Composable text interfaces -*- lexical-binding: t; -*-
 
 ;; Copyright (C) 2026 Willy Rempel
 ;; Author: Willy Rempel <https://github.com/vv111y>
@@ -22,10 +22,11 @@
 
 ;;; Commentary:
 
-;; Open an ephemeral workspace with `emacs-tui-open'.  Ordinary editing
+;; Mount a persistent interface with `emacs-tui-mount', or open an
+;; ephemeral workspace with `emacs-tui-open'.  Ordinary editing
 ;; commands edit its private query buffer.  Applications provide views
-;; and callbacks; browsing never writes to the originating buffer.
-;; `emacs-tui-commit' is the explicit persistence boundary.
+;; and callbacks.  Persistent applications own their actions and data;
+;; ephemeral workspaces use `emacs-tui-commit' for explicit persistence.
 ;; Native child frames are used when supported, with owned windows as a
 ;; fallback.  The initial API is experimental.
 
@@ -36,7 +37,7 @@
 (require 'emacs-tui-layout)
 
 (defgroup emacs-tui nil
-  "Ephemeral interactive workspaces."
+  "Composable text interfaces."
   :group 'convenience
   :prefix "emacs-tui-")
 
@@ -57,13 +58,13 @@
 (cl-defstruct (emacs-tui--workspace (:constructor emacs-tui--make-workspace))
   views (focus 0) layout backend on-query on-commit origin origin-window
   origin-frame frame query-buffer root windows active origin-kill-hook geometry
-  provider debounce request provider-views)
+  provider debounce request provider-views on-close)
 
 (cl-defstruct (emacs-tui--request (:constructor emacs-tui--make-request))
   session query timer cancel (active t))
 
 (defvar-local emacs-tui--session nil
-  "Workspace associated with the current ephemeral buffer.")
+  "Interface associated with the current view or input buffer.")
 
 (defvar emacs-tui--sessions nil
   "Live workspaces, used to release resources when a frame is deleted.")
@@ -94,8 +95,16 @@
   (setq-local mode-line-format nil)
   (setq-local truncate-lines t))
 
+(defvar emacs-tui-view-mode-map
+  (let ((map (copy-keymap emacs-tui-input-mode-map)))
+    (define-key map (kbd "n") #'emacs-tui-next-item)
+    (define-key map (kbd "p") #'emacs-tui-previous-item)
+    (define-key map (kbd "q") #'emacs-tui-close)
+    map)
+  "Keymap for list and text views, including queryless applications.")
+
 (define-derived-mode emacs-tui-view-mode special-mode "TUI-View"
-  "Display an ephemeral workspace view."
+  "Display a text interface view."
   (setq-local mode-line-format nil)
   (setq-local truncate-lines t)
   (setq-local cursor-type nil))
@@ -127,7 +136,7 @@
   items)
 
 (cl-defun emacs-tui-view (&key id title items text on-select multi-select)
-  "Describe an ephemeral view.
+  "Describe a list or text view.
 ID is a unique symbol or string.  TITLE defaults to ID.  ITEMS is a list
 of strings or plists with :label, optional :id, :value and :annotation.
 TEXT is a preview string and takes precedence over ITEMS when non-nil.
@@ -150,11 +159,18 @@ close the workspace.  View descriptions are copied when opened."
 
 (defun emacs-tui--require-session (session)
   "Return live SESSION, defaulting to the current buffer's workspace."
-  (setq session (or session emacs-tui--session))
-  (unless (and (emacs-tui--workspace-p session)
-               (emacs-tui--workspace-active session))
-    (user-error "No active emacs-tui workspace"))
-  session)
+  (let ((inferred (null session)))
+    (setq session (or session emacs-tui--session))
+    (unless (and (emacs-tui--workspace-p session)
+                 (emacs-tui--workspace-active session))
+      (user-error "No active emacs-tui workspace"))
+    (when inferred (emacs-tui--sync-view-focus))
+    session))
+
+(defun emacs-tui-live-p (session)
+  "Return non-nil if SESSION is a live interface handle."
+  (and (emacs-tui--workspace-p session)
+       (emacs-tui--workspace-active session)))
 
 (defun emacs-tui--focused-view (session)
   "Return the logically focused view of SESSION."
@@ -231,11 +247,13 @@ its focused view.  Ordinary views are unchanged.  Return nil."
   nil)
 
 (defun emacs-tui-query (&optional session)
-  "Return the private query string of SESSION."
-  (with-current-buffer
-      (emacs-tui--workspace-query-buffer
-       (emacs-tui--require-session session))
-    (buffer-substring-no-properties (point-min) (point-max))))
+  "Return SESSION's query string, or an empty string if it has no input."
+  (let ((query (emacs-tui--workspace-query-buffer
+                (emacs-tui--require-session session))))
+    (if query
+        (with-current-buffer query
+          (buffer-substring-no-properties (point-min) (point-max)))
+      "")))
 
 (defun emacs-tui--filter (session view)
   "Update VIEW's visible items for SESSION, preserving stable selection."
@@ -261,6 +279,32 @@ its focused view.  Ordinary views are unchanged.  Return nil."
                                     :key #'emacs-tui--item-id :test #'equal))
               0))))
 
+(defun emacs-tui--view-header (session view)
+  "Return VIEW's focus and mark header within SESSION."
+  (concat (if (eq view (emacs-tui--focused-view session)) "* " "  ")
+          (emacs-tui--view-title view)
+          (when (and (emacs-tui--view-multi-select view)
+                     (not (emacs-tui--view-text view)))
+            (format " | %d marked"
+                    (if (emacs-tui--view-marks view)
+                        (hash-table-count (emacs-tui--view-marks view))
+                      0)))))
+
+(defun emacs-tui--sync-view-focus ()
+  "Synchronize native window focus with a queryless interface's focused view."
+  (let ((session emacs-tui--session))
+    (when (and (emacs-tui-live-p session)
+               (not (emacs-tui--workspace-query-buffer session)))
+      (let ((index (cl-position (current-buffer)
+                                (emacs-tui--workspace-views session)
+                                :key #'emacs-tui--view-buffer :test #'eq)))
+        (when (and index (/= index (emacs-tui--workspace-focus session)))
+          (setf (emacs-tui--workspace-focus session) index)
+          (dolist (view (emacs-tui--workspace-views session))
+            (when (buffer-live-p (emacs-tui--view-buffer view))
+              (with-current-buffer (emacs-tui--view-buffer view)
+                (setq header-line-format (emacs-tui--view-header session view))))))))))
+
 (defun emacs-tui--render-view (session view)
   "Render VIEW in SESSION without replacing its buffer or window."
   (let ((buffer (emacs-tui--view-buffer view)))
@@ -269,16 +313,7 @@ its focused view.  Ordinary views are unchanged.  Return nil."
         (let ((inhibit-read-only t)
               (selected-position 1))
           (erase-buffer)
-          (setq header-line-format
-                (concat (if (eq view (emacs-tui--focused-view session))
-                            "* " "  ")
-                        (emacs-tui--view-title view)
-                        (when (and (emacs-tui--view-multi-select view)
-                                   (not (emacs-tui--view-text view)))
-                          (format " | %d marked"
-                                  (if (emacs-tui--view-marks view)
-                                      (hash-table-count (emacs-tui--view-marks view))
-                                    0)))))
+          (setq header-line-format (emacs-tui--view-header session view))
           (if (emacs-tui--view-text view)
               (insert (emacs-tui--view-text view))
             (cl-loop for item in (emacs-tui--view-visible-items view)
@@ -525,12 +560,14 @@ larger minimum frame size than the requested size."
          (signal (car err) (cdr err))))))
   (unless (emacs-tui--workspace-root session)
     (let* ((origin (emacs-tui--workspace-origin-window session))
-           (window-min-height 3)
+           (query (emacs-tui--workspace-query-buffer session))
+           (minimum (if query 8 4))
+           (window-min-height (if query 3 2))
            (height (window-total-height origin)))
-      (when (< height 8)
-        (user-error "Need at least eight window rows for an emacs-tui workspace"))
+      (when (< height minimum)
+        (user-error "Need at least %d window rows for this interface" minimum))
       (setf (emacs-tui--workspace-root session)
-            (split-window origin (- (max 4 (/ height 2))) 'below)
+            (split-window origin (- (max (if query 4 2) (/ height 2))) 'below)
             (emacs-tui--workspace-backend session) 'windows))))
 
 (defun emacs-tui--split-rectangles (session root rectangles)
@@ -592,10 +629,12 @@ A foreign window inside the subtree makes it unsuitable for reflow."
                                     (emacs-tui--workspace-windows session)))
          (ancestor root))
     (when (and (window-live-p root)
-               (window-live-p (emacs-tui--workspace-origin-window session))
                (frame-live-p (emacs-tui--workspace-origin-frame session))
-               (buffer-live-p (marker-buffer (emacs-tui--workspace-origin session)))
-               (eq (window-buffer root) (emacs-tui--workspace-query-buffer session))
+               (or (null (emacs-tui--workspace-origin session))
+                   (and (window-live-p (emacs-tui--workspace-origin-window session))
+                        (buffer-live-p (marker-buffer (emacs-tui--workspace-origin session)))))
+               (or (null (emacs-tui--workspace-query-buffer session))
+                   (eq (window-buffer root) (emacs-tui--workspace-query-buffer session)))
                windows
                (cl-every (lambda (window) (emacs-tui--owned-window-p session window))
                          windows))
@@ -644,6 +683,7 @@ A foreign window inside the subtree makes it unsuitable for reflow."
 (defun emacs-tui--arrange (session)
   "Arrange SESSION's views inside its owned window subtree."
   (let ((root (emacs-tui--workspace-root session))
+        (query (emacs-tui--workspace-query-buffer session))
         (window-combination-limit t))
     (dolist (window (emacs-tui--workspace-windows session))
       (when (and (not (eq root window)) (window-live-p window)
@@ -652,37 +692,46 @@ A foreign window inside the subtree makes it unsuitable for reflow."
     (dolist (view (emacs-tui--workspace-views session))
       (setf (emacs-tui--view-window view) nil))
     (setf (emacs-tui--workspace-windows session) (list root))
-    (set-window-buffer root (emacs-tui--workspace-query-buffer session))
+    (set-window-buffer root (or query (emacs-tui--view-buffer
+                                       (car (emacs-tui--workspace-views session)))))
     (emacs-tui--own-window session root)
-    (when (> (window-total-height root) 2)
-      (let* ((window-min-height 1)
-             (panel (emacs-tui--own-window session (split-window root 2 'below)))
-             (rectangles
-              (emacs-tui-layout-compute
-               (mapcar #'emacs-tui--view-id (emacs-tui--workspace-views session))
-               (window-total-width panel) (window-total-height panel)
-               (emacs-tui--workspace-layout session))))
-        (emacs-tui--own-window session panel)
-        (condition-case err
-            (emacs-tui--split-rectangles session panel rectangles)
-          (error
-           (dolist (window (emacs-tui--workspace-windows session))
-             (when (and (not (memq window (list root panel)))
-                        (window-live-p window))
-               (delete-window window)))
-           (dolist (view (emacs-tui--workspace-views session))
-             (setf (emacs-tui--view-window view) nil))
-           (setf (emacs-tui--workspace-windows session) (list root panel))
-           (when (window-live-p panel)
-             (set-window-buffer panel (emacs-tui--view-buffer
-                                       (car (emacs-tui--workspace-views session))))
-             (setf (emacs-tui--view-window
-                    (car (emacs-tui--workspace-views session))) panel)
-             (cl-pushnew panel (emacs-tui--workspace-windows session)))
-           (message "emacs-tui compact layout: %s" (error-message-string err))))))
+    (let* ((window-min-height 1)
+           (panel (if query
+                      (when (> (window-total-height root) 2)
+                        (emacs-tui--own-window session (split-window root 2 'below)))
+                    root)))
+      (when panel
+        (let ((rectangles
+               (emacs-tui-layout-compute
+                (mapcar #'emacs-tui--view-id (emacs-tui--workspace-views session))
+                (window-total-width panel) (window-total-height panel)
+                (emacs-tui--workspace-layout session))))
+          (condition-case err
+              (emacs-tui--split-rectangles session panel rectangles)
+            (error
+             (dolist (window (emacs-tui--workspace-windows session))
+               (when (and (not (memq window (list root panel)))
+                          (window-live-p window))
+                 (delete-window window)))
+             (dolist (view (emacs-tui--workspace-views session))
+               (setf (emacs-tui--view-window view) nil))
+             (setf (emacs-tui--workspace-windows session)
+                   (delete-dups (list root panel)))
+             (when (window-live-p panel)
+               (set-window-buffer panel (emacs-tui--view-buffer
+                                         (car (emacs-tui--workspace-views session))))
+               (setf (emacs-tui--view-window
+                      (car (emacs-tui--workspace-views session))) panel))
+             (message "emacs-tui compact layout: %s" (error-message-string err)))))))
     (emacs-tui--reveal-focus session)
     (dolist (view (emacs-tui--workspace-views session))
       (emacs-tui--render-view session view))))
+
+(defun emacs-tui--focus-window (session)
+  "Select SESSION's focused view when there is no separate query input."
+  (unless (emacs-tui--workspace-query-buffer session)
+    (let ((window (emacs-tui--view-window (emacs-tui--focused-view session))))
+      (when (window-live-p window) (select-window window)))))
 
 (defun emacs-tui-refresh (&optional session)
   "Reflow SESSION safely, preserving its query and logical selection.
@@ -700,7 +749,8 @@ No application provider or commit callback is invoked."
                   (error "Workspace window subtree is no longer available"))
                 (let* ((query (emacs-tui--workspace-query-buffer session))
                        (root (emacs-tui--workspace-root session))
-                       (point (with-current-buffer query (point)))
+                       (point (when query (with-current-buffer query (point))))
+                       (owned-selection (emacs-tui--owned-window-p session (selected-window)))
                        (window-point (window-point root))
                        (scroll
                         (mapcar
@@ -714,8 +764,9 @@ No application provider or commit callback is invoked."
                     (when (emacs-tui--workspace-frame session)
                       (emacs-tui--fit-child session))
                     (emacs-tui--arrange session)
-                    (with-current-buffer query (goto-char point))
-                    (set-window-point root window-point)
+                    (when query
+                      (with-current-buffer query (goto-char point))
+                      (set-window-point root window-point))
                     (dolist (entry scroll)
                       (when entry
                         (let* ((view (car entry))
@@ -724,7 +775,8 @@ No application provider or commit callback is invoked."
                             (set-window-start window (nth 1 entry) t)
                             (when (emacs-tui--view-text view)
                               (set-window-point window (nth 2 entry)))
-                            (set-window-hscroll window (nth 3 entry))))))))
+                            (set-window-hscroll window (nth 3 entry)))))))
+                  (when owned-selection (emacs-tui--focus-window session)))
                 (setf (emacs-tui--workspace-geometry session)
                       (emacs-tui--geometry session))
                 (unless (emacs-tui--workspace-geometry session)
@@ -750,7 +802,7 @@ No application provider or commit callback is invoked."
            (emacs-tui-close session)))))))
 
 (cl-defun emacs-tui-open (&key views (layout 'columns) (backend 'auto)
-                               on-query on-commit provider (debounce 0.08))
+                               on-query on-commit provider (debounce 0.08) on-close)
   "Open an ephemeral workspace and return its session handle.
 VIEWS is a nonempty list of `emacs-tui-view' descriptions.  LAYOUT is
 `columns', `rows' or `grid'.  BACKEND is `auto', `windows' or
@@ -776,8 +828,42 @@ the request.  Obsolete callbacks are ignored after query changes or
 session close.  Views previously published by the provider are cleared
 on a new query; untouched static views remain available.
 
+ON-CLOSE receives the closed session once, including initialization failures
+after allocation, and may release application-owned timers or resources.
+
 The query is editable scratch text; the source buffer and its point
 are not modified by opening, filtering, selecting or cancelling."
+  (emacs-tui--create :views views :layout layout :backend backend
+                     :on-query on-query :on-commit on-commit
+                     :provider provider :debounce debounce :on-close on-close
+                     :ephemeral t))
+
+(cl-defun emacs-tui-mount (&key views (layout 'columns) (backend 'windows)
+                                provider (debounce 0.08) on-close)
+  "Mount a persistent interface and return its session handle.
+VIEWS, LAYOUT and BACKEND have the same meaning as in `emacs-tui-open'.
+The interface owns its surface and view buffers, but has no query
+buffer, origin marker or commit destination.  Killing its launching
+buffer or window does not end it.  Explicit selection actions may
+update application data and keep the interface open.
+
+PROVIDER optionally starts asynchronous work with the same contract as
+`emacs-tui-open', using an empty query after DEBOUNCE seconds.  Updates
+use `emacs-tui-update'.  ON-CLOSE receives the closed session once and
+may release application resources.  Use `emacs-tui-live-p' to check a
+retained handle.  Close explicitly with `emacs-tui-close'.
+
+This entry point creates owned windows or a child frame; embedding in
+application-owned surfaces is not yet implemented."
+  (emacs-tui--create :views views :layout layout :backend backend
+                     :provider provider :debounce debounce :on-close on-close))
+
+(cl-defun emacs-tui--create (&key views layout backend on-query on-commit
+                                  provider debounce on-close ephemeral)
+  "Create views and resources shared by both interface lifecycles.
+VIEWS, LAYOUT, BACKEND, ON-QUERY, ON-COMMIT, PROVIDER, DEBOUNCE and
+ON-CLOSE specify configuration.  EPHEMERAL enables query input and
+origin-buffer commit policy."
   (unless (and (proper-list-p views) views
                (cl-every #'emacs-tui--view-p views))
     (error "VIEWS must be a nonempty list of emacs-tui-view descriptions"))
@@ -788,7 +874,7 @@ are not modified by opening, filtering, selecting or cancelling."
               (and (numberp debounce) (>= debounce 0) (< debounce 1.0e+INF))
             (arith-error nil))
     (error "DEBOUNCE must be a nonnegative finite number"))
-  (dolist (callback (list on-query on-commit provider))
+  (dolist (callback (list on-query on-commit provider on-close))
     (unless (or (null callback) (functionp callback))
       (error "Callbacks must be functions or nil")))
   (let ((ids (mapcar #'emacs-tui--view-id views)))
@@ -798,19 +884,20 @@ are not modified by opening, filtering, selecting or cancelling."
           (emacs-tui--make-workspace
            :views (mapcar #'copy-emacs-tui--view views) :layout layout
            :on-query on-query :on-commit on-commit
-           :provider provider :debounce debounce
-           :origin (copy-marker (point)) :origin-window (selected-window)
+           :provider provider :debounce debounce :on-close on-close
+           :origin (when ephemeral (copy-marker (point))) :origin-window (selected-window)
            :origin-frame (selected-frame) :active t))
-         (query (generate-new-buffer " *emacs-tui query*"))
+         (query (when ephemeral (generate-new-buffer " *emacs-tui query*")))
          initialized)
     (setf (emacs-tui--workspace-query-buffer session) query)
     (unwind-protect
         (progn
-          (with-current-buffer query
-            (emacs-tui-input-mode)
-            (setq-local emacs-tui--session session)
-            (add-hook 'after-change-functions #'emacs-tui--query-changed nil t)
-            (add-hook 'kill-buffer-hook #'emacs-tui--buffer-killed nil t))
+          (when query
+            (with-current-buffer query
+              (emacs-tui-input-mode)
+              (setq-local emacs-tui--session session)
+              (add-hook 'after-change-functions #'emacs-tui--query-changed nil t)
+              (add-hook 'kill-buffer-hook #'emacs-tui--buffer-killed nil t)))
           (dolist (view (emacs-tui--workspace-views session))
             (setf (emacs-tui--view-buffer view)
                   (generate-new-buffer (format " *emacs-tui %s*"
@@ -820,19 +907,25 @@ are not modified by opening, filtering, selecting or cancelling."
             (with-current-buffer (emacs-tui--view-buffer view)
               (emacs-tui-view-mode)
               (setq-local emacs-tui--session session)
-              (add-hook 'kill-buffer-hook #'emacs-tui--buffer-killed nil t)))
+              (add-hook 'kill-buffer-hook #'emacs-tui--buffer-killed nil t)
+              (unless query
+                (add-hook 'post-command-hook #'emacs-tui--sync-view-focus nil t))))
           (emacs-tui--make-surface session backend)
           (emacs-tui--arrange session)
           (setf (emacs-tui--workspace-geometry session) (emacs-tui--geometry session))
           (push session emacs-tui--sessions)
           (add-hook 'delete-frame-functions #'emacs-tui--frame-deleted)
           (add-hook 'window-state-change-hook #'emacs-tui--window-state-changed)
-          (let ((hook (lambda () (emacs-tui-close session))))
-            (setf (emacs-tui--workspace-origin-kill-hook session) hook)
-            (with-current-buffer (marker-buffer (emacs-tui--workspace-origin session))
-              (add-hook 'kill-buffer-hook hook nil t)))
+          (when ephemeral
+            (let ((hook (lambda () (emacs-tui-close session))))
+              (setf (emacs-tui--workspace-origin-kill-hook session) hook)
+              (with-current-buffer (marker-buffer (emacs-tui--workspace-origin session))
+                (add-hook 'kill-buffer-hook hook nil t))))
           (select-window (emacs-tui--workspace-root session))
-          (with-current-buffer query (emacs-tui--query-changed 'initial))
+          (emacs-tui--focus-window session)
+          (with-current-buffer (or query (emacs-tui--view-buffer
+                                          (emacs-tui--focused-view session)))
+            (emacs-tui--query-changed 'initial))
           (setq initialized t)
           session)
       (unless initialized (emacs-tui-close session)))))
@@ -852,7 +945,7 @@ are not modified by opening, filtering, selecting or cancelling."
       (emacs-tui-close session))))
 
 (defun emacs-tui-close (&optional session)
-  "Close SESSION, discarding ephemeral state and releasing owned resources.
+  "Close SESSION, discarding interface state and releasing owned resources.
 It is safe to close an already-closed session.  Source text and other
 windows are preserved."
   (interactive)
@@ -866,7 +959,7 @@ windows are preserved."
                (origin-window (emacs-tui--workspace-origin-window session))
                (frame (emacs-tui--workspace-frame session))
                (owned-selection (emacs-tui--owned-window-p session (selected-window))))
-	  (when (buffer-live-p (marker-buffer origin))
+	  (when (and origin (buffer-live-p (marker-buffer origin)))
             (with-current-buffer (marker-buffer origin)
               (remove-hook 'kill-buffer-hook
 			   (emacs-tui--workspace-origin-kill-hook session) t)))
@@ -886,20 +979,29 @@ windows are preserved."
 		  (when owned
                     (if (not (one-window-p t (window-frame window)))
 			(delete-window window)
-                      (when (buffer-live-p (marker-buffer origin))
+                      (when (and origin (buffer-live-p (marker-buffer origin)))
 			(set-window-buffer window (marker-buffer origin))
-			(set-window-point window origin))))))))
+			(set-window-point window origin))
+                      (unless origin
+                        (set-window-buffer window (other-buffer (window-buffer window) t)))))))))
 	  (dolist (buffer (cons (emacs-tui--workspace-query-buffer session)
 				(mapcar #'emacs-tui--view-buffer
 					(emacs-tui--workspace-views session))))
             (when (buffer-live-p buffer)
               (with-current-buffer buffer (set-buffer-modified-p nil))
               (kill-buffer buffer)))
-	  (set-marker origin nil))
+	  (when origin (set-marker origin nil)))
       (unless emacs-tui--sessions
 	(remove-hook 'delete-frame-functions #'emacs-tui--frame-deleted)
 	(remove-hook 'window-state-change-hook #'emacs-tui--window-state-changed))
-      (emacs-tui--stop-request (emacs-tui--workspace-request session))))
+      (unwind-protect
+          (emacs-tui--stop-request (emacs-tui--workspace-request session))
+        (let ((callback (emacs-tui--workspace-on-close session)))
+          (setf (emacs-tui--workspace-on-close session) nil)
+          (when callback
+            (condition-case err (funcall callback session)
+              ((error quit)
+               (message "emacs-tui close callback: %s" (error-message-string err)))))))))
   nil)
 
 (defun emacs-tui-next-view (&optional session delta)
@@ -910,6 +1012,7 @@ windows are preserved."
         (mod (+ (emacs-tui--workspace-focus session) (or delta 1))
              (length (emacs-tui--workspace-views session))))
   (emacs-tui--reveal-focus session)
+  (emacs-tui--focus-window session)
   (dolist (view (emacs-tui--workspace-views session))
     (emacs-tui--render-view session view)))
 

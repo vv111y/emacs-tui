@@ -10,7 +10,8 @@ with tempfile.TemporaryDirectory() as directory:
     master, slave = pty.openpty()
     fcntl.ioctl(slave, termios.TIOCSWINSZ, struct.pack("HHHH", 40, 120, 0, 0))
     env = dict(os.environ, TERM="xterm-256color", EMACS_TUI_SMOKE_REPORT=str(report), EMACS_TUI_SMOKE_READY=str(ready))
-    process = subprocess.Popen([os.environ.get("EMACS", "emacs"), "-Q", "-nw", "-L", ".", "-l", "test/tty-smoke.el"], stdin=slave, stdout=slave, stderr=slave, env=env, preexec_fn=attach_terminal)
+    script = sys.argv[1] if len(sys.argv) > 1 else "test/tty-smoke.el"
+    process = subprocess.Popen([os.environ.get("EMACS", "emacs"), "-Q", "-nw", "-L", ".", "-l", script], stdin=slave, stdout=slave, stderr=slave, env=env, preexec_fn=attach_terminal)
     os.close(slave)
     transcript = bytearray()
     deadline = time.monotonic() + 30
