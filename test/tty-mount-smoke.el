@@ -1,4 +1,9 @@
 ;;; tty-mount-smoke.el --- Exercise persistent native TTY views -*- lexical-binding: t; -*-
+
+;; Copyright (C) 2026 Willy Rempel
+;; Author: Willy Rempel <https://github.com/vv111y>
+;; Assisted-by: Codex:gpt-6.1-sol-wm
+;; SPDX-License-Identifier: GPL-3.0-or-later
 (setq load-prefer-newer t)
 (require 'cl-lib)
 (require 'emacs-tui)
@@ -30,6 +35,10 @@
         (redisplay t)
         (when (and (= (frame-width parent) width)
                    (<= (- height 2) (frame-height parent) height)
+                   ;; A frame can resize before the window-state hook reflows
+                   ;; the owned surface.  Wait for that hook, without forcing it.
+                   (equal (emacs-tui--workspace-geometry session)
+                          (emacs-tui--geometry session))
                    (or (not child)
                        (and (< (frame-width child) width) (< (frame-height child) height)
                             (or (= phase 1) (> (frame-width child) emacs-tui-test--mount-small-width)))))
