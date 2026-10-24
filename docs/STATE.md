@@ -4,43 +4,39 @@ Updated 2026-10-23 (America/Toronto).
 
 ## Active implementation
 
-PR #14 merged at `e1f80abd162c7774bac07a3c82663eb70f914b76` after independent
+PR #15 merged at `96a1603ce502766528118202489bdc3610e25154` after independent
 agent review and final-head CI
-[40056900801](https://github.com/vv111y/emacs-tui/actions/runs/40056900801).
-All six jobs passed 190 ERT tests, strict compilation, checkdoc and six PTY
-scripts: Linux 28.2/29.4/30.2/31.1 and ARM64 macOS 30.2/31.1. Emacs 31.1 used
-native terminal child frames on both platforms. Hosted PTY coverage does not
-establish Ghostty/iTerm2/zellij, GUI or physical M5 compatibility.
+[40057448458](https://github.com/vv111y/emacs-tui/actions/runs/40057448458).
+All six Linux/macOS jobs passed 201 ERT tests, strict compilation, checkdoc and
+six real PTY scripts. Per-view filters retain source identity, hidden marks,
+sort and provider lifetimes; `make filter-demo` demonstrates native composition.
 
-Current work adds `emacs-tui-set-query` for independent local list/table/tree
-filters and extends `emacs-tui-query` with optional view ID. String overrides
-are literal case-insensitive terms; empty string disables query filtering, while
-nil inherits workspace/application query policy. Local filters retain source
-objects, hidden marks, sorting and surviving visible selection through updates.
-They can narrow provider-owned results without restarting/cancelling the
-provider or invoking application callbacks. Text/input views are not targets.
-Queries are staged before publication, including table projection/render errors.
+Current work adds `emacs-tui-action` descriptions and `emacs-tui-act` dispatch.
+Views, trees and inputs accept optional named actions. Read-only a or C-c C-a
+opens a native completion menu. Targets are marked objects in source order,
+including hidden marks, otherwise the selected object, or nil for target-free
+operations. Availability accepts t, nil or a pure prompt function. Rendering
+and navigation never evaluate predicates or run callbacks. Only explicit RUN
+callbacks own data changes, persistence and any closing/transaction policy.
 
-The new persistent filter demo connects native input to a sortable buffer table
-and preview. Refresh retains the local filter; clearing input reveals hidden
-marked objects. `make filter-demo` runs it. Local Emacs 29.3 passes 201 ERT tests,
-strict compilation, checkdoc and six PTY scripts. The native input PTY scenario
-now filters an independent third view through typing, undo and real resizes.
-Implementation `00dedf0e5b4e6abceda1cfc6f051c76a6ccaff96` received independent
-agent approval. The reviewer repeated the full local suite and probed provider
-supersession/stale callbacks/cancellation, tree filter inheritance and rollback
-after render-only nonlocal projection failure. No blocking findings.
+Menu dispatch rechecks live session, focused view, current source objects and
+availability after the prompt. The buffer-tree demo offers Preview, Display,
+Copy names and Refresh, alongside existing shortcuts. Colliding printed labels
+are disambiguated, including valid distinct uninterned symbol IDs.
 
-Implementation CI
-[40057174416](https://github.com/vv111y/emacs-tui/actions/runs/40057174416)
-passed all six Linux/macOS jobs: 201 ERT tests, strict compilation, checkdoc and
-six real PTY scripts in each. ARM64 macOS 31.1 logs confirm native child-frame
-input-driven local filtering. Final docstrings/README/handoff-only changes
-still require separate review and passing final-head CI before integration.
+Local Emacs 29.3 passes 215 ERT tests, strict compilation, checkdoc and six PTY
+scripts. New cases cover hidden batch marks, source refresh during menus,
+availability changes, menu cancellation/focus/close races, target-free input
+actions, explicit close/error behavior and original object identity. The tree
+PTY opens/completes a real action menu, copies an updated marked leaf, then
+retains state through maximize and resizes. Package-lint has only the two
+existing main/layout name warnings. Independent review and six-job CI are
+pending.
 
-No other scope is claimed in this PR during final-head validation. Next: richer
-controls, display validation and measured performance through concrete consumers.
-No stability or MELPA-readiness claim is made.
+Active worker owns action descriptions/dispatch, the tree demo and regressions,
+build integration and documentation through review and CI. Next: actual
+package-build recipe/clean-install validation and measured performance, plus
+richer controls through concrete applications. No stability or MELPA claim.
 
 ## Implementation and handoff
 
@@ -85,6 +81,8 @@ dashboard. PR #7 added borrowed-window embedding over the same primitives.
   per-view hidden reading state, including native background input edits.
 - [PR #14](https://github.com/vv111y/emacs-tui/pull/14): required ARM64 macOS
   30.2/31.1 validation alongside the four-version Linux matrix.
+- [PR #15](https://github.com/vv111y/emacs-tui/pull/15): independent per-view
+  queries and native persistent search composition without replacing sources.
 
 API and runnable examples are in README.md. `make demo` explores an in-memory
 sample graph; `make async-demo` searches buffer snapshots. Marks are per view
@@ -105,7 +103,7 @@ scripts use a borrowed window. Resize coverage is 120x40 -> 90x30 -> 140x45.
 A separate real `cat` subprocess test verifies streaming and process disposal.
 
 Package-lint at upstream commit `1865be780a16098f972fef50a52b21ca6ee04df9`
-was rerun against the current local-query implementation. Its only findings are the two warnings
+was rerun against the current action implementation. Its only findings are the two warnings
 that `emacs` is redundant in the main/layout package names; the table and tree modules
 are clean. This remains a packaging question, not an overall clean lint pass.
 The extracted local runtime disables native compiler trampoline generation
@@ -113,7 +111,7 @@ because it has no configured native compiler toolchain.
 
 ## Remaining work
 
-1. Review and integrate per-view queries, then extend application controls
+1. Review and integrate named actions, then extend application controls
    through concrete consumers. Preserve ephemeral behavior. Extend layouts, history, per-view
    input, maximize/restore and tree/form controls as real consumers require them. Avoid treating every preview as navigation.
 2. Broaden actual display validation: GUI child frames, macOS terminal emulators,

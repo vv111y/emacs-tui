@@ -205,6 +205,41 @@ Run `make filter-demo` for a persistent search field, sortable buffer table and
 preview. Mark a buffer, hide it with a query, then clear the field: its mark
 survives. `C-c C-r` refreshes the source snapshot while retaining the filter.
 
+## Named context actions
+
+Describe application operations and attach them to a view:
+
+```elisp
+(emacs-tui-view
+ :id 'objects :items '("alpha" "beta") :multi-select t
+ :actions
+ (list (emacs-tui-action
+        :id 'copy :title "Copy names"
+        :enabled (lambda (_app items) (consp items))
+        :run (lambda (_app items) (kill-new (mapconcat #'identity items "\n"))))))
+```
+
+Press `a` in a read-only view or `C-c C-a` in any interface buffer to choose an
+available action. Ordinary input letters remain editable. Call
+`emacs-tui-act SESSION ID` to invoke a named action from an application command.
+
+`:run` receives `(session items)`. Marked objects take precedence, including
+hidden marks in source order; otherwise `items` contains the selected object,
+or nil when there is no target. This allows target-free actions such as
+Refresh. Optional `:enabled` accepts t (the default), nil to disable, or a pure
+availability function receiving the same arguments; it must return promptly. Rendering/navigation never evaluate action callbacks
+or predicates. Menus re-read targets and recheck availability after selection;
+closing the interface or changing its focused view aborts stale menu dispatch.
+
+Action IDs are unique within each view. Descriptions are shared configuration;
+do not mutate them after use. The toolkit does not automatically close, commit,
+or roll back action effects. Applications own validation and persistence.
+Legacy `RET` selection remains a separate, current-item exploration action.
+
+`make tree` now offers Preview, Display buffer, Copy names and Refresh. Preview
+and Display require one suitable target; Copy names supports marked batches,
+and Refresh works with an empty tree. Existing `g` and `o` shortcuts still work.
+
 ## Application commands
 
 Pass an ordinary Emacs keymap as `:keymap` to any entry point, or to an
@@ -310,6 +345,8 @@ and continue exploration; commitment is a separate command.
 | `emacs-tui-embed` | Borrow an application window for one panel; restore it on close |
 | `emacs-tui-column` | Describe a table column and its item projection |
 | `emacs-tui-sort` | Sort table rows without changing source order or item identity |
+| `emacs-tui-action` | Describe a named application action and availability predicate |
+| `emacs-tui-act` | Choose or invoke an action on marks or the current item |
 | `emacs-tui-current-session` | Return the current live interface handle for application commands |
 | `emacs-tui-mount` | Open a persistent interface without query or origin policy |
 | `emacs-tui-live-p` | Check whether an interface handle is active |
@@ -341,6 +378,7 @@ functions; interactive commands infer it from the workspace buffer. Internal
 | `C-c C-c` | Commit selected item and close after success |
 | `C-c C-l` | Cycle columns, rows and grid |
 | `C-c C-f` | Maximize the focused view / restore layout |
+| `C-c C-a` | Choose a named context action |
 | `C-c C-m` | Toggle the current item's mark in a multi-select view |
 | `C-c C-u` | Clear marks in the focused view |
 | `C-g` / `C-c C-q` | Close without committing |

@@ -84,3 +84,9 @@ Local queries reveal matching paths without committing expansion changes.
 The mode-grouped buffer browser exercises refresh, preview and explicit buffer
 display. Child projection is eager per snapshot; lazy loading and graph
 occurrence identity remain future work rather than implicit assumptions.
+
+Named actions are optional view configuration, separate from single-item
+exploration and ephemeral origin-buffer commitment. Applications own effects
+and validation. Menus use native completion, target marked/current source
+objects and recheck live state after prompting. Availability is evaluated only
+on explicit action requests, never as a rendering effect.

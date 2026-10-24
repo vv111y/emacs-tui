@@ -4,7 +4,7 @@ EMACS ?= emacs
 test:
 	$(EMACS) -Q --batch -L . -L test -l test/run-tests.el
 compile:
-	$(EMACS) -Q --batch -L . --eval '(setq byte-compile-error-on-warn t)' -f batch-byte-compile emacs-tui-layout.el emacs-tui-table.el emacs-tui-tree.el emacs-tui.el examples/*.el
+	$(EMACS) -Q --batch -L . --eval '(setq byte-compile-error-on-warn t)' -f batch-byte-compile emacs-tui-layout.el emacs-tui-table.el emacs-tui-tree.el emacs-tui-action.el emacs-tui.el examples/*.el
 checkdoc:
 	$(EMACS) -Q --batch -L . -l test/check-docs.el
 check: test compile checkdoc
