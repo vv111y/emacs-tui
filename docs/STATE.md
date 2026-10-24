@@ -4,6 +4,50 @@ Updated 2026-10-24 (America/Toronto).
 
 ## Active implementation
 
+PR #37 merged at `0645f8f22b1b4d4e24dc04438f18a9c54932b15c` after independent
+exact-head review and all eight jobs in
+[40095526862](https://github.com/vv111y/emacs-tui/actions/runs/40095526862).
+Every runtime passed 299 ERT, strict compilation/checkdoc, nine terminal
+scenarios, four reflow fault checks, three Python regressions and original plus
+multi-term source/bytecode benchmark smokes. Linux/macOS 31.1 each explicitly
+passed the complete two-real-terminals native-child-frame scenario, including
+survivor typing and final owned-buffer/frame/hook cleanup. The actual recipe
+archive built and clean-installed on 31.1/28.1. Earlier failed heads are not
+counted as passing. Abrupt hangup and physical emulator/GUI QA remain unverified.
+
+Direct layout selection adds emacs-tui-set-layout with columns/rows/grid and
+an interactive name chooser. A prefix on existing C-c C-l chooses by name;
+ordinary cycling remains unchanged. Invalid values or repurposed surfaces are
+rejected before state changes. An unchanged choice does not reflow/render;
+a choice while maximized records the restoration layout without replacing the
+pane. Focus, input/undo/narrowing, reading positions, queries and marks survive.
+The dashboard's Actions view selects a layout without refreshing source snapshots
+or restarting the application timer, including while updates are paused.
+
+Local 307 ERT and strict compilation/checkdoc passed on Emacs 29.3/Linux.
+Eight new regressions cover state preservation, no-op/maximized rendering,
+invalid/foreign surfaces, cancellation and post-prompt revalidation, ephemeral
+query/origin independence and paused dashboard choices. The updated persistent
+PTY fixture passed its actual native minibuffer chooser, maximize/choose/restore
+and original automatic resize/action assertions. Original and multi-term source/
+fresh-bytecode benchmark smokes plus three Python regressions also passed;
+these are functional smokes, not new latency evidence.
+
+The installed client now selects layouts during native input undo and maximized
+view use. Real pinned recipe build/fresh 29.3 installation passed from a minimal
+committed packaging snapshot, not a complete checkout or public feature head.
+Synthetic commit: 425e4f4401078593e79df508c142ae1fd01ed811; artifact SHA256:
+12e40db61276dc15b40bcbec54e7b280f871dcc307ece7ec662f620d8534402a.
+Independent review reproduced the identical archive/install and verified its
+library/client identity. Additional probes cover embedded host restoration and
+failed-reflow disposal; no API effect or performance guarantee was added.
+Independent exact published-head review and all eight fresh CI jobs remain
+integration gates for this feature. The local server-socket restriction persists.
+Next: abrupt client loss, consumer controls/layouts and actual XOB adapter work,
+broader display QA, substantive usage and release readiness. Stable/MELPA status
+has not been reached; external maintenance/history, human review and naming
+questions remain.
+
 PR #36 merged at `59795f276f61a866f8104459b5f354fb6f5c82f7` after independent
 exact-head review and all eight jobs in
 [40088634179](https://github.com/vv111y/emacs-tui/actions/runs/40088634179).

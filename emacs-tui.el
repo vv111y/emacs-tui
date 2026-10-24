@@ -2029,14 +2029,39 @@ closes an invalidated surface."
           (not (emacs-tui--workspace-maximized session)))
     (emacs-tui-refresh session)))
 
+(defun emacs-tui-set-layout (session layout)
+  "Use LAYOUT for SESSION, preserving focus and view state.
+LAYOUT is `columns', `rows' or `grid'.  Interactively, choose by name.
+An unchanged layout does not reflow or render.  While maximized, remember
+LAYOUT for restoration without replacing the visible panel.  Reject an
+invalidated surface before changing state.  Return SESSION, or nil if a
+necessary reflow closes the interface.  No application actions or providers
+are invoked."
+  (interactive
+   (let ((session (emacs-tui--require-session nil)))
+     (list session
+           (intern (completing-read
+                    "Layout: " '("columns" "rows" "grid") nil t nil nil
+                    (symbol-name (emacs-tui--workspace-layout session)))))))
+  (setq session (emacs-tui--require-session session))
+  (unless (memq layout '(columns rows grid)) (error "Unknown layout: %S" layout))
+  (unless (emacs-tui--subtree session)
+    (user-error "Interface surface is no longer owned"))
+  (if (eq layout (emacs-tui--workspace-layout session)) session
+    (setf (emacs-tui--workspace-layout session) layout)
+    (if (emacs-tui--workspace-maximized session) session
+      (emacs-tui-refresh session))))
+
 (defun emacs-tui-cycle-layout (&optional session)
-  "Cycle SESSION between columns, rows and grid layouts."
+  "Cycle SESSION between columns, rows and grid layouts.
+Interactively, a prefix argument chooses a layout by name instead."
   (interactive)
   (setq session (emacs-tui--require-session session))
-  (setf (emacs-tui--workspace-layout session)
-        (pcase (emacs-tui--workspace-layout session)
-          ('columns 'rows) ('rows 'grid) (_ 'columns)))
-  (emacs-tui-refresh session))
+  (if (and (called-interactively-p 'any) current-prefix-arg)
+      (call-interactively #'emacs-tui-set-layout)
+    (emacs-tui-set-layout
+     session (pcase (emacs-tui--workspace-layout session)
+               ('columns 'rows) ('rows 'grid) (_ 'columns)))))
 
 (provide 'emacs-tui)
 ;;; emacs-tui.el ends here

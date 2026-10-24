@@ -407,6 +407,7 @@ and continue exploration; commitment is a separate command.
 | `emacs-tui-mount` | Open a persistent interface without query or origin policy |
 | `emacs-tui-live-p` | Check whether an interface handle is active |
 | `emacs-tui-update` | Update items, preview or title, reusing its buffer |
+| `emacs-tui-set-layout` | Choose columns, rows or grid directly; retain view state |
 | `emacs-tui-toggle-maximize` | Enlarge the focused panel or restore the layout |
 | `emacs-tui-refresh` | Reflow the workspace while preserving its input and selection |
 | `emacs-tui-query` | Read the workspace query or a view’s effective query |
@@ -436,7 +437,7 @@ functions; interactive commands infer it from the workspace buffer. Internal
 | `C-c <` / `C-c >` | Select first / last projected item |
 | `RET` | Invoke selection action without closing |
 | `C-c C-c` | Commit selected item and close after success |
-| `C-c C-l` | Cycle columns, rows and grid |
+| `C-c C-l` | Cycle columns, rows and grid; a prefix argument chooses by name |
 | `C-c C-f` | Maximize the focused view / restore layout |
 | `C-c C-a` | Choose a named context action |
 | `C-c C-m` | Toggle the current item's mark in a multi-select view |
@@ -475,7 +476,13 @@ Press `C-c C-f` or call `emacs-tui-toggle-maximize` to give the focused view the
 whole TUI panel. The ephemeral query stays visible, and unrelated application
 windows keep their space. `TAB`/`S-TAB` still visit every view within the enlarged
 panel. Toggle again to restore the selected layout; cycling layouts while
-maximized chooses the layout used on restore.
+maximized chooses the layout used on restore. Applications can select a layout
+directly with `(emacs-tui-set-layout app 'rows)`. An unchanged choice performs
+no reflow or rendering; a choice while maximized records the layout for restore
+without replacing the visible pane. Input/undo, local queries, selection, marks,
+reading state and focus are retained. Invalid layout names and repurposed
+surfaces are rejected before layout state changes. The dashboard's Actions
+view demonstrates explicit layout choices without restarting its update timer.
 
 Inputs retain edits, undo and narrowing. Text views retain their individual
 cursor and scroll when hidden, and lists/trees retain selection, marks and
