@@ -56,12 +56,12 @@
 (cl-defstruct (emacs-tui--view (:constructor emacs-tui--make-view))
   id title items visible-items (selected 0) text on-select buffer window
   multi-select marks keymap columns sort-column sort-descending editable on-change
-  tree children tree-open tree-search)
+  tree children tree-open tree-search display-state)
 
 (cl-defstruct (emacs-tui--workspace (:constructor emacs-tui--make-workspace))
   views (focus 0) layout backend on-query on-commit origin origin-window
   origin-frame frame query-buffer root windows active origin-kill-hook geometry
-  provider debounce request provider-views on-close host)
+  provider debounce request provider-views on-close host maximized)
 
 (cl-defstruct (emacs-tui--host (:constructor emacs-tui--make-host))
   window buffer point start hscroll vscroll)
@@ -92,6 +92,7 @@
     (define-key map (kbd "C-c C-m") #'emacs-tui-toggle-mark)
     (define-key map (kbd "C-c C-u") #'emacs-tui-clear-marks)
     (define-key map (kbd "C-c C-l") #'emacs-tui-cycle-layout)
+    (define-key map (kbd "C-c C-f") #'emacs-tui-toggle-maximize)
     (define-key map (kbd "C-g") #'emacs-tui-close)
     (define-key map (kbd "C-c C-q") #'emacs-tui-close)
     map)
@@ -136,6 +137,7 @@
     (define-key map (kbd "<backtab>") #'emacs-tui-previous-view)
     (define-key map (kbd "C-c C-q") #'emacs-tui-close)
     (define-key map (kbd "C-c C-l") #'emacs-tui-cycle-layout)
+    (define-key map (kbd "C-c C-f") #'emacs-tui-toggle-maximize)
     map)
   "Keymap for editable views; ordinary text editing remains available.")
 
@@ -319,7 +321,8 @@ Ignore narrowing and strip text properties.  Signal an error for other views."
            (view (cl-find (current-buffer) (emacs-tui--workspace-views session)
                           :key #'emacs-tui--view-buffer :test #'eq)))
       (when (and view (emacs-tui--view-editable view))
-        (setf (emacs-tui--view-text view)
+        (setf (emacs-tui--view-display-state view) nil
+              (emacs-tui--view-text view)
               (save-restriction (widen) (buffer-string)))
         (when (emacs-tui--view-on-change view)
           (condition-case err
@@ -516,6 +519,7 @@ an empty answer restores source order, and a prefix requests descending order."
   (concat (if (equal (emacs-tui--view-id view)
                          (emacs-tui--view-id (emacs-tui--focused-view session))) "* " "  ")
           (emacs-tui--view-title view)
+          (when (emacs-tui--workspace-maximized session) " | maximized")
           (when (and (emacs-tui--view-multi-select view)
                      (not (emacs-tui--view-text view)))
             (format " | %d marked"
@@ -597,6 +601,8 @@ Prepare application projections before changing any displayed content."
               (insert (car content))
               (goto-char (cdr content)))
             (set-buffer-modified-p nil)
+            (when (emacs-tui--view-text view)
+              (setf (emacs-tui--view-display-state view) nil))
             (when (emacs-tui--view-editable view)
               (buffer-disable-undo)
               (buffer-enable-undo))
@@ -676,6 +682,7 @@ Non-nil TEXT is rejected for trees.  Return SESSION."
             (emacs-tui--view-tree-open view) (emacs-tui--view-tree-open candidate)
             (emacs-tui--view-tree-search view) (emacs-tui--view-tree-search candidate)
             (emacs-tui--view-text view) (emacs-tui--view-text candidate)
+            (emacs-tui--view-display-state view) (emacs-tui--view-display-state candidate)
             (emacs-tui--view-marks view) (emacs-tui--view-marks candidate)
             (emacs-tui--view-visible-items view) (emacs-tui--view-visible-items candidate)
             (emacs-tui--view-selected view) (emacs-tui--view-selected candidate))))
@@ -956,8 +963,31 @@ A foreign window inside the subtree makes it unsuitable for reflow."
                          (frame-char-width child) (frame-char-height child)
                          (frame-parameter child 'left) (frame-parameter child 'top))))))))
 
-(defun emacs-tui--reveal-focus (session)
-  "Ensure SESSION's logically focused view is visible when a panel exists."
+(defun emacs-tui--remember-view (view)
+  "Capture VIEW's native window position before hiding or rearranging it."
+  (let ((window (emacs-tui--view-window view)))
+    (when (and (window-live-p window)
+               (eq (window-buffer window) (emacs-tui--view-buffer view)))
+      (setf (emacs-tui--view-display-state view)
+            (list (window-start window) (window-point window)
+                  (window-hscroll window) (window-vscroll window t))))))
+
+(defun emacs-tui--restore-view (view)
+  "Restore VIEW's cached scroll and text cursor in its current window."
+  (let ((window (emacs-tui--view-window view))
+        (state (emacs-tui--view-display-state view)))
+    (when (and state (window-live-p window))
+      (with-current-buffer (emacs-tui--view-buffer view)
+        (let ((start (max (point-min) (min (point-max) (nth 0 state))))
+              (position (max (point-min) (min (point-max) (nth 1 state)))))
+          (set-window-start window start t)
+          (when (emacs-tui--view-text view) (set-window-point window position))
+          (set-window-hscroll window (nth 2 state))
+          (set-window-vscroll window (nth 3 state) t))))))
+
+(defun emacs-tui--reveal-focus (session &optional arranging)
+  "Reveal SESSION's focused view, retaining hidden view positions.
+ARRANGING means old windows were already captured before layout changes."
   (let ((focused (emacs-tui--focused-view session)))
     (unless (window-live-p (emacs-tui--view-window focused))
       (let ((visible (cl-find-if
@@ -966,9 +996,11 @@ A foreign window inside the subtree makes it unsuitable for reflow."
                       (emacs-tui--workspace-views session))))
         (when visible
           (let ((window (emacs-tui--view-window visible)))
+            (unless arranging (emacs-tui--remember-view visible))
             (setf (emacs-tui--view-window visible) nil
                   (emacs-tui--view-window focused) window)
-            (set-window-buffer window (emacs-tui--view-buffer focused))))))))
+            (set-window-buffer window (emacs-tui--view-buffer focused))
+            (emacs-tui--restore-view focused)))))))
 
 (defun emacs-tui--arrange (session)
   "Arrange SESSION's views inside its owned window subtree."
@@ -993,7 +1025,9 @@ A foreign window inside the subtree makes it unsuitable for reflow."
       (when panel
         (let ((rectangles
                (emacs-tui-layout-compute
-                (mapcar #'emacs-tui--view-id (emacs-tui--workspace-views session))
+                (if (emacs-tui--workspace-maximized session)
+                    (list (emacs-tui--view-id (emacs-tui--focused-view session)))
+                  (mapcar #'emacs-tui--view-id (emacs-tui--workspace-views session)))
                 (window-total-width panel) (window-total-height panel)
                 (emacs-tui--workspace-layout session))))
           (condition-case err
@@ -1013,9 +1047,10 @@ A foreign window inside the subtree makes it unsuitable for reflow."
                (setf (emacs-tui--view-window
                       (car (emacs-tui--workspace-views session))) panel))
              (message "emacs-tui compact layout: %s" (error-message-string err)))))))
-    (emacs-tui--reveal-focus session)
+    (emacs-tui--reveal-focus session t)
     (dolist (view (emacs-tui--workspace-views session))
-      (emacs-tui--render-view session view))))
+      (emacs-tui--render-view session view)
+      (emacs-tui--restore-view view))))
 
 (defun emacs-tui--focus-window (session)
   "Select SESSION's focused view when there is no separate query input."
@@ -1041,31 +1076,15 @@ No application provider or commit callback is invoked."
                        (root (emacs-tui--workspace-root session))
                        (point (when query (with-current-buffer query (point))))
                        (owned-selection (emacs-tui--owned-window-p session (selected-window)))
-                       (window-point (window-point root))
-                       (scroll
-                        (mapcar
-                         (lambda (view)
-                           (let ((window (emacs-tui--view-window view)))
-                             (when (window-live-p window)
-                               (list view (window-start window) (window-point window)
-                                     (window-hscroll window)))))
-                         (emacs-tui--workspace-views session))))
+                       (window-point (window-point root)))
+                  (mapc #'emacs-tui--remember-view (emacs-tui--workspace-views session))
                   (save-selected-window
                     (when (emacs-tui--workspace-frame session)
                       (emacs-tui--fit-child session))
                     (emacs-tui--arrange session)
                     (when query
                       (with-current-buffer query (goto-char point))
-                      (set-window-point root window-point))
-                    (dolist (entry scroll)
-                      (when entry
-                        (let* ((view (car entry))
-                               (window (emacs-tui--view-window view)))
-                          (when (window-live-p window)
-                            (set-window-start window (nth 1 entry) t)
-                            (when (emacs-tui--view-text view)
-                              (set-window-point window (nth 2 entry)))
-                            (set-window-hscroll window (nth 3 entry)))))))
+                      (set-window-point root window-point)))
                   (when owned-selection (emacs-tui--focus-window session)))
                 (setf (emacs-tui--workspace-geometry session)
                       (emacs-tui--geometry session))
@@ -1228,6 +1247,7 @@ KEYMAP supplies application commands for view buffers."
                   (generate-new-buffer (format " *emacs-tui %s*"
                                                (emacs-tui--view-id view)))
                   (emacs-tui--view-window view) nil
+                  (emacs-tui--view-display-state view) nil
                   (emacs-tui--view-marks view) nil)
             (when (emacs-tui--view-tree view)
               (let ((data (copy-emacs-tui--tree-data (emacs-tui--view-tree view))))
@@ -1456,6 +1476,21 @@ view has marked items but no visible selection.  Read those items with
         (goto-char origin)
         (atomic-change-group (funcall callback session item origin))))
     (emacs-tui-close session)))
+
+(defun emacs-tui-toggle-maximize (&optional session)
+  "Toggle focused-view maximization within SESSION's owned surface.
+Keep an ephemeral query visible.  View navigation visits every view while
+maximized; toggling again restores the selected layout.  Preserve native
+input/undo, text position and scroll, logical selection, marks and expansion.
+No application actions or providers are invoked.  A single-view interface
+is already full size and is unchanged.  Return SESSION, or nil if reflow
+closes an invalidated surface."
+  (interactive)
+  (setq session (emacs-tui--require-session session))
+  (if (= 1 (length (emacs-tui--workspace-views session))) session
+    (setf (emacs-tui--workspace-maximized session)
+          (not (emacs-tui--workspace-maximized session)))
+    (emacs-tui-refresh session)))
 
 (defun emacs-tui-cycle-layout (&optional session)
   "Cycle SESSION between columns, rows and grid layouts."

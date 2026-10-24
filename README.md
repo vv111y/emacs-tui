@@ -284,6 +284,7 @@ and continue exploration; commitment is a separate command.
 | `emacs-tui-mount` | Open a persistent interface without query or origin policy |
 | `emacs-tui-live-p` | Check whether an interface handle is active |
 | `emacs-tui-update` | Replace a view's items or preview, reusing its buffer |
+| `emacs-tui-toggle-maximize` | Enlarge the focused panel or restore the layout |
 | `emacs-tui-refresh` | Reflow the workspace while preserving its input and selection |
 | `emacs-tui-query` | Read the temporary query |
 | `emacs-tui-current-item` | Read the selected object |
@@ -308,6 +309,7 @@ functions; interactive commands infer it from the workspace buffer. Internal
 | `RET` | Invoke selection action without closing |
 | `C-c C-c` | Commit selected item and close after success |
 | `C-c C-l` | Cycle columns, rows and grid |
+| `C-c C-f` | Maximize the focused view / restore layout |
 | `C-c C-m` | Toggle the current item's mark in a multi-select view |
 | `C-c C-u` | Clear marks in the focused view |
 | `C-g` / `C-c C-q` | Close without committing |
@@ -327,6 +329,21 @@ responsible for transactions involving other buffers, files or external state.
 In the ephemeral workflow, selection/query callbacks should browse and update
 views; commit is the explicit persistence boundary. Mounted applications choose
 their own action and persistence semantics.
+
+## Maximize and restore
+
+Press `C-c C-f` or call `emacs-tui-toggle-maximize` to give the focused view the
+whole TUI panel. The ephemeral query stays visible, and unrelated application
+windows keep their space. `TAB`/`S-TAB` still visit every view within the enlarged
+panel. Toggle again to restore the selected layout; cycling layouts while
+maximized chooses the layout used on restore.
+
+Inputs retain edits, undo and narrowing. Text views retain their individual
+cursor and scroll when hidden, and lists/trees retain selection, marks and
+expansion. Native edits made to hidden inputs retain their updated buffer point
+and undo history. Changed preview content still starts at the beginning. Maximizing
+does not invoke application actions or restart providers. A single-view panel
+already fills its surface, so toggling it has no effect.
 
 ## Multi-selection and batch actions
 

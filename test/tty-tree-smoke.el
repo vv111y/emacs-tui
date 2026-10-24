@@ -43,6 +43,10 @@
                        (and (< (frame-width child) width) (< (frame-height child) height)
                             (or (= phase 1) (> (frame-width child) emacs-tui-test--tree-small-width)))))
           (cl-assert (emacs-tui-live-p session))
+          (cl-assert (emacs-tui--workspace-maximized session))
+          (cl-assert (= 1 (length (cl-remove-if-not
+                                  (lambda (view) (window-live-p (emacs-tui--view-window view)))
+                                  (emacs-tui--workspace-views session)))))
           (cl-assert (eq 'leaf (plist-get (emacs-tui-current-item session) :id)))
           (cl-assert (equal "Updated" (plist-get (car (emacs-tui-marked-items session)) :label)))
           (cl-assert (= 2 (length (emacs-tui--view-visible-items (emacs-tui--focused-view session)))))
@@ -53,6 +57,10 @@
                       emacs-tui-test--tree-phase 2
                       emacs-tui-test--tree-attempts 0)
                 (with-temp-file (getenv "EMACS_TUI_SMOKE_READY") (insert "2")))
+            (execute-kbd-macro (kbd "C-c C-f"))
+            (cl-assert (= 2 (length (cl-remove-if-not
+                                    (lambda (view) (window-live-p (emacs-tui--view-window view)))
+                                    (emacs-tui--workspace-views session)))))
             (execute-kbd-macro (kbd "RET TAB"))
             (cl-assert (= 2 emacs-tui-test--tree-actions))
             (cl-assert (equal "Updated" (buffer-string)))
@@ -60,7 +68,7 @@
             (cl-assert (not (emacs-tui-live-p session)))
             (cl-assert (null emacs-tui--sessions))
             (with-temp-file (getenv "EMACS_TUI_SMOKE_REPORT")
-              (insert (format "PASS Emacs %s; real TTY; backend=%s; tree=expand/collapse; marks=passed; update=passed; resize=120x40->90x30->140x45\n"
+              (insert (format "PASS Emacs %s; real TTY; backend=%s; tree=expand/collapse; maximize=passed; marks=passed; update=passed; resize=120x40->90x30->140x45\n"
                               emacs-version (emacs-tui--workspace-backend session))))
             (kill-emacs 0))))
     ((error quit) (emacs-tui-test--tree-failure err))))
@@ -83,6 +91,7 @@
         (cl-assert (= 1 (length (emacs-tui-marked-items emacs-tui-test--tree-session))))
         (execute-kbd-macro (kbd "SPC <right>"))
         (emacs-tui-update emacs-tui-test--tree-session 'tree :items (emacs-tui-test--tree-items "Updated"))
+        (execute-kbd-macro (kbd "C-c C-f TAB <backtab>"))
         (redisplay t)
         (with-temp-file (getenv "EMACS_TUI_SMOKE_READY") (insert "1"))
         (run-at-time 0.05 0.05 #'emacs-tui-test--tree-resized))
