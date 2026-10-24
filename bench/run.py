@@ -20,6 +20,7 @@ import pty
 import re
 import select
 import signal
+import shutil
 import struct
 import subprocess
 import sys
@@ -66,9 +67,13 @@ def quantiles(values):
             for name, p in (("p50", .5), ("p95", .95), ("p99", .99))}
 
 
-def source_identity():
+def source_hashes():
     files = sorted(ROOT.glob("emacs-tui*.el")) + [ROOT / "bench/run.py", ROOT / "bench/interactive.el"]
-    hashes = {str(p.relative_to(ROOT)): hashlib.sha256(p.read_bytes()).hexdigest() for p in files}
+    return {str(p.relative_to(ROOT)): hashlib.sha256(p.read_bytes()).hexdigest() for p in files}
+
+
+def source_identity():
+    hashes = source_hashes()
     try:
         subprocess.run(["git", "ls-files", "--error-unmatch", *hashes], cwd=ROOT,
                        check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=10)
@@ -109,7 +114,7 @@ def wait_for_exit(process, master, timeout, transcript):
     timed-wait notification mechanisms after the final protocol marker.
     """
     deadline = time.monotonic() + timeout
-    eof = False
+    eof = master is None
     while process.poll() is None:
         remaining = deadline - time.monotonic()
         if remaining <= 0:
@@ -131,22 +136,62 @@ def wait_for_exit(process, master, timeout, transcript):
     return process.returncode
 
 
+def prepare_libraries(directory, mode, executable, env):
+    """Snapshot sources; optionally compile them with the selected runtime."""
+    if mode == "source" and list(ROOT.glob("emacs-tui*.elc")):
+        raise RuntimeError("remove library .elc files first (make clean); source mode requested")
+    root = directory / "library"
+    root.mkdir()
+    for path in ROOT.glob("emacs-tui*.el"):
+        shutil.copyfile(path, root / path.name)
+    sources = sorted(root.glob("emacs-tui*.el"))
+    if mode == "source":
+        return root, {}
+    # Helpers sort before emacs-tui.el; no bytecode or native cache is copied.
+    command = [executable, "-Q", "--batch", "-L", str(root),
+               "--eval", "(setq byte-compile-error-on-warn t)",
+               "--eval", "(when (boundp 'native-comp-deferred-compilation) (setq native-comp-deferred-compilation nil))",
+               "--eval", "(when (boundp 'native-comp-jit-compilation) (setq native-comp-jit-compilation nil))",
+               "-f", "batch-byte-compile", *map(str, sources)]
+    print("benchmark: compiling isolated libraries", flush=True)
+    compiler = subprocess.Popen(command, cwd=directory, env=env, start_new_session=True)
+    try:
+        status = wait_for_exit(compiler, None, 120, bytearray())
+        if status != 0:
+            raise subprocess.CalledProcessError(status, command)
+    finally:
+        try:
+            os.killpg(compiler.pid, signal.SIGKILL)
+        except ProcessLookupError:
+            pass
+        wait_for_exit(compiler, None, 5, bytearray())
+    compiled = {path.name: hashlib.sha256(path.read_bytes()).hexdigest()
+                for path in root.glob("emacs-tui*.elc")}
+    if set(compiled) != {path.name + "c" for path in sources}:
+        raise RuntimeError("isolated compilation did not produce every library")
+    return root, compiled
+
+
 def run(args):
     cases = [{"kind": kind, "size": size} for size in args.sizes for kind in args.kinds]
-    command = [os.environ.get("EMACS", "emacs"), "-Q", "-nw", "-L", str(ROOT),
-               "-l", str(ROOT / "bench/interactive.el")]
     print("benchmark: collecting source identity", flush=True)
     identity = source_identity()
-    # Interpret sources consistently: stale bytecode must never silently change a run.
-    if list(ROOT.glob("emacs-tui*.elc")):
-        raise RuntimeError("remove library .elc files first (make clean); fixture loads source")
     with tempfile.TemporaryDirectory(prefix="emacs-tui-bench-") as directory:
-        report = pathlib.Path(directory) / "report.json"
+        directory = pathlib.Path(directory)
+        report = directory / "report.json"
+        env = dict(os.environ, TERM="xterm-256color", EMACS_TUI_BENCH_REPORT=str(report),
+                   EMACS_TUI_BENCH_CASES=json.dumps(cases), EMACS_TUI_BENCH_LOAD_MODE=args.load_mode)
+        env.pop("EMACSLOADPATH", None)
+        executable = os.environ.get("EMACS", "emacs")
+        library_root, compiled = prepare_libraries(directory, args.load_mode, executable, env)
+        if any(hashlib.sha256(path.read_bytes()).hexdigest() != identity["sha256"][path.name]
+               for path in library_root.glob("emacs-tui*.el")):
+            raise RuntimeError("library sources changed while preparing the snapshot")
+        env["EMACS_TUI_BENCH_LIBRARY_ROOT"] = str(library_root)
+        command = [executable, "-Q", "-nw", "-L", str(library_root),
+                   "-l", str(ROOT / "bench/interactive.el")]
         master, slave = pty.openpty()
         fcntl.ioctl(slave, termios.TIOCSWINSZ, struct.pack("HHHH", 40, 120, 0, 0))
-        env = dict(os.environ, TERM="xterm-256color", EMACS_TUI_BENCH_REPORT=str(report),
-                   EMACS_TUI_BENCH_CASES=json.dumps(cases))
-        env.pop("EMACSLOADPATH", None)
         print("benchmark: starting PTY subprocess", flush=True)
         # Run terminal attachment in a fresh interpreter, never in preexec_fn.
         # This also lets Popen return a PID before any Python launcher work.
@@ -224,6 +269,8 @@ def run(args):
             retire_group()
             if status != 0:
                 raise RuntimeError(report.read_text() if report.exists() else "Emacs failed")
+            if source_hashes() != identity["sha256"]:
+                raise RuntimeError("library or benchmark sources changed during measurement")
             print("benchmark: collecting report metadata", flush=True)
             result = json.loads(report.read_text())
             records = result.pop("records")
@@ -242,6 +289,7 @@ def run(args):
                     by_command.append({"command": name, "samples": len(subset), "metrics": metrics(subset)})
                 summaries.append(dict(case, metrics=metrics(measured), by_command=by_command))
             result.update(schema=1, label=args.label, source=identity, cases=cases,
+                          load_mode=args.load_mode, bytecode_sha256=compiled,
                           wall_timeout_s=args.timeout, pty_launcher="fresh-python-session",
                           command=command, samples=args.samples, warmup=args.warmup,
                           recorded_at_utc=time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
@@ -273,6 +321,7 @@ def main():
     parser.add_argument("--kinds", nargs="+", choices=KINDS, default=list(KINDS))
     parser.add_argument("--output", type=pathlib.Path, required=True)
     parser.add_argument("--label", default="")
+    parser.add_argument("--load-mode", choices=("source", "bytecode"), default="source")
     parser.add_argument("--timeout", type=float, default=1800,
                         help="whole-run seconds, including startup and metadata (default: 1800)")
     args = parser.parse_args()

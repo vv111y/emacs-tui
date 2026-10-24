@@ -67,6 +67,11 @@ class ExitHandling(unittest.TestCase):
         self.run_child("import os,signal\nos.close(0)\nos.close(1)\nos.close(2)\n"
                        "signal.pause()\n", check)
 
+    def test_batch_exit_status_without_a_terminal_reader(self):
+        def check(process, _master):
+            self.assertEqual(DRIVER.wait_for_exit(process, None, 5, bytearray()), 7)
+        self.run_child("import sys\nsys.exit(7)\n", check)
+
 
 if __name__ == "__main__":
     unittest.main()

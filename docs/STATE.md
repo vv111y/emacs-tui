@@ -4,40 +4,36 @@ Updated 2026-10-24 (America/Toronto).
 
 ## Active implementation
 
-PR #21 merged at `132b9fe7c45919065b45670ca2142a048e9559f8` after independent
-review and all eight final-head jobs in
-[40069047213](https://github.com/vv111y/emacs-tui/actions/runs/40069047213).
-Both macOS versions now pass the benchmark. Runtime jobs each passed 228 ERT,
-strict compilation/checkdoc, six PTY scripts, two Python regressions and all
-five benchmark workloads; package build/clean-install also passed. Diagnostic
-logs located the earlier failures in post-protocol timed waits on Python 3.15.
-The driver now drains PTY output and polls exit status, bounds its lifecycle
-and terminates owned descendants. Exact underlying OS causality is not asserted.
+PR #20 merged at `dc39a60782e5634ba613e8c58dc99dbd7863aa7c` after independent
+implementation/evidence/rebase reviews and all eight fresh final-head jobs in
+[40069370928](https://github.com/vv111y/emacs-tui/actions/runs/40069370928).
+Runtime jobs passed 229 ERT, strict compilation/checkdoc, six PTY scripts,
+two Python regressions and source benchmark smoke. Package build/clean-install
+passed on 31.1/28.1. PR #21's bounded poll-and-drain exit handling is preserved;
+old stalled/cancelled runs were never treated as passes.
 
-PR #20 is being rebased onto that merged fix using an expected-head lease.
-Its library change still only skips per-item predicates when there are no
-literal search terms; trees retain expansion projection and sorting copies
-the source list. The source-order/identity/selection/marks regression is retained.
-Local validation of this combination passed 229 ERT tests, strict compilation,
-checkdoc, six PTY scripts, both Python regressions and five-workload benchmark
-smoke. Fresh independent review and all eight current-head CI jobs gate merge;
-the old stalled run/cancelled jobs are not passing evidence.
+Reviewed source-mode navigation/query-clear pairs retain every warmup/measured
+sample, hashes/environment and percentiles under bench/results. Source-mode
+10,000-row table navigation p50 changed 1465.987ms -> 0.544ms; list query clearing
+changed 654.340ms -> 61.093ms on one Emacs 29.3/Linux host. Full table rendering and
+nonempty matching remain expensive. These are not compiled/native-code or paint
+performance claims. MELPA public-history/human-review gates remain.
 
-Reviewed native-input data is under bench/results/2026-10-24-query-clear.
-All 440 raw records per run and pooled/per-command summaries remain unchanged.
-The historical source/benchmark hashes refer to the exact original experiments,
-including their older coordinator. On interpreted Emacs 29.3/Linux,
-10,000-row list clearing p50 changed 654.340ms -> 61.093ms; p95/p99 changed
-740.079/753.666ms -> 76.158/86.183ms. Median cons cells changed
-2,420,932 -> 90,466. Full table clearing still costs 1604.862ms p50 and nonempty
-matching remains expensive. Each operation has 50 samples, making p99 the
-maximum and weak tail evidence. This is one ordinary-window source-mode pair,
-not bytecompiled/native-code or physical-paint performance evidence.
+Current work adds explicit source/bytecode benchmark modes on the final bounded
+driver. Both snapshot library sources, bytecode mode strictly compiles fresh
+copies using the selected Emacs, and runtime checks verify actual loaded paths
+and definition types. Reports retain mode and bytecode hashes. Original source
+changes during a run reject results; no original checkout reset/compile occurs.
+Compiler exit handling reuses bounded polling, retaining PR #21's process-lifecycle
+fix. CI smoke exercises all five workloads in both modes. The fixture remains
+interpreted and deferred native compilation remains disabled in either mode.
 
-Next: add bytecode benchmark mode on top of the final bounded driver, then
-measure compiled costs before further rendering changes. Broaden resource
-stress/display validation and continue concrete application capabilities.
-Public-history, human-review and actual MELPA acceptance remain external gates.
+Local Emacs 29.3 passes both five-workload protocol runs, strict fixture compile,
+Python syntax and process/PTY regressions. Independent review and all current-head
+CI remain required. Next: record compiled-library costs before selecting another
+rendering optimization, add repeated lifecycle/resource stress, broaden display
+validation and extend applications through concrete feature needs. No maturity
+or MELPA acceptance claim is made.
 
 ## Implementation and handoff
 
@@ -94,6 +90,8 @@ dashboard. PR #7 added borrowed-window embedding over the same primitives.
   navigation with raw measured latency/allocation evidence and edge-case fixes.
 - [PR #21](https://github.com/vv111y/emacs-tui/pull/21): bounded benchmark
   lifecycle, PTY exit drainage, diagnostics and descendant cleanup.
+- [PR #20](https://github.com/vv111y/emacs-tui/pull/20): empty-term predicate
+  fast path and reviewed native query-clear latency/allocation evidence.
 
 API and runnable examples are in README.md. `make demo` explores an in-memory
 sample graph; `make async-demo` searches buffer snapshots. Marks are per view
