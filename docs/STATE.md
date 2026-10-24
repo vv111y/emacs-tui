@@ -4,87 +4,67 @@ Updated 2026-10-24 (America/Toronto).
 
 ## Active implementation
 
-PR #25 merged at `a3bf3e77e1a0e6cf2e2e4df1b8ca40625d894f3f` after independent
-implementation/final-documentation review and all eight final-head CI jobs in
-[40073215560](https://github.com/vv111y/emacs-tui/actions/runs/40073215560).
-Runtime jobs passed 245 ERT, strict compilation/checkdoc, seven PTY scripts,
-three Python regressions and all five benchmark workloads in both source and
-fresh-bytecode modes. Package build/clean-install passed on 31.1/28.1.
-Independent probes confirmed mark-table isolation, hidden-panel clearing,
-header/focus preservation and insertion rollback with properties/overlay bounds.
+PR #26 merged at `c9871bc591295b2c640c63d9e606f7f7099a9cec` after independent
+implementation/fixture review and all eight final-head CI jobs in
+[40073781778](https://github.com/vv111y/emacs-tui/actions/runs/40073781778).
+Runtime jobs passed 247 ERT, strict compilation/checkdoc, seven PTY scripts,
+three Python regressions and all five source/fresh-bytecode benchmark smoke
+workloads; package build and clean installs passed on 31.1/28.1.
 
-The next ownership fix was reproduced before implementation: replacing an
-embedded window's buffer, positioning its cursor at 60, then publishing a view
-update moved that unrelated cursor to 1. Full rendering checked that the old
-window was live but not that it still displayed the owned view buffer. It now
-checks both, matching cached selection behavior. Updating the owned private
-buffer remains allowed until normal ownership invalidation closes the session;
-there is no change to provider generation or disposal policy.
+Focus cycling now rejects invalidated surfaces before logical focus changes or
+hidden-panel reuse. The named focus API already had this guard. Without it, a
+maximized session whose visible pane was repurposed could replace an unrelated
+buffer when cycling to a hidden panel; a visible foreign pane could also acquire
+native focus. Two regressions fail on prior code and pass with this guard. They
+cover ephemeral/persistent maximized cases and visible foreign panes, both
+cycling directions, logical/native focus, pane mapping, buffer content/cursor/
+scroll and normal disposal. Local 249 ERT, strict compilation/checkdoc, seven
+PTY scripts, three Python regressions and both benchmark modes passed on Emacs
+29.3/Linux. Preliminary independent review also confirmed valid deleted-window
+reveal and preservation of unrelated windows outside the owned subtree. Exact
+published-head review and all eight current-head jobs remain integration gates.
 
-Two new regressions fail on old code and pass with the fix: late list updates,
-mark/clear/navigation and explicit disposal preserve foreign window/buffer
-state; a provider preview replacement also preserves it before refresh closes
-and cancels once, then rejects stale publication. Local 247 ERT, strict
-compilation/checkdoc, seven PTY scripts, three Python regressions and both
-benchmark modes passed on Emacs 29.3/Linux. Independent review and all eight
-current-head jobs remain integration gates. No GUI/physical terminal or
-multi-terminal validation is added by these deterministic ownership tests.
+Recent integrated behavior:
 
-Initial CI run 40073514199 failed Linux 29.4's existing persistent PTY resize
-assertion: terminal dimensions matched while cached geometry differed from the
-current surface. All 247 ERT passed there. The revised fixture waits for both
-terminal dimensions and automatic cached-geometry convergence within the same
-100-poll bound, retaining state assertions and invoking no refresh itself.
-A delayed-hook probe reproduces the old failure and passes with the revised
-fixture; disabling automatic reflow still fails at the bound. Independent
-review also confirmed normal/disabled-hook behavior. This identifies an
-ordering-sensitive assertion, not a proven root cause of every resize race.
-Fresh review and all current-head checks remain required; the failed run is
-not passing evidence.
+- PR #23 exposes named view focus/selection and hidden-panel reads without
+  implicit actions; the dashboard explicitly inspects a process's buffer.
+- PR #24 adds 75 batch and 45 real-PTY lifetimes at three sizes, preserving a
+  second session and checking timers/processes/buffers/markers/windows/frames,
+  stale callbacks, host edits and hook cleanup. Fault probes detect skipped
+  cancellation and invalid stale acknowledgements. Linux/macOS 31.1 uses native
+  child frames; other tested runtimes use ordinary windows.
+- PR #25 stages mark changes until successful rendering. Projection and native
+  after-change-hook failures preserve marks, hidden targets, indicators and
+  highlight; retries work. Independent review verified old-code failures,
+  table isolation, hidden-panel clearing and property/overlay rollback.
+- PR #26 prevents late renders from moving unrelated window cursors before
+  ownership invalidation. Tests cover list updates/marks/navigation and provider
+  preview replacement, then normal refresh/cancellation and stale rejection.
 
-PR #24 merged at `38e7bde0b8d928926a3c20f950425c1ed7639e16` after independent
-review and all eight final-head CI jobs in
-[40072584963](https://github.com/vv111y/emacs-tui/actions/runs/40072584963).
-Runtime jobs passed 242 ERT, strict compilation/checkdoc, seven PTY scripts,
-three Python regressions and all five benchmark workloads in both source and
-fresh-bytecode modes. Package build/clean-install passed on 31.1/28.1.
-The new ownership test exercised 75 batch lifetimes and 45 real-PTY lifetimes
-at three sizes, preserving a second live session. Linux/macOS 31.1 exercised
-native child frames; other runtimes used ordinary windows. Independent
-fault-injection review confirmed detection of skipped cancellation and invalid
-stale acknowledgements, including cleanup after failure.
+Initial PR #26 CI run 40073514199 failed Linux 29.4's persistent resize assertion:
+terminal dimensions matched while cached geometry differed. All 247 ERT passed
+there. The fixture now waits for terminal dimensions and automatic cached
+geometry convergence within its original 100-poll bound, retaining assertions
+and forcing no refresh. A delayed-hook probe fails the old fixture and passes
+the revised one; disabling automatic reflow still fails at the bound. Independent
+review repeated these probes. The failed run was not counted as a pass; the
+fresh final-head run linked above passed all eight jobs. This identifies an
+ordering-sensitive assertion, not a proven cause of every resize race.
 
-PR #23 added named current-view/focus-view, identity-based set-selection and
-named current-item reads preserving query/mark/sort state without implicit
-actions. The dashboard uses them to inspect a process's buffer explicitly.
+Published source pairs and the full bytecode profile retain raw samples,
+environment, source/artifact hashes and percentiles under bench/results. The
+compiled profile has 1,100 records and separate controlled-provider stages.
+On that Emacs 29.3/Linux configuration, 10,000-row table navigation p50/p95/p99
+was 0.546/0.789/0.849ms; full table query clearing was 272.447/320.990/333.227ms.
+These are historical measurements with interpreted fixture callbacks and native
+JIT off, not new measurements of this ownership change. Full table rebuilds and
+nonempty matching remain measured bottlenecks for later work.
 
-Source-mode paired profiles and the full fresh-bytecode profile retain all raw
-records, environment, source/artifact hashes and percentiles under bench/results.
-The compiled profile has 1,100 records and separate controlled provider stages.
-On this Emacs 29.3/Linux host, 10,000-row table navigation p50/p95/p99 is
-0.546/0.789/0.849ms, while full table query clearing is 272.447/320.990/333.227ms.
-This is one configuration with interpreted fixture callbacks and native JIT off;
-GUI/emulator paint and native compilation remain unmeasured. Full table rebuilds
-and nonempty matching remain candidates for later measured work.
-
-PR #25 fixes a reproduced mark/display consistency bug: toggling or
-clearing marks mutated the live model before application table projection or
-native buffer editing succeeded. A projection/buffer-hook error left action
-targets different from visible indicators. Mark operations now stage a copied
-identity table and view, render, then commit the mark state. Failed operations
-retain the previous targets, source order, hidden marks, display/header and
-selection highlight. No action or origin-buffer mutation is introduced.
-
-Three new regressions failed against the prior implementation and pass with
-the fix: repeated toggle-on/off projection failures, clear failure with hidden
-marks, and after-change hook failures inside native atomic buffer edits. Each
-also verifies recovery. Local 245 ERT, strict compilation/checkdoc and seven
-PTY scripts, three Python regressions and both benchmark modes passed on
-Emacs 29.3/Linux. Next: consumer-driven capabilities and broader display
-validation, including actual GUI/emulator/multiplexer and multi-terminal use.
-The package remains experimental; public maintenance and human-review gates
-remain. Repeated bounded resource stress does not establish every GUI, terminal
-emulator, multi-terminal topology or long-term usage combination.
+Latest upstream package-lint still reports the two documented naming warnings.
+The package remains experimental. GUI/emulator/multiplexer, physical macOS and
+multi-terminal validation and substantive real usage remain incomplete. Repeated
+bounded stress and hosted PTYs do not establish all display combinations or
+long-term stability. Public-maintenance and human-review MELPA gates remain.
 
 ## Implementation and handoff
 
@@ -151,6 +131,8 @@ dashboard. PR #7 added borrowed-window embedding over the same primitives.
   terminal ownership stress, cancellation and live-session isolation.
 - [PR #25](https://github.com/vv111y/emacs-tui/pull/25): mark targets and
   indicators remain consistent after projection or native editing failures.
+- [PR #26](https://github.com/vv111y/emacs-tui/pull/26): late view updates
+  preserve repurposed-window cursors; bounded automatic resize synchronization.
 
 API and runnable examples are in README.md. `make demo` explores an in-memory
 sample graph; `make async-demo` searches buffer snapshots. Marks are per view

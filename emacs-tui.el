@@ -1520,9 +1520,12 @@ windows are preserved."
   nil)
 
 (defun emacs-tui-next-view (&optional session delta)
-  "Move SESSION's logical view focus by DELTA, defaulting to one."
+  "Move SESSION's logical view focus by DELTA, defaulting to one.
+Reject invalidated surfaces before changing focus or revealing hidden panels."
   (interactive)
   (setq session (emacs-tui--require-session session))
+  (unless (emacs-tui--subtree session)
+    (user-error "Interface surface is no longer owned"))
   (setf (emacs-tui--workspace-focus session)
         (mod (+ (emacs-tui--workspace-focus session) (or delta 1))
              (length (emacs-tui--workspace-views session))))

@@ -282,7 +282,9 @@ views with duplicate identities select the first match. Text/input views have
 no item selection. Setting a hidden panel's row retains its state until explicit
 focus reveals it. A named item read also works for hidden panels; the existing
 focused read and action behavior is unchanged. Focus uses the current layout and
-maximize policy, including keeping ephemeral query editing in place.
+maximize policy, including keeping ephemeral query editing in place. Named
+focus and next/previous-view cycling reject an invalidated surface before
+changing focus or reusing a window for a hidden panel.
 
 ## Persistent applications
 
