@@ -16,6 +16,10 @@ Exact-head release review found that Emacs 29 package-vc recursively compiles
 the repository's tests and benchmarks, producing build-only failures and an
 overbroad installation. That path is intentionally omitted; the documented
 straight.el recipe selects only `emacs-tui*.el` from the pinned tag.
+The unsubmitted package-build recipe still creates a dated MELPA-style snapshot
+archive for clean-install testing. Release CI now separately parses the source
+with package.el and asserts header `0.1.0-beta1` and canonical package version
+`0.1.0beta1`; the snapshot filename is not presented as the GitHub beta artifact.
 
 The beta retains the `emacs-tui` package name to match the repository and
 established API prefix while avoiding the existing `tui-*` namespace. The one

@@ -21,6 +21,12 @@ installation; it does not test network fetching or a live MELPA publication.
 The unsubmitted recipe has no commit constraint and includes all five library
 files plus LICENSE.
 
+package-build assigns this unsubmitted recipe a dated MELPA-style snapshot
+version, so the archive filename is not the GitHub beta version. Release CI
+separately parses the source through package.el and asserts the expected header
+and canonical package version. The beta itself is the reviewed Git tag consumed
+by the file-filtered straight.el recipe.
+
 A separate Emacs process installs the tar into a fresh package directory, with
 an empty working directory and no checkout or build-tool load path. It checks
 library resolution and actual function definitions come from that installation,
