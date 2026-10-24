@@ -12,19 +12,24 @@
 
 ;;; Code:
 (require 'package)
+(require 'lisp-mnt)
 
 (let* ((expected (or (getenv "EMACS_TUI_EXPECT_PACKAGE_VERSION")
                      (error "Missing expected package version")))
        (source (expand-file-name "emacs-tui.el" default-directory))
-       (descriptor
+       (metadata
         (with-temp-buffer
           (setq buffer-file-name source)
           (insert-file-contents source)
-          (package-buffer-info)))
+          (list (lm-header "version") (package-buffer-info))))
+       (header (car metadata))
+       (descriptor (cadr metadata))
        (actual (package-desc-version descriptor))
        (canonical (package-version-join actual)))
+  (unless (equal header expected)
+    (error "Expected literal version header %s, got %s" expected header))
   (unless (equal actual (version-to-list expected))
     (error "Expected package version %s, got %s" expected canonical))
-  (princ (format "PASS package metadata %s (header %s)\n" canonical expected)))
+  (princ (format "PASS package metadata %s (header %s)\n" canonical header)))
 
 ;;; package-metadata-smoke.el ends here
