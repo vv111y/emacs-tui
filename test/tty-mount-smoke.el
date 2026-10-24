@@ -41,6 +41,7 @@
           (cl-assert (eq (window-buffer (selected-window))
                          (emacs-tui--view-buffer (cadr (emacs-tui--workspace-views session)))))
           (cl-assert (= emacs-tui-test--mount-actions 1))
+          (cl-assert (= 3 (window-point (selected-window))))
           (if (= phase 1)
               (progn
                 (setq emacs-tui-test--mount-small-width (when child (frame-width child))
@@ -78,6 +79,9 @@
                             (emacs-tui-view :id 'preview :text "pending"))
                :on-close (lambda (_) (cl-incf emacs-tui-test--mount-closed))))
         (execute-kbd-macro (kbd "n C-c C-m RET TAB"))
+        (goto-char 3)
+        (execute-kbd-macro (kbd "TAB <backtab>"))
+        (cl-assert (= 3 (point)))
         (cl-assert (equal (with-current-buffer source (buffer-string)) "unchanged"))
         (kill-buffer source)
         (cl-assert (emacs-tui-live-p emacs-tui-test--mount-session))
