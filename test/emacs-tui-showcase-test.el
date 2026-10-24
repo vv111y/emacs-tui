@@ -52,6 +52,7 @@
         (emacs-tui-focus-view gallery 'tour)
         (should-not truncate-lines)
         (should word-wrap)
+        (should-not truncate-partial-width-windows)
         (emacs-tui-set-layout gallery 'rows)
         (should-not truncate-lines)
         (emacs-tui-focus-view gallery 'demos)
