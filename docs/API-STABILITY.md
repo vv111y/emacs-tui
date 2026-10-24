@@ -1,8 +1,8 @@
 # Public API and compatibility
 
-emacs-tui 0.1.0-beta1 is an experimental community-testing release. Its tag and
-successful archive builds do not constitute a stable compatibility freeze or
-MELPA acceptance. This policy defines how we work toward that contract.
+emacs-tui 0.1.0-beta1 is an experimental community-testing release. Its release
+ref and successful archive builds do not constitute a stable compatibility
+freeze or MELPA acceptance. This policy defines how we work toward that contract.
 
 ## Supported application surface
 

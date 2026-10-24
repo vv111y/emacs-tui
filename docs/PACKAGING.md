@@ -24,8 +24,8 @@ files plus LICENSE.
 package-build assigns this unsubmitted recipe a dated MELPA-style snapshot
 version, so the archive filename is not the GitHub beta version. Release CI
 separately parses the source through package.el and asserts the expected header
-and canonical package version. The beta itself is the reviewed Git tag consumed
-by the file-filtered straight.el recipe.
+and canonical package version. The beta itself is the reviewed fixed Git ref
+consumed by the file-filtered straight.el recipe.
 
 A separate Emacs process installs the tar into a fresh package directory, with
 an empty working directory and no checkout or build-tool load path. It checks
