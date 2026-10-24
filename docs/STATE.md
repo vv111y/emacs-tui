@@ -11,7 +11,7 @@ agent review and final-head CI
 Emacs 28.2, 29.4, 30.2 and 31.1. PRs #6 and #7 previously merged persistent
 interfaces and borrowed-window embedding after independent agent review.
 
-The current increment adds table columns over the existing item model, stable
+[PR #9](https://github.com/vv111y/emacs-tui/pull/9) adds table columns over the existing item model, stable
 numeric/custom sorting, full-cell query matching and identity-preserving
 selection/marks across updates. Dashboard buffers/processes now use real tables.
 A fourth real TTY script invokes the interactive sort prompt and verifies marks,
@@ -20,11 +20,19 @@ widths; sticky headers, editing and automatic width allocation remain future.
 
 Active worker owns core, new table module/tests/smoke, dashboard, Makefile,
 checkdoc harness and documentation. Independent review and current-head CI are
-required before integration. Local checks passed 139 ERT tests, strict compile,
+required before integration. Local checks passed 143 ERT tests, strict compile,
 checkdoc and all four real Emacs 29.3 PTY scripts, including the dashboard
 numeric-sort regression. Package-lint's new module check is clean; the
 main/layout files retain the two known package-name warnings. No clean overall
 lint or maturity claim is made.
+
+Separate review found that failing table projections/comparators could partially
+apply an update. The fix stages candidate state and complete rendered content
+before changing either. New direct-update, preview-transition and invalid async
+publication regressions preserve the last valid source, selection, marks and
+display. The revised head needs separate re-review and CI before integration.
+A separate existing preview focus/scroll reset bug has been reproduced and is
+the next focused fix after tables are integrated.
 
 ## Implementation and handoff
 

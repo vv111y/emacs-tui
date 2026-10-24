@@ -184,5 +184,78 @@
                    (mapcar (lambda (row) (plist-get row :label))
                            (emacs-tui--table-sort '((:label "Beta") (:label "alpha")) column nil))))))
 
+(ert-deftest emacs-tui-table-failed-update-preserves-source-selection-marks-and-display ()
+  (emacs-tui-table-test--session (:multi-select t)
+    (let* ((view (car (emacs-tui--workspace-views session)))
+           (source (emacs-tui--view-items view)))
+      (setf (emacs-tui--column-lessp (cadr (emacs-tui--view-columns view))) #'<)
+      (emacs-tui-toggle-mark session)
+      (emacs-tui-sort session 'rows 'size)
+      (let ((visible (emacs-tui--view-visible-items view)) (display (buffer-string))
+            (header header-line-format) (position (point)))
+        (should-error (emacs-tui-update session 'rows :items
+                                        '((:id c :label "C" :size 1)
+                                          (:id d :label "D" :size "bad"))))
+        (should (eq source (emacs-tui--view-items view)))
+        (should (eq visible (emacs-tui--view-visible-items view)))
+        (should (eq (car source) (emacs-tui-current-item session)))
+        (should (equal (list (car source)) (emacs-tui-marked-items session)))
+        (should (equal-including-properties display (buffer-string)))
+        (should (equal header header-line-format))
+        (should (= position (point)))))))
+
+(ert-deftest emacs-tui-table-failed-projection-does-not-partially-render ()
+  (emacs-tui-table-test--session (:multi-select t)
+    (let* ((view (car (emacs-tui--workspace-views session)))
+           (display (buffer-string)) (source (emacs-tui--view-items view)))
+      (setf (emacs-tui--column-value (car (emacs-tui--view-columns view)))
+            (lambda (row) (if (plist-get row :bad) (error "Bad cell") (plist-get row :label))))
+      (should-error (emacs-tui-update session 'rows :items
+                                      '((:id x :label "New") (:id y :label "Bad" :bad t))))
+      (should (eq source (emacs-tui--view-items view)))
+      (should (equal-including-properties display (buffer-string)))
+      (should (emacs-tui-live-p session)))))
+
+(ert-deftest emacs-tui-table-failed-update-rolls-back-preview-transition ()
+  (emacs-tui-table-test--session ()
+    (let ((view (car (emacs-tui--workspace-views session))))
+      (setf (emacs-tui--column-lessp (cadr (emacs-tui--view-columns view))) #'<)
+      (emacs-tui-sort session 'rows 'size)
+      (emacs-tui-update session 'rows :text "Preview")
+      (should-error (emacs-tui-update session 'rows :text nil :items
+                                      '((:label "A" :size 1) (:label "B" :size "bad"))))
+      (should (equal "Preview" (emacs-tui--view-text view)))
+      (should (equal "Preview" (buffer-string))))))
+
+(ert-deftest emacs-tui-table-invalid-publication-keeps-last-valid-results ()
+  (save-window-excursion
+    (delete-other-windows)
+    (let (session publish (cancelled 0))
+      (unwind-protect
+          (progn
+            (setq session
+                  (emacs-tui-mount
+                   :debounce 60
+                   :provider (lambda (_ _query emit _fail)
+                               (setq publish emit) (lambda () (cl-incf cancelled)))
+                   :views (list (emacs-tui-view
+                                 :id 'rows :multi-select t
+                                 :columns (list (emacs-tui-column :id 'n :value :size :lessp #'<))))))
+            (let ((request (emacs-tui--workspace-request session)))
+              (cancel-timer (emacs-tui--request-timer request))
+              (emacs-tui--start-provider request))
+            (should (funcall publish 'rows :items emacs-tui-table-test--rows))
+            (emacs-tui-toggle-mark session)
+            (emacs-tui-sort session 'rows 'n)
+            (let ((display (buffer-string)))
+              (should-not (funcall publish 'rows :items
+                                   '((:id x :label "X" :size 1) (:id y :label "Y" :size "bad"))))
+              (should (equal '(b a c) (emacs-tui-table-test--ids session)))
+              (should (equal (list (car emacs-tui-table-test--rows)) (emacs-tui-marked-items session)))
+              (should (equal-including-properties display (buffer-string)))
+              (should (= 1 cancelled))
+              (should-not (funcall publish 'rows :items nil))))
+        (when session (emacs-tui-close session))))))
+
 (provide 'emacs-tui-table-test)
 ;;; emacs-tui-table-test.el ends here

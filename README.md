@@ -91,6 +91,9 @@ numerically before other values, then compares their displayed strings;
 Local ephemeral queries search full column values and item labels, including
 text clipped from display. Provider-driven filtering stays application-owned.
 The dashboard demonstrates sortable buffer sizes, modes and process metadata.
+A failed cell projection or comparator leaves the previous source, selection,
+marks and rendered content intact. Failed provider publications terminate that
+request while retaining its last valid results.
 Column editing, automatic width allocation and sticky headers are future work.
 
 ## Application commands
@@ -343,7 +346,7 @@ workspace surface closes safely; unrelated windows and application buffers are
 preserved. `emacs-tui-refresh` is also available for an explicit reflow.
 
 The four-sided around-point layout, multiple floating surfaces,
-history, per-view queries and tables are planned in
+history, per-view queries and editable inputs are planned in
 [ROADMAP.md](ROADMAP.md). The initial implementation renders full view content;
 large-data performance is not yet characterized.
 
