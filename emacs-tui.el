@@ -142,6 +142,8 @@
 
 (defvar emacs-tui-tree-mode-map
   (let ((map (make-sparse-keymap)))
+    (define-key map (kbd "C-c +") #'emacs-tui-tree-expand-all)
+    (define-key map (kbd "C-c -") #'emacs-tui-tree-collapse-all)
     (define-key map (kbd "SPC") #'emacs-tui-tree-toggle)
     (define-key map (kbd "<right>") #'emacs-tui-tree-expand)
     (define-key map (kbd "<left>") #'emacs-tui-tree-collapse)
@@ -308,6 +310,58 @@ without changing expansion; clear the query before changing expansion."
   "Collapse SESSION's selected branch, or move to its parent if closed."
   (interactive)
   (emacs-tui--tree-command session 'collapse))
+
+(defun emacs-tui--tree-expand-all (session id expand)
+  "Set all branches in SESSION's tree ID to EXPAND, staging before rendering."
+  (setq session (emacs-tui--require-session session))
+  (let* ((view (emacs-tui--resolve-view session id))
+         (data (emacs-tui--view-tree view)))
+    (unless data (user-error "This view is not a tree"))
+    (when (emacs-tui--view-tree-search view)
+      (user-error "Clear the local query before changing tree expansion"))
+    (unless (emacs-tui--subtree session)
+      (user-error "Interface surface is no longer owned"))
+    (let* ((candidate (copy-emacs-tui--view view))
+           (next-data (copy-emacs-tui--tree-data data))
+           (expanded (make-hash-table :test #'equal))
+           (item (nth (emacs-tui--view-selected view)
+                      (emacs-tui--view-visible-items view)))
+           (target (and item (emacs-tui--item-id item))))
+      (if expand
+          (maphash (lambda (key children)
+                     (when children (puthash key t expanded)))
+                   (emacs-tui--tree-data-children data))
+        (while (and target (gethash target (emacs-tui--tree-data-parents data)))
+          (setq target (gethash target (emacs-tui--tree-data-parents data)))))
+      (setf (emacs-tui--tree-data-expanded next-data) expanded
+            (emacs-tui--view-tree candidate) next-data)
+      (emacs-tui--filter session candidate)
+      (when target
+        (setf (emacs-tui--view-selected candidate)
+              (or (cl-position target (emacs-tui--view-visible-items candidate)
+                               :key #'emacs-tui--item-id :test #'equal) 0)))
+      (emacs-tui--render-view session candidate)
+      (setf (emacs-tui--view-tree view) next-data
+            (emacs-tui--view-tree-open view) (emacs-tui--view-tree-open candidate)
+            (emacs-tui--view-visible-items view) (emacs-tui--view-visible-items candidate)
+            (emacs-tui--view-selected view) (emacs-tui--view-selected candidate))))
+  session)
+
+(defun emacs-tui-tree-expand-all (&optional session id)
+  "Expand every branch in SESSION's tree view ID and return SESSION.
+Nil ID means the focused view.  Preserve selection by identity, queries,
+marks and focus, including hidden panels.  Do not invoke application actions
+or re-evaluate the child accessor.  Clear local search before expanding."
+  (interactive)
+  (emacs-tui--tree-expand-all session id t))
+
+(defun emacs-tui-tree-collapse-all (&optional session id)
+  "Collapse every branch in SESSION's tree view ID and return SESSION.
+Select the selected item's root ancestor.  Keep hidden marks and focus.
+Use the same search, action and child-accessor rules as
+`emacs-tui-tree-expand-all'."
+  (interactive)
+  (emacs-tui--tree-expand-all session id nil))
 
 (cl-defun emacs-tui-input (&key id title (value "") on-change keymap actions)
   "Describe an editable input for `emacs-tui-mount' or `emacs-tui-embed'.

@@ -138,6 +138,15 @@ it or enters its first child, and left closes it or selects its parent. These
 commands do not invoke selection actions. `+`/`-` cues and indentation work
 without color. `RET` invokes the application's action as usual.
 
+In tree buffers, `C-c +` expands every indexed branch and `C-c -` collapses
+all branches. Applications can call `(emacs-tui-tree-expand-all app 'objects)`
+or `(emacs-tui-tree-collapse-all app 'objects)` for a named panel, including a
+hidden one, without changing focus. Expansion preserves the selected identity;
+collapse selects its root ancestor. Both preserve marks on hidden descendants
+and invoke no selection actions or child accessors. Clear local search first.
+These operations apply to the current finite snapshot; source replacement
+retains expansion by identity, while newly introduced branches start collapsed.
+
 `:children` defaults to the plist keyword `:children`; it can also be a pure
 function returning child items. The toolkit indexes the entire finite forest
 once on construction or `emacs-tui-update :items ROOTS`, including collapsed

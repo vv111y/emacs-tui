@@ -4,6 +4,39 @@ Updated 2026-10-24 (America/Toronto).
 
 ## Active implementation
 
+PR #34 merged at `ef0c0043204c91a6cedcb4c534dbf0bd3928b76f` after exact-head
+independent review and all eight jobs in
+[40084992407](https://github.com/vv111y/emacs-tui/actions/runs/40084992407).
+Runtime jobs passed 281 ERT, strict compilation/checkdoc, eight terminal
+scenarios, four reflow fault checks, three Python regressions and original plus
+multi-term source/bytecode benchmark smokes. Linux/macOS 31.1 passed the native
+persistent fixture's literal-percent caption checks; archive build and clean
+identical-artifact installs passed on 31.1/28.1.
+
+Whole-forest tree controls add expand-all/collapse-all commands with optional
+session/view ID and tree-buffer C-c + / C-c - bindings. Operations stage a new
+expansion table and render before committing; failed edits retain expansion,
+selection, marks and display. They use the existing child index, preserve hidden
+marks and named hidden-panel focus, invoke no application actions, and reject
+local search or invalidated surfaces. Collapse selects the selected node's root
+ancestor rather than arbitrarily jumping to the first root. Source replacement
+retains surviving expanded identities; new branches still start collapsed.
+
+Local 286 ERT and strict compilation/checkdoc passed on Emacs 29.3/Linux.
+Five new cases cover nested/multiple roots, hidden marks and panels, search,
+native keys, editing failure/retry, cached accessors, action boundaries and empty
+forests. The existing real tree fixture now exercises full expand/collapse keys
+before its selection, marks, source replacement, maximize, resize and action
+sequence. Independent review and all fresh CI jobs remain integration gates. Local eight
+terminal scenarios and four reflow fault checks passed, including the new tree
+keys. Three Python regressions and original/multi-term source/bytecode benchmark
+smokes passed. Independent probes also verified fresh marked objects after
+source replacement, new branch expansion, hidden preview point/narrowing and
+foreign-window cursor preservation. MELPA policy hashes were rechecked on
+2026-10-24 and remain unchanged. No new performance claim or stable/MELPA acceptance claim.
+Next work includes consumer-driven layouts/controls, installed-client coverage,
+API stability/migration policy, broader display testing and substantive usage.
+
 PR #33 merged at `190b5e62fd635baedc5877e95b988ef0c201eeff` after independent
 exact-head review and all eight jobs in
 [40082652440](https://github.com/vv111y/emacs-tui/actions/runs/40082652440).
