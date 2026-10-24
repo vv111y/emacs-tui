@@ -4,6 +4,44 @@ Updated 2026-10-24 (America/Toronto).
 
 ## Active implementation
 
+The 0.1.0-beta1 release candidate packages the reviewed public surface for
+community testing. The main package metadata uses the prerelease version,
+README installation instructions pin `v0.1.0-beta1` with a file-filtered
+straight.el recipe, and CHANGELOG.md records scope, compatibility and known
+limits.
+The beta is explicitly experimental: it is neither a stable API promise nor a
+MELPA publication. Tagging and a GitHub prerelease require exact-head review,
+all eight CI jobs and a clean install of the built package artifact.
+Exact-head release review found that Emacs 29 package-vc recursively compiles
+the repository's tests and benchmarks, producing build-only failures and an
+overbroad installation. That path is intentionally omitted; the documented
+straight.el recipe selects only `emacs-tui*.el` from the pinned tag.
+The unsubmitted package-build recipe still creates a dated MELPA-style snapshot
+archive for clean-install testing. Release CI now separately parses the source
+with package.el and asserts header `0.1.0-beta1` and canonical package version
+`0.1.0beta1`; the snapshot filename is not presented as the GitHub beta artifact.
+
+The beta retains the `emacs-tui` package name to match the repository and
+established API prefix while avoiding the existing `tui-*` namespace. The one
+latest-package-lint redundant-`emacs` warning remains disclosed rather than
+suppressed. An eventual MELPA recipe will explain that decision and follow a
+maintainer-requested rename if required.
+
+PR #39 merged at `cf922d8ed8407bfcf39e7710de522de649d8e888` after independent
+exact-head review and all eight jobs in
+[40097927533](https://github.com/vv111y/emacs-tui/actions/runs/40097927533).
+Every runtime passed 308 ERT, strict compilation/checkdoc, ten terminal
+scenarios, four reflow fault checks, three Python regressions and original plus
+multi-term source/bytecode benchmark smokes. The actual recipe archive built and
+clean-installed on 31.1/28.1. Linux/macOS 31.1 each passed real abrupt
+emacsclient SIGKILL with exactly-once disposal, stale-publication rejection,
+survivor native input and final cleanup. The lifecycle restores a remembered
+live owned child after delayed native fallback while preserving explicit parent
+focus, background focus, close-callback choices, foreign surfaces and graphical
+frames. Failed runs 40097033208 and 40097308643 exposed respectively a fixture
+hook-scope mistake and the real delayed macOS ordering; neither is counted as
+passing.
+
 PR #38 merged at `c6cd5755cfdfbd635a99180c5d87102d21a889ed` after independent
 exact-head review and all eight jobs in
 [40096001194](https://github.com/vv111y/emacs-tui/actions/runs/40096001194).
@@ -12,33 +50,6 @@ scenarios, four reflow fault checks, three Python regressions and original plus
 multi-term source/bytecode benchmark smokes. The actual recipe archive built and
 clean-installed on 31.1/28.1. Linux/macOS 31.1 each passed native direct layout
 selection in the persistent fixture; no failed or superseded run is counted.
-
-An additional native lifecycle candidate starts two real PTYs on one private
-Emacs server, kills the attached emacsclient process group with SIGKILL and
-waits for Emacs to discover the lost terminal without an explicit delete-frame
-command. It checks the disconnected session closes once, cancels its provider,
-rejects stale publication, releases owned buffers while preserving its host,
-keeps routing hooks active for the surviving interface, accepts further native
-input there, then releases all hooks and resources on final close. This remains
-a separate tenth terminal scenario so explicit client-frame deletion retains
-its existing proof. Local Python syntax and strict fixture compilation/checkdoc
-can establish harness quality, but this host rejects the required private Unix
-socket; fresh positive Linux/macOS CI evidence is required before integration.
-Initial run 40097033208 passed the package job and all completed fallback
-runtimes, but native Linux 31.1 exposed a fixture assertion that read the current
-input buffer's local `post-command-hook` instead of the default/global routing
-hook. Its deletion trace showed the disconnected session disposed and the
-survivor child selected; the harness now checks the default hook. That run is
-not counted as passing. Run 40097308643 then passed the package job, every Linux
-runtime and macOS 30.2, including the real Linux 31.1 child-frame boundary, but
-macOS 31.1 exposed a platform ordering in which both client frames were already
-dead before its terminal/deletion hooks arrived. Disposal completed, yet native
-fallback left the surviving terminal on its application host. The lifecycle
-cleanup now restores a remembered live owned child after closing the abruptly
-lost child-frame session, with guards for background deletion, explicit parent
-selection, application close-callback focus, foreign ownership and graphical
-frames. Neither failed run is counted as passing; fresh exact-head Linux/macOS
-proof remains required.
 
 PR #37 merged at `0645f8f22b1b4d4e24dc04438f18a9c54932b15c` after independent
 exact-head review and all eight jobs in
@@ -77,10 +88,9 @@ Synthetic commit: 425e4f4401078593e79df508c142ae1fd01ed811; artifact SHA256:
 Independent review reproduced the identical archive/install and verified its
 library/client identity. Additional probes cover embedded host restoration and
 failed-reflow disposal; no API effect or performance guarantee was added.
-Next: consumer controls/layouts and actual XOB adapter work,
-broader display QA, substantive usage and release readiness. Stable/MELPA status
-has not been reached; external maintenance/history, human review and naming
-questions remain.
+Next: community beta feedback, actual XOB adapter work and broader display QA.
+Stable/MELPA status has not been reached; substantive usage, external
+maintenance history and MELPA's human-review checkpoint remain.
 
 PR #36 merged at `59795f276f61a866f8104459b5f354fb6f5c82f7` after independent
 exact-head review and all eight jobs in

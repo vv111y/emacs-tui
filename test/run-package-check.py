@@ -32,6 +32,10 @@ with tempfile.TemporaryDirectory(prefix="emacs-tui-package-") as temporary:
     env = dict(os.environ, EMACS_TUI_PACKAGE_ROOT=str(root), EMACS_TUI_PACKAGE_SHA=sha,
                EMACS_TUI_PACKAGE_RECIPE=str(project / "test" / "recipes" / "emacs-tui"))
     env.pop("EMACSLOADPATH", None)
+    if env.get("EMACS_TUI_EXPECT_PACKAGE_VERSION"):
+        subprocess.run([emacs, "-Q", "--batch", "-l",
+                        str(project / "test" / "package-metadata-smoke.el")],
+                       cwd=source, env=env, check=True)
     subprocess.run([emacs, "-Q", "--batch", "-L", str(tools / "compat"),
                     "-L", str(tools / "package-build"), "-l", str(project / "test" / "build-package.el")],
                    cwd=root, env=env, check=True)
