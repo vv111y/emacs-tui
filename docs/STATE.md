@@ -4,15 +4,21 @@ Updated 2026-10-24 (America/Toronto).
 
 ## Active implementation
 
-PR #23 merged at `135aea3b22343c8496d2ece99e2ab5acdb262984` after independent
+PR #24 merged at `38e7bde0b8d928926a3c20f950425c1ed7639e16` after independent
 review and all eight final-head CI jobs in
-[40071844167](https://github.com/vv111y/emacs-tui/actions/runs/40071844167).
-Runtime jobs passed 241 ERT, strict compilation/checkdoc, six PTY scripts,
+[40072584963](https://github.com/vv111y/emacs-tui/actions/runs/40072584963).
+Runtime jobs passed 242 ERT, strict compilation/checkdoc, seven PTY scripts,
 three Python regressions and all five benchmark workloads in both source and
 fresh-bytecode modes. Package build/clean-install passed on 31.1/28.1.
-Named current-view/focus-view, identity-based set-selection and named current-item
-reads preserve query/mark/sort state and avoid implicit actions. The dashboard
-uses them to inspect a process's associated buffer explicitly.
+The new ownership test exercised 75 batch lifetimes and 45 real-PTY lifetimes
+at three sizes, preserving a second live session. Linux/macOS 31.1 exercised
+native child frames; other runtimes used ordinary windows. Independent
+fault-injection review confirmed detection of skipped cancellation and invalid
+stale acknowledgements, including cleanup after failure.
+
+PR #23 added named current-view/focus-view, identity-based set-selection and
+named current-item reads preserving query/mark/sort state without implicit
+actions. The dashboard uses them to inspect a process's buffer explicitly.
 
 Source-mode paired profiles and the full fresh-bytecode profile retain all raw
 records, environment, source/artifact hashes and percentiles under bench/results.
@@ -23,27 +29,23 @@ This is one configuration with interpreted fixture callbacks and native JIT off;
 GUI/emulator paint and native compilation remain unmeasured. Full table rebuilds
 and nonempty matching remain candidates for later measured work.
 
-Current work adds repeated lifecycle/resource stress: 75 batch lifetimes and
-45 additional real-PTY lifetimes across 120x40, 90x30 and 140x45. Each rotates
-ephemeral, persistent and embedded presentations, with a separate live embedded
-anchor throughout each batch. Real debounce dispatch, application-owned pipe
-processes and producer timers exercise cancellation. Some sessions close before
-debounce, others via explicit repeated close or killing an owned buffer;
-ephemeral query changes supersede running generations. Obsolete publish/error
-closures are rejected during replacement and after disposal. Assertions cover
-owned buffers/processes/timers, request invalidation, detached origin/host
-markers, removed source hooks/window claims, restored frame/window sets,
-application host edits/point, anchor selection/marks and final global hooks.
+Current work fixes a reproduced mark/display consistency bug: toggling or
+clearing marks mutated the live model before application table projection or
+native buffer editing succeeded. A projection/buffer-hook error left action
+targets different from visible indicators. Mark operations now stage a copied
+identity table and view, render, then commit the mark state. Failed operations
+retain the previous targets, source order, hidden marks, display/header and
+selection highlight. No action or origin-buffer mutation is introduced.
 
-This is repeated bounded stress, not evidence for every OS, terminal emulator,
-GUI or multi-terminal topology. Existing fault-injection tests cover callback
-errors and exceptional cleanup. Next: more concrete consumer capabilities and
-broader display validation. The package remains experimental; public maintenance
-and human-review gates remain. Independent review and current-head CI are still
-required for this stress addition. Local 242 ERT, seven PTY scripts, strict
-package/example compilation/checkdoc, strict compilation of both new test
-fixtures, three Python regressions and both benchmark modes passed on Emacs
-29.3/Linux. No local child-frame capability or GUI/macOS validation is claimed.
+Three new regressions failed against the prior implementation and pass with
+the fix: repeated toggle-on/off projection failures, clear failure with hidden
+marks, and after-change hook failures inside native atomic buffer edits. Each
+also verifies recovery. Local 245 ERT, strict compilation/checkdoc and seven
+PTY scripts passed on Emacs 29.3/Linux. Independent review and passing current-head CI remain
+required. Next: consumer-driven capabilities and broader display validation.
+The package remains experimental; public maintenance and human-review gates
+remain. Repeated bounded resource stress does not establish every GUI, terminal
+emulator, multi-terminal topology or long-term usage combination.
 
 ## Implementation and handoff
 
@@ -106,6 +108,8 @@ dashboard. PR #7 added borrowed-window embedding over the same primitives.
   benchmark modes and a reviewed full compiled-library workload profile.
 - [PR #23](https://github.com/vv111y/emacs-tui/pull/23): named view focus and
   projected selection APIs, with dashboard process-buffer inspection.
+- [PR #24](https://github.com/vv111y/emacs-tui/pull/24): repeated batch/native
+  terminal ownership stress, cancellation and live-session isolation.
 
 API and runnable examples are in README.md. `make demo` explores an in-memory
 sample graph; `make async-demo` searches buffer snapshots. Marks are per view

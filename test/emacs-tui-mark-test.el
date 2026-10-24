@@ -3,6 +3,7 @@
 ;; Copyright (C) 2026 Willy Rempel
 ;; Author: Willy Rempel <https://github.com/vv111y>
 ;; Assisted-by: Codex:GPT-6
+;; Assisted-by: Codex:gpt-6.1-sol-wm
 ;; SPDX-License-Identifier: GPL-3.0-or-later
 
 ;;; Commentary:
@@ -291,6 +292,87 @@
     (should-not (emacs-tui-marked-items session))
     (call-interactively (key-binding (kbd "C-b")))
     (should (= 2 (point)))))
+
+(defun emacs-tui-mark-test--snapshot (session)
+  "Capture SESSION's observable mark, selection and display state."
+  (let ((view (emacs-tui--focused-view session)))
+    (list (emacs-tui-marked-items session) (emacs-tui-current-item session)
+          (emacs-tui-query session)
+          (with-current-buffer (emacs-tui--view-buffer view)
+            (list (buffer-string) header-line-format
+                  (overlay-start emacs-tui--selection-overlay)
+                  (overlay-end emacs-tui--selection-overlay))))))
+
+(ert-deftest emacs-tui-mark-toggle-projection-error-preserves-state-and-recovers ()
+  (let (fail selected committed)
+    (emacs-tui-mark-test--workspace
+        (:views (list (emacs-tui-view
+                       :id 'a :multi-select t :items '("alpha" "beta")
+                       :on-select (lambda (&rest _) (setq selected t))
+                       :columns (list (emacs-tui-column
+                                       :id 'name :width 10
+                                       :value (lambda (item)
+                                                (if fail (error "Projection failed") item))))))
+         :on-commit (lambda (&rest _) (setq committed t)))
+      ;; Check both adding and removing a mark, including repeated failures.
+      (dotimes (_ 2)
+        (let ((before (emacs-tui-mark-test--snapshot session)))
+          (setq fail t)
+          (dotimes (_ 2)
+            (should-error (emacs-tui-toggle-mark session))
+            (should (equal before (emacs-tui-mark-test--snapshot session))))
+          (setq fail nil)
+          (emacs-tui-toggle-mark session)))
+      (should-not (emacs-tui-marked-items session))
+      (should-not selected)
+      (should-not committed)
+      (should (equal "origin" (with-current-buffer source (buffer-string)))))))
+
+(ert-deftest emacs-tui-mark-clear-projection-error-retains-hidden-marks ()
+  (let (fail)
+    (emacs-tui-mark-test--workspace
+        (:views (list (emacs-tui-view
+                       :id 'a :multi-select t :items '("alpha" "beta")
+                       :columns (list (emacs-tui-column
+                                       :id 'name :width 10
+                                       :value (lambda (item)
+                                                (if fail (error "Projection failed") item)))))))
+      (emacs-tui-toggle-mark session)
+      (emacs-tui-next-item session)
+      (emacs-tui-toggle-mark session)
+      (insert "beta")
+      (let ((before (emacs-tui-mark-test--snapshot session)))
+        (setq fail t)
+        (should-error (emacs-tui-clear-marks session 'a))
+        (should (equal before (emacs-tui-mark-test--snapshot session))))
+      (setq fail nil)
+      (should-not (emacs-tui-clear-marks session 'a))
+      (should-not (emacs-tui-marked-items session))
+      (should (equal "beta" (emacs-tui-current-item session)))
+      (should (equal "beta" (emacs-tui-query session))))))
+
+(ert-deftest emacs-tui-mark-buffer-hook-error-rolls-back-model-and-display ()
+  (emacs-tui-mark-test--workspace
+      (:views (list (emacs-tui-view :id 'a :multi-select t :items '("alpha" "beta"))))
+    (let* ((view (emacs-tui--focused-view session))
+           (buffer (emacs-tui--view-buffer view)))
+      ;; Throw after the native buffer edit has started, independently of
+      ;; application projection failures before editing.  Rollback runs hooks.
+      (dolist (command '(emacs-tui-toggle-mark emacs-tui-clear-marks))
+        (let* ((before (emacs-tui-mark-test--snapshot session))
+               (fail t)
+               (hook (lambda (&rest _)
+                       (when fail (setq fail nil) (error "External buffer hook failed")))))
+          (with-current-buffer buffer (add-hook 'after-change-functions hook nil t))
+          (unwind-protect
+              (progn
+                (should-error (funcall command session))
+                (should (equal before (emacs-tui-mark-test--snapshot session))))
+            (with-current-buffer buffer (remove-hook 'after-change-functions hook t))))
+        (funcall command session))
+      (should-not (emacs-tui-marked-items session))
+      (emacs-tui-next-item session)
+      (should (equal "beta" (emacs-tui-current-item session))))))
 
 (provide 'emacs-tui-mark-test)
 ;;; emacs-tui-mark-test.el ends here

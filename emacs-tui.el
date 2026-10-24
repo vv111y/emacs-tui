@@ -3,6 +3,7 @@
 ;; Copyright (C) 2026 Willy Rempel
 ;; Author: Willy Rempel <https://github.com/vv111y>
 ;; Assisted-by: Codex:GPT-6
+;; Assisted-by: Codex:gpt-6.1-sol-wm
 ;; URL: https://github.com/vv111y/emacs-tui
 ;; Version: 0.1.0
 ;; Package-Requires: ((emacs "28.1"))
@@ -424,11 +425,18 @@ lose their marks; updates with the same identities return new items."
       (cl-remove-if-not (lambda (item) (emacs-tui--marked-p view item))
                         (emacs-tui--view-items view)))))
 
+(defun emacs-tui--set-marks (session view table)
+  "Render VIEW in SESSION with mark TABLE, then publish it."
+  (let ((candidate (copy-emacs-tui--view view)))
+    (setf (emacs-tui--view-marks candidate) table)
+    (emacs-tui--render-view session candidate)
+    (setf (emacs-tui--view-marks view) table)))
+
 (defun emacs-tui-toggle-mark (&optional session)
   "Toggle the selected item's mark in SESSION's focused multi-select view.
 Return non-nil when the item becomes marked, nil when unmarked.  Marks
 do not invoke selection or commit callbacks.  SESSION defaults to the
-current buffer's workspace."
+current buffer's workspace.  If rendering fails, retain the prior marks."
   (interactive)
   (setq session (emacs-tui--require-session session))
   (let* ((view (emacs-tui--focused-view session))
@@ -437,25 +445,25 @@ current buffer's workspace."
                  (not (emacs-tui--view-text view)))
       (user-error "This view does not support marks"))
     (unless item (user-error "No selected item"))
-    (unless (emacs-tui--view-marks view)
-      (setf (emacs-tui--view-marks view) (make-hash-table :test #'equal)))
-    (let* ((marks (emacs-tui--view-marks view))
+    (let* ((marks (if (emacs-tui--view-marks view)
+                      (copy-hash-table (emacs-tui--view-marks view))
+                    (make-hash-table :test #'equal)))
            (id (emacs-tui--item-id item))
            (marked (not (gethash id marks))))
       (if marked (puthash id t marks) (remhash id marks))
-      (emacs-tui--render-view session view)
+      (emacs-tui--set-marks session view marks)
       marked)))
 
 (defun emacs-tui-clear-marks (&optional session id)
   "Clear the marked state of SESSION's view ID, including hidden items.
 SESSION defaults to the current buffer's workspace, and ID defaults to
-its focused view.  Ordinary views are unchanged.  Return nil."
+its focused view.  Ordinary views are unchanged.  Return nil.
+If rendering fails, retain all prior marks, including hidden items."
   (interactive)
   (setq session (emacs-tui--require-session session))
   (let ((view (emacs-tui--resolve-view session id)))
     (when (emacs-tui--view-marks view)
-      (setf (emacs-tui--view-marks view) nil)
-      (emacs-tui--render-view session view)))
+      (emacs-tui--set-marks session view nil)))
   nil)
 
 (defun emacs-tui-query (&optional session id)
