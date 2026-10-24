@@ -1,0 +1,197 @@
+;;; emacs-tui-showcase-test.el --- Example journeys and cleanup -*- lexical-binding: t; -*-
+
+;; Copyright (C) 2026 Willy Rempel
+;; Assisted-by: Codex:gpt-6-astra-wm
+;; SPDX-License-Identifier: GPL-3.0-or-later
+
+;;; Commentary:
+;; Exercise runnable applications, their explicit effects and owned lifetimes.
+
+;;; Code:
+(require 'ert)
+(require 'cl-lib)
+(require 'emacs-tui-gallery (expand-file-name "examples/emacs-tui-gallery.el"))
+(require 'emacs-tui-catalog-demo (expand-file-name "examples/emacs-tui-catalog-demo.el"))
+(require 'emacs-tui-layout-demo (expand-file-name "examples/emacs-tui-layout-demo.el"))
+(require 'emacs-tui-stream-demo (expand-file-name "examples/emacs-tui-stream-demo.el"))
+
+;; Keep ownership cleanup explicit even when an assertion fails.
+(defmacro emacs-tui-showcase-test--with-host (&rest body)
+  "Evaluate BODY in a temporary host and close newly created sessions."
+  (declare (indent 0) (debug body))
+  (let ((original (make-symbol "original")))
+    `(save-window-excursion
+       (let ((,original emacs-tui--sessions)
+             (source (generate-new-buffer " *showcase-host*")))
+         (unwind-protect
+             (progn
+               (delete-other-windows)
+               (switch-to-buffer source)
+               (insert "Origin:")
+               ,@body)
+           (dolist (app (copy-sequence emacs-tui--sessions))
+             (unless (memq app ,original) (emacs-tui-close app)))
+           (when (buffer-live-p source) (kill-buffer source)))))))
+
+(defun emacs-tui-showcase-test--text (app id)
+  "Return APP's text view contents for ID."
+  (emacs-tui--view-text (emacs-tui--resolve-view app id)))
+
+(ert-deftest emacs-tui-showcase-gallery-loads-and-launches-every-example ()
+  (emacs-tui-showcase-test--with-host
+    (dolist (entry emacs-tui-gallery--entries)
+      (switch-to-buffer source)
+      (let* ((before timer-list)
+             (gallery (emacs-tui-gallery))
+             example)
+        (emacs-tui-set-selection gallery 'demos (plist-get entry :id))
+        (emacs-tui-select gallery)
+        (should (string-match-p (regexp-quote (plist-get entry :label))
+                                (emacs-tui-showcase-test--text gallery 'tour)))
+        (should (emacs-tui-live-p gallery))
+        (emacs-tui-focus-view gallery 'tour)
+        (should-not truncate-lines)
+        (should word-wrap)
+        (should-not truncate-partial-width-windows)
+        (emacs-tui-set-layout gallery 'rows)
+        (should-not truncate-lines)
+        (emacs-tui-focus-view gallery 'demos)
+        (setq example (emacs-tui-gallery-launch))
+        (should-not (emacs-tui-live-p gallery))
+        (should (emacs-tui-live-p example))
+        (should (= 1 (length emacs-tui--sessions)))
+        (emacs-tui-close example)
+        (should-not emacs-tui--sessions)
+        (should (equal before timer-list))
+        (should (equal "Origin:" (with-current-buffer source (buffer-string))))))))
+
+(ert-deftest emacs-tui-showcase-gallery-graph-commits-to-original-host ()
+  (emacs-tui-showcase-test--with-host
+    (let ((gallery (emacs-tui-gallery)))
+      (emacs-tui-set-selection gallery 'demos 'graph)
+      (let ((graph (emacs-tui-gallery-launch)))
+        (emacs-tui-select graph)
+        (should (equal "Origin:" (with-current-buffer source (buffer-string))))
+        (emacs-tui-commit graph)
+        (should (string-prefix-p "Origin:[[demo:emacs]"
+                                 (with-current-buffer source (buffer-string))))))))
+
+(ert-deftest emacs-tui-showcase-catalog-hidden-marks-act-without-saving ()
+  (emacs-tui-showcase-test--with-host
+    (let ((app (emacs-tui-catalog-demo)))
+      (emacs-tui-set-query app 'catalog "Note")
+      (emacs-tui-mark-all app 'catalog)
+      (emacs-tui-sort app 'catalog 'size t)
+      (emacs-tui-set-query app 'catalog "Map")
+      (emacs-tui-focus-view app 'catalog)
+      (emacs-tui-select app)
+      (should (equal "Collection empty." (emacs-tui-showcase-test--text app 'collection)))
+      (should (equal 'bold (get-text-property 0 'face (emacs-tui-showcase-test--text app 'details))))
+      (emacs-tui-act app 'collect)
+      (should (equal "Collected (session only):\n\nBirch\nFern\nCafé sketches"
+                     (emacs-tui-showcase-test--text app 'collection)))
+      (emacs-tui-act app 'collect)
+      (should (= 3 (length (split-string
+                           (substring (emacs-tui-showcase-test--text app 'collection)
+                                      (length "Collected (session only):\n\n")) "\n"))))
+      (emacs-tui-act app 'clear)
+      (should-error (emacs-tui-act app 'clear) :type 'user-error)
+      (should (emacs-tui-live-p app))
+      (should (equal "Origin:" (with-current-buffer source (buffer-string)))))))
+
+(ert-deftest emacs-tui-showcase-catalog-collections-are-session-local ()
+  (emacs-tui-showcase-test--with-host
+    (let ((first (emacs-tui-catalog-demo)))
+      (emacs-tui-focus-view first 'catalog)
+      (emacs-tui-act first 'collect)
+      (select-window (get-buffer-window source))
+      (let ((second (emacs-tui-catalog-demo)))
+        (emacs-tui-focus-view second 'catalog)
+        (should-error (emacs-tui-act second 'clear) :type 'user-error)
+        (should (equal "Collection empty." (emacs-tui-showcase-test--text second 'collection)))
+        (should (string-match-p "Atlas" (emacs-tui-showcase-test--text first 'collection)))))))
+
+(ert-deftest emacs-tui-showcase-layout-preserves-edits-undo-and-tree-marks ()
+  (emacs-tui-showcase-test--with-host
+    (let ((app (emacs-tui-layout-demo)))
+      (emacs-tui-tree-expand-all app 'outline)
+      (emacs-tui-set-selection app 'outline 'japan)
+      (emacs-tui-focus-view app 'outline)
+      (emacs-tui-toggle-mark app)
+      (execute-kbd-macro (kbd "C-c e"))
+      (should (eq 'editor (emacs-tui-current-view app)))
+      (goto-char (point-max))
+      (undo-boundary)
+      (insert "\nTest edit")
+      (undo-boundary)
+      (let ((value (emacs-tui-input-value app 'editor))
+            (undo buffer-undo-list))
+        (dolist (layout '(rows columns grid))
+          (emacs-tui-set-layout app layout)
+          (should (equal value (emacs-tui-input-value app 'editor)))
+          (should (equal undo buffer-undo-list)))
+        (emacs-tui-toggle-maximize app)
+        (emacs-tui-focus-view app 'outline)
+        (execute-kbd-macro (kbd "C-c e"))
+        (should (equal value (emacs-tui-input-value app 'editor)))
+        (should (string-match-p "Test edit" (emacs-tui-showcase-test--text app 'preview)))
+        (should (eq 'japan (plist-get (car (emacs-tui-marked-items app 'outline)) :id)))
+        (undo-only)
+        (should-not (string-match-p "Test edit" (emacs-tui-input-value app 'editor)))))))
+
+(ert-deftest emacs-tui-showcase-stream-recovery-supersession-and-close ()
+  (emacs-tui-showcase-test--with-host
+    (let ((schedule (symbol-function 'run-at-time)) queued app old-tick)
+      (cl-letf (((symbol-function 'run-at-time)
+                 (lambda (_time repeat function &rest args)
+                   (let ((timer (apply schedule 3600 repeat function args)))
+                     (setq queued (append queued (list timer)))
+                     timer))))
+        (cl-labels
+            ((step ()
+               (while (and queued (not (memq (car queued) timer-list)))
+                 (pop queued))
+               (let ((timer (pop queued)))
+                 (should (timerp timer))
+                 (setq old-tick (timer--function timer))
+                 (cancel-timer timer)
+                 (apply old-tick (timer--args timer))))
+             (drain ()
+               (let ((limit 40))
+                 (while (and queued (> limit 0))
+                   (if (memq (car queued) timer-list) (step) (pop queued))
+                   (cl-decf limit))
+                 (should (> limit 0))))
+             (query (value)
+               (with-current-buffer (emacs-tui--workspace-query-buffer app)
+                 (erase-buffer) (insert value))))
+          (setq app (emacs-tui-stream-demo))
+          (step) (step)
+          (should (emacs-tui-current-item app 'jobs))
+          ;; Superseding a partially published request clears its old records.
+          (query "test")
+          (should-not (emacs-tui-current-item app 'jobs))
+          (drain)
+          (let ((items (emacs-tui--view-items (emacs-tui--resolve-view app 'jobs))))
+            (should (= 20 (length items)))
+            (should (cl-every (lambda (item) (equal "test" (plist-get item :kind))) items)))
+          (query "!error") (drain)
+          (should (= 15 (length (emacs-tui--view-items (emacs-tui--resolve-view app 'jobs)))))
+          (should (string-prefix-p "Simulated failure" (emacs-tui-showcase-test--text app 'progress)))
+          (emacs-tui-select app)
+          (should (string-match-p "Job: build-01" (emacs-tui-showcase-test--text app 'preview)))
+          (query "deploy") (drain)
+          (should (string-match-p "Complete" (emacs-tui-showcase-test--text app 'progress)))
+          (should (= 20 (length (emacs-tui--view-items (emacs-tui--resolve-view app 'jobs)))))
+          (query "") (step) (step)
+          (let ((pending (cl-remove-if-not (lambda (timer) (memq timer timer-list)) queued)))
+            (should pending)
+            (emacs-tui-close app)
+            (should-not (cl-some (lambda (timer) (memq timer timer-list)) pending))
+            ;; A callback already queued by the event loop is also harmless.
+            (funcall old-tick)
+            (should-not emacs-tui--sessions))
+          (should (equal "Origin:" (with-current-buffer source (buffer-string)))))))))
+
+(provide 'emacs-tui-showcase-test)
+;;; emacs-tui-showcase-test.el ends here

@@ -37,9 +37,29 @@ Emacs version, operating system, terminal or emulator, whether
 Emacs 28.1 through 31.1 on Linux and 30.2/31.1 on macOS. Physical terminal
 emulators and graphical display variants still need broader community use.
 
-## Try it
+## Demo gallery
 
-Clone this repository, then run:
+Browse ten runnable examples with guided tours:
+
+```sh
+git clone https://github.com/vv111y/emacs-tui.git
+cd emacs-tui
+make gallery
+```
+
+In the gallery, `RET` shows a tour and `C-c C-o` launches the selected demo.
+Close it with `C-c C-q`, then `M-x emacs-tui-gallery` to choose another.
+See [the demo guide](docs/DEMOS.md) for individual commands, feature coverage,
+and step-by-step tours. The catalog, streaming search and layout playground
+include their own sample data and work in a fresh Emacs.
+
+These new showcases are on `main`; the fixed `release/0.1.0-beta1` branch is
+unchanged. The straight.el runtime recipe excludes examples. Use this checkout
+for the gallery so examples and toolkit come from the same revision.
+
+## Graph explorer (original demo)
+
+From the checkout, run:
 
 ```sh
 make demo
