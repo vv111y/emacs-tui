@@ -60,10 +60,12 @@ allocate a query buffer or capture an origin marker. They use native view focus
 and explicit application actions; the dashboard supplies an example with a
 periodic timer released through the new close callback.
 
-`emacs-tui-open` retains its query/origin/commit convenience policy. `emacs-tui-embed` borrows a host window for one owned view buffer and restores
+`emacs-tui-open` retains its query/origin/commit convenience policy.
+`emacs-tui-embed` borrows a host window for one owned view buffer and restores
 the previous buffer and tracked positions on disposal. It never deletes the
 host window or overwrites a repurposed window. Region-level embedding and
-multiple views inside one borrowed surface remain future work. Application and per-view keymaps compose with native defaults, while ephemeral
+multiple views inside one borrowed surface remain future work.
+
+Application and per-view keymaps compose with native defaults, while ephemeral
 query input retains ordinary editing. Forms, trees and persistent input widgets
-remain work
-for subsequent application-driven increments. No stable API claim is made.
+remain work for subsequent application-driven increments. No stable API claim is made.

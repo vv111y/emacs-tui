@@ -2,7 +2,7 @@
 
 Updated 2026-10-23 (America/Toronto).
 
-## Active implementation
+## Reviewed implementation and next work
 
 PR #6 merged the persistent lifecycle/dashboard at
 `0d181ea9c48af1a5df3bfd4e0404a130e326001f` after independent agent review,
@@ -15,16 +15,27 @@ Reviewers additionally exercised 50 persistent and 50 dual-panel lifecycle
 cycles without retained sessions or owned buffers. These were agent reviews,
 not human/MELPA review.
 
-The next increment adds native application/per-view `:keymap` composition and
+[PR #8](https://github.com/vv111y/emacs-tui/pull/8) adds native application/per-view `:keymap` composition and
 `emacs-tui-current-session` for interactive application commands. View bindings
 override application bindings, then toolkit defaults; ephemeral query editing
 is untouched. Maps remain live references and are not mutated by the toolkit.
 The dashboard demonstrates g refresh and P pause/resume from any view.
 
-Active worker owns core, keymap/dashboard tests, dashboard example, embedded
-TTY smoke and documentation. Local validation: 125 ERT tests, strict compilation,
-checkdoc and three real TTY scripts on Emacs 29.3. Independent review and
-current-head four-version CI are required before integrating this increment.
+Implementation head `2aacb9d80de7da72685922a711737f3e2f62350f` passes all
+125 ERT tests, strict compilation, checkdoc and all three real TTY scripts
+on Emacs 28.2, 29.4, 30.2 and 31.1 in
+[CI run 40049542128](https://github.com/vv111y/emacs-tui/actions/runs/40049542128).
+The separate reviewer approved that exact head, reran the complete suite on
+Emacs 29.3, and probed symbol-backed maps, live edits and concurrent-session
+isolation. No blockers remained. Initial CI failed a test-only string/vector
+comparison in help lookup; the corrected current implementation passes.
+Package-lint still reports only the two known package-name warnings.
+
+The implementation claim is released. This final documentation checkpoint
+records review and test evidence without code changes. Check PR #8's live merge
+state and latest CI before editing: integrate if still open and reviewed/passing,
+otherwise continue with application input widgets or table/tree views driven by
+a concrete example. No owner review is needed for routine integration.
 
 ## Implementation and handoff
 
@@ -34,7 +45,8 @@ Scope clarification from the owner, 2026-10-23: build a general-purpose TUI
 toolkit for Emacs. The ephemeral XOB-style workflow is one supported application
 pattern. Persistent applications and embedded panels must not require query
 input, an origin marker, or commit-then-close. See docs/DESIGN.md and the new
-immediate priorities in ROADMAP.md. PR #6 merged the persistent lifecycle and dashboard. PR #7 added borrowed-window embedding over the same primitives.
+immediate priorities in ROADMAP.md. PR #6 merged the persistent lifecycle and
+dashboard. PR #7 added borrowed-window embedding over the same primitives.
 
 - [PR #1](https://github.com/vv111y/emacs-tui/pull/1): merged foundation with
   editable temporary queries, independent list/text views, explicit selection
@@ -81,7 +93,7 @@ trampoline generation because it has no configured native compiler toolchain.
 
 ## Remaining work
 
-1. Review and integrate native application/per-view keymaps. Next extend
+1. Finish PR #8 integration if still open, then extend
    application input/action composition. Preserve ephemeral behavior. Extend
    layouts, history, per-view input, maximize/restore and tables as real consumers
    require them. Avoid treating every preview as navigation.
