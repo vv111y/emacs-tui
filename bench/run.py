@@ -102,6 +102,35 @@ def metrics(records):
             if key.endswith("_ms") or key in ("cons_cells", "string_chars", "gc_count")}
 
 
+def wait_for_exit(process, master, timeout, transcript):
+    """Drain terminal output through exit using bounded nonblocking waitpid polls.
+
+    Do not leave a PTY writer blocked while waiting, or depend on platform
+    timed-wait notification mechanisms after the final protocol marker.
+    """
+    deadline = time.monotonic() + timeout
+    eof = False
+    while process.poll() is None:
+        remaining = deadline - time.monotonic()
+        if remaining <= 0:
+            raise subprocess.TimeoutExpired(process.args, timeout)
+        if eof:
+            select.select([], [], [], min(.01, remaining))
+        elif select.select([master], [], [], min(.1, remaining))[0]:
+            try:
+                data = os.read(master, 65536)
+            except OSError as error:
+                if error.errno != errno.EIO:
+                    raise
+                data = b""
+            if data:
+                transcript.extend(data)
+                del transcript[:-8000]
+            else:
+                eof = True
+    return process.returncode
+
+
 def run(args):
     cases = [{"kind": kind, "size": size} for size in args.sizes for kind in args.kinds]
     command = [os.environ.get("EMACS", "emacs"), "-Q", "-nw", "-L", str(ROOT),
@@ -189,7 +218,8 @@ def run(args):
                                        "warmup": sequence < args.warmup})
                 os.write(master, b"\x03\x02")  # C-c C-b: advance outside measured samples.
             receive("done", len(cases), 0)
-            status = process.wait(timeout=30)
+            print("benchmark: draining terminal through process exit", flush=True)
+            status = wait_for_exit(process, master, 30, pending)
             # Retire before metadata work, then never signal this group ID again.
             retire_group()
             if status != 0:
@@ -230,7 +260,7 @@ def run(args):
         finally:
             try:
                 retire_group()
-                process.wait(timeout=5)
+                wait_for_exit(process, master, 5, pending)
             finally:
                 os.close(master)
 

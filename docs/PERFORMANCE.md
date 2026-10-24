@@ -51,6 +51,13 @@ measured commands. This addresses a process-launch hazard while retaining the
 same native key/redisplay protocol. Repeated macOS 31.1 CI stalls in the older
 driver were not captured with a stack trace, so the exact blocked call is
 unknown; successful checks must verify this change rather than assuming a cause.
+The new stage logs subsequently located both macOS failures in Python 3.15's
+post-protocol timed process wait, including after group termination. The driver
+now drains terminal output and polls process status through exit, as the existing
+TTY smoke runner does. This avoids both a blocked terminal writer and dependence
+on platform timed-wait notifications. It does not establish which caused the
+observed stall. Regressions exercise a 2 MiB terminal tail and EOF while a process
+is still alive; EOF alone never counts as successful exit.
 
 `--timeout SECONDS` covers the entire driver (default 1,800 seconds). Expiry
 dumps the Python stack and fails the run; normal cleanup kills its owned process

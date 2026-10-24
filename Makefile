@@ -36,5 +36,6 @@ package-check:
 benchmark:
 	EMACS=$(EMACS) python3 bench/run.py --output .cache/benchmark.json $(BENCH_ARGS)
 benchmark-smoke:
+	python3 -m unittest discover -s test -p 'test_benchmark_driver.py'
 	$(EMACS) -Q --batch -L . --eval '(setq byte-compile-error-on-warn t)' -f batch-byte-compile bench/interactive.el
 	EMACS=$(EMACS) python3 bench/run.py --timeout 120 --sizes 100 --samples 6 --warmup 2 --output .cache/benchmark-smoke.json

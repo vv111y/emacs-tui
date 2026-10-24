@@ -31,8 +31,14 @@ no surviving child. Ignoring SIGALRM exercised the hard watchdog, which dumped
 and exited in 10.132s. Independent review found group cleanup skipped descendants after the leader
 exited, and a progress print could bypass cleanup. Cleanup now retires the owned
 group even after leader exit, before metadata work, and the print is protected.
-A forked-child probe confirmed termination on deadline. Corrected independent
-review and all current-head CI remain required.
+A forked-child probe confirmed termination on deadline. Initial bounded CI then located both macOS failures in Python 3.15 timed
+process waits after the final protocol marker (30s normal wait, then 5s cleanup).
+The driver now drains the terminal and polls status through exit, matching the
+existing TTY runner. This avoids both queued-output blocking and timed-wait
+notification dependency; exact OS/runtime causality is not asserted. Two
+portable real-PTY regressions cover a 2 MiB tail and EOF with a live leader.
+Independent probes also passed dead-leader descendant cleanup and real native
+input. Corrected exact-head review and all current-head CI remain required.
 
 The navigation pair remains under bench/results/2026-10-24-navigation and is
 limited interpreted-source evidence. Bytecompiled-library benchmark mode is
