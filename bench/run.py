@@ -180,7 +180,8 @@ def run(args):
         directory = pathlib.Path(directory)
         report = directory / "report.json"
         env = dict(os.environ, TERM="xterm-256color", EMACS_TUI_BENCH_REPORT=str(report),
-                   EMACS_TUI_BENCH_CASES=json.dumps(cases), EMACS_TUI_BENCH_LOAD_MODE=args.load_mode)
+                   EMACS_TUI_BENCH_CASES=json.dumps(cases), EMACS_TUI_BENCH_LOAD_MODE=args.load_mode,
+                   EMACS_TUI_BENCH_FILTER_PREFIX=args.filter_prefix)
         env.pop("EMACSLOADPATH", None)
         executable = os.environ.get("EMACS", "emacs")
         library_root, compiled = prepare_libraries(directory, args.load_mode, executable, env)
@@ -298,6 +299,7 @@ def run(args):
                                 "python": platform.python_version()},
                           pty={"columns": 120, "rows": 40},
                           provider_fixture={"debounce_ms": 10, "timer_delay_ms": 20},
+                          filter_fixture={"prefix": args.filter_prefix},
                           quantile_method="nearest-rank", summaries=summaries, records=records)
             args.output.parent.mkdir(parents=True, exist_ok=True)
             args.output.write_text(json.dumps(result, indent=2, ensure_ascii=False) + "\n")
@@ -322,6 +324,8 @@ def main():
     parser.add_argument("--output", type=pathlib.Path, required=True)
     parser.add_argument("--label", default="")
     parser.add_argument("--load-mode", choices=("source", "bytecode"), default="source")
+    parser.add_argument("--filter-prefix", default="",
+                        help="initial filter text matching every row; end with whitespace")
     parser.add_argument("--timeout", type=float, default=1800,
                         help="whole-run seconds, including startup and metadata (default: 1800)")
     args = parser.parse_args()
@@ -329,6 +333,9 @@ def main():
         parser.error("sizes must be >=10, samples >=1 and warmup >=0")
     if not math.isfinite(args.timeout) or args.timeout <= 0:
         parser.error("timeout must be finite and positive")
+    if args.filter_prefix and (not args.filter_prefix[-1].isspace()
+                               or any(c in args.filter_prefix for c in "\r\n")):
+        parser.error("filter-prefix must be a single line ending with whitespace")
     with wall_timeout(args.timeout):
         run(args)
 

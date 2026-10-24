@@ -4,6 +4,49 @@ Updated 2026-10-24 (America/Toronto).
 
 ## Active implementation
 
+PR #31 merged at `1a0616c87f717a6ee14d02a7d238f1a33cf19712` after independent
+exact-head review and all eight jobs in
+[40081401204](https://github.com/vv111y/emacs-tui/actions/runs/40081401204).
+All runtime jobs passed 270 ERT, strict compilation/checkdoc, eight PTY scripts,
+three Python regressions and both benchmark smoke modes; the archive built and
+clean-installed on 31.1/28.1. Linux/macOS 31.1 confirm native child frames for
+the new graph-history fixture as well as earlier owned-surface scenarios. The
+previous failed run described below was corrected and is not waived.
+
+Multi-term list/table filtering now quotes literal patterns once per query and
+prepares each item's searchable label/full column values once per search,
+instead of repeating column projections for every term. There is no persistent
+search cache; every filter/source replacement reads current values. Empty-term,
+application-owned query and tree paths retain their existing behavior.
+
+Local 274 ERT, strict compilation/checkdoc and eight PTY scripts passed on
+Emacs 29.3/Linux. The projection-work regression fails on the prior code
+(18 calls instead of eight for three rows/two columns/three terms, including
+the surviving row's render). Other new cases retain literal-regexp characters,
+Unicode/combining glyphs, repeated terms, descending sort, hidden marks,
+original objects, fresh replacement values and propertized plain strings.
+Independent differential checks compare old/new matching and selection over
+a query matrix, both list/table representations and both sort directions; a real
+projection-error probe preserves query, visible snapshot, marks, text/properties
+and modification tick, then recovers on retry.
+
+Expanded benchmark smoke checks passed the original five workloads and new
+multi-term list/table cases in both source and freshly compiled modes, plus
+three Python process regressions. The opt-in --filter-prefix preloads actual
+native input before measured edits, requires an all-row initial match, and
+records its value. Repeated sequential bytecode profiles retain 440 raw records
+per run at bench/results/2026-10-24-multiterm, with identical fixture hashes and
+verified before/after source provenance. On this Emacs 29.3/Linux configuration,
+10,000-row table native x insertion p50/p95/p99 changed from
+508.011/624.640/628.287ms to 199.834/251.801/261.690ms; DEL retaining two terms
+changed from 600.395/698.465/779.584ms to 449.426/528.104/549.279ms. Median
+immediate-command cons cells changed from 205,328 to 85,308 for x and 270,320
+to 210,310 for DEL. Each operation has only 50 measured samples; p99 is the
+maximum. Some list tails did not improve. These are one-host PTY-output results,
+not emulator paint or a cross-platform guarantee. Large-table full rebuilds
+remain costly. Pilot data is excluded from the published pair. Independent
+exact-head review and all eight fresh CI jobs remain integration gates.
+
 PR #30 merged at `dc086fb71117f82803c13ce3d42ec0b5ee3ba9c7` after independent
 exact-head review and all eight jobs in
 [40077079927](https://github.com/vv111y/emacs-tui/actions/runs/40077079927).
@@ -32,7 +75,7 @@ resize sizes and final explicit commitment. Review caught an initial fixture
 assertion reading a timer callback's current-buffer point; it now explicitly
 reads the query buffer. That failed run is not counted as a pass. Independent
 review also passed a 300-operation traversal oracle. Exact published-head review
-and all current-head CI remain integration gates. Multi-view application updates
+and all eight final CI jobs passed as recorded above. Multi-view application updates
 are sequential, not a new cross-view transaction: a failed inspection can leave
 partially updated panes, but history stacks remain retryable and unchanged.
 
@@ -45,7 +88,7 @@ within the original 100-poll bound. No refresh is forced. A delayed-handler
 probe fails the old fixture and passes the revised fixture at both sizes;
 disabling the handler still produces a bounded failure. Independent review
 repeated all three probes. The failed CI run is not counted as passing;
-fresh exact-head review and all eight jobs are required for integration.
+fresh exact-head review and all eight jobs subsequently passed as recorded above.
 
 PR #29 merged at `caffcd7a998a7c424702e022e0787e4eada84a16` after independent
 review and all eight jobs in

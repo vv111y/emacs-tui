@@ -49,6 +49,9 @@
 (defvar emacs-tui-bench--sample nil)
 (defvar emacs-tui-bench--records nil)
 (defvar emacs-tui-bench--advancing nil)
+(defvar emacs-tui-bench--filter-prefix
+  (or (getenv "EMACS_TUI_BENCH_FILTER_PREFIX") "")
+  "Initial text in filter workloads, outside measured native edits.")
 
 (defun emacs-tui-bench--marker (kind)
   "Emit a KIND acknowledgement after display output, tagged with sample index."
@@ -169,6 +172,7 @@ The deliberate timer delay is recorded separately from publishing/redisplay."
                    (views (if filtering
                               (list (emacs-tui-input
                                      :id 'query
+                                     :value emacs-tui-bench--filter-prefix
                                      :on-change (lambda (session _id value)
                                                   (emacs-tui-set-query session 'rows value))) view)
                             (list view))))
@@ -177,6 +181,12 @@ The deliberate timer delay is recorded separately from publishing/redisplay."
                         (emacs-tui-open :views views :backend 'windows :keymap map
                                         :provider #'emacs-tui-bench--provider :debounce 0.01)
                       (emacs-tui-mount :views views :backend 'windows :keymap map))))
+            (when filtering
+              (emacs-tui-set-query emacs-tui-bench--session 'rows emacs-tui-bench--filter-prefix)
+              (cl-assert (= size (length (emacs-tui--view-visible-items
+                                         (emacs-tui--resolve-view emacs-tui-bench--session 'rows)))))
+              ;; Type after the initial terms, as an actual user would.
+              (goto-char (point-max)))
             ;; Start each workload with ordinary GC settings but no old fixture garbage.
             (garbage-collect)
             (redisplay t)

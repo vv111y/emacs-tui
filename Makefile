@@ -42,3 +42,5 @@ benchmark-smoke:
 	$(EMACS) -Q --batch -L . --eval '(setq byte-compile-error-on-warn t)' -f batch-byte-compile bench/interactive.el
 	EMACS=$(EMACS) python3 bench/run.py --timeout 120 --sizes 100 --samples 6 --warmup 2 --output .cache/benchmark-smoke.json
 	EMACS=$(EMACS) python3 bench/run.py --timeout 120 --load-mode bytecode --sizes 100 --samples 6 --warmup 2 --output .cache/benchmark-bytecode-smoke.json
+	EMACS=$(EMACS) python3 bench/run.py --timeout 120 --filter-prefix 'row 日本語 ' --kinds filter-list filter-table --sizes 100 --samples 6 --warmup 2 --output .cache/benchmark-terms-smoke.json
+	EMACS=$(EMACS) python3 bench/run.py --timeout 120 --load-mode bytecode --filter-prefix 'row 日本語 ' --kinds filter-list filter-table --sizes 100 --samples 6 --warmup 2 --output .cache/benchmark-terms-bytecode-smoke.json
