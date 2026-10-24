@@ -36,6 +36,7 @@
 (require 'subr-x)
 (require 'emacs-tui-layout)
 (require 'emacs-tui-table)
+(require 'emacs-tui-tree)
 
 (defgroup emacs-tui nil
   "Composable text interfaces."
@@ -54,7 +55,8 @@
 
 (cl-defstruct (emacs-tui--view (:constructor emacs-tui--make-view))
   id title items visible-items (selected 0) text on-select buffer window
-  multi-select marks keymap columns sort-column sort-descending editable on-change)
+  multi-select marks keymap columns sort-column sort-descending editable on-change
+  tree children tree-open tree-search)
 
 (cl-defstruct (emacs-tui--workspace (:constructor emacs-tui--make-workspace))
   views (focus 0) layout backend on-query on-commit origin origin-window
@@ -116,6 +118,17 @@
   (setq-local mode-line-format nil)
   (setq-local truncate-lines t)
   (setq-local cursor-type nil))
+
+(defvar emacs-tui-tree-mode-map
+  (let ((map (make-sparse-keymap)))
+    (define-key map (kbd "SPC") #'emacs-tui-tree-toggle)
+    (define-key map (kbd "<right>") #'emacs-tui-tree-expand)
+    (define-key map (kbd "<left>") #'emacs-tui-tree-collapse)
+    map)
+  "Tree navigation bindings, inheriting ordinary view commands.")
+
+(define-derived-mode emacs-tui-tree-mode emacs-tui-view-mode "TUI-Tree"
+  "Browse a tree using identity-preserving expansion and selection.")
 
 (defvar emacs-tui-field-mode-map
   (let ((map (make-sparse-keymap)))
@@ -187,6 +200,86 @@ View descriptions are copied when opened."
                         :items (emacs-tui--validate-items items multi-select)
                         :visible-items items :text text :on-select on-select
                         :multi-select multi-select :keymap keymap :columns columns))
+
+(cl-defun emacs-tui-tree (&key id title items (children :children)
+                               on-select multi-select keymap)
+  "Describe a finite tree of application ITEMS with view ID and TITLE.
+CHILDREN is a plist keyword or pure function returning an item's child list.
+It is evaluated once per node during construction and source replacement,
+never during rendering or expansion.  Return promptly; load data in the
+application or use an asynchronous provider to publish complete snapshots.
+Items follow `emacs-tui-view'; plist nodes require explicit non-nil :id values.
+Identities must be globally unique, including collapsed descendants.  Cycles
+and repeated nodes are rejected.  Roots start collapsed.  Source updates
+retain expansion, selection and marks for surviving identities.
+ON-SELECT, MULTI-SELECT and KEYMAP follow `emacs-tui-view'.  Selection/actions
+receive the original item.  Local queries show matches and their ancestors
+without changing expansion; clear the query before changing expansion."
+  (unless (or (keywordp children) (functionp children))
+    (error "CHILDREN must be a keyword or function"))
+  (let* ((data (emacs-tui--tree-index items children))
+         (projection (emacs-tui--tree-project data nil))
+         (view (emacs-tui-view :id id :title title
+                               :items (emacs-tui--tree-data-items data)
+                               :on-select on-select :multi-select multi-select :keymap keymap)))
+    (setf (emacs-tui--view-tree view) data
+          (emacs-tui--view-visible-items view) (car projection)
+          (emacs-tui--view-tree-open view) (cdr projection)
+          (emacs-tui--view-children view) children)
+    view))
+
+(defun emacs-tui--tree-command (session operation)
+  "Apply tree OPERATION in SESSION, staging state before rendering."
+  (setq session (emacs-tui--require-session session))
+  (let* ((view (emacs-tui--focused-view session))
+         (data (emacs-tui--view-tree view))
+         (item (emacs-tui-current-item session)))
+    (unless data (user-error "This view is not a tree"))
+    (when (emacs-tui--view-tree-search view)
+      (user-error "Clear the local query before changing tree expansion"))
+    (when item
+      (let* ((id (emacs-tui--item-id item))
+             (children (gethash id (emacs-tui--tree-data-children data)))
+             (expanded (gethash id (emacs-tui--tree-data-expanded data)))
+             (candidate (copy-emacs-tui--view view))
+             (next-data (copy-emacs-tui--tree-data data)) target)
+        (setf (emacs-tui--tree-data-expanded next-data)
+              (copy-hash-table (emacs-tui--tree-data-expanded data))
+              (emacs-tui--view-tree candidate) next-data)
+        (cond
+         ((and (eq operation 'expand) expanded) (setq target (car children)))
+         ((and (eq operation 'collapse) (not expanded))
+          (setq target (gethash id (emacs-tui--tree-data-parents data))))
+         ((and children (or (eq operation 'collapse)
+                            (and (eq operation 'toggle) expanded)))
+          (remhash id (emacs-tui--tree-data-expanded next-data)))
+         (children (puthash id t (emacs-tui--tree-data-expanded next-data))))
+        (emacs-tui--filter session candidate)
+        (when target
+          (setf (emacs-tui--view-selected candidate)
+                (or (cl-position target (emacs-tui--view-visible-items candidate)
+                                 :key #'emacs-tui--item-id :test #'equal) 0)))
+        (emacs-tui--render-view session candidate)
+        (setf (emacs-tui--view-tree view) next-data
+              (emacs-tui--view-tree-open view) (emacs-tui--view-tree-open candidate)
+              (emacs-tui--view-visible-items view) (emacs-tui--view-visible-items candidate)
+              (emacs-tui--view-selected view) (emacs-tui--view-selected candidate)))))
+  session)
+
+(defun emacs-tui-tree-toggle (&optional session)
+  "Toggle SESSION's selected tree branch without invoking its action."
+  (interactive)
+  (emacs-tui--tree-command session 'toggle))
+
+(defun emacs-tui-tree-expand (&optional session)
+  "Expand SESSION's selected branch, or move to its first child if open."
+  (interactive)
+  (emacs-tui--tree-command session 'expand))
+
+(defun emacs-tui-tree-collapse (&optional session)
+  "Collapse SESSION's selected branch, or move to its parent if closed."
+  (interactive)
+  (emacs-tui--tree-command session 'collapse))
 
 (cl-defun emacs-tui-input (&key id title (value "") on-change keymap)
   "Describe an editable input for `emacs-tui-mount' or `emacs-tui-embed'.
@@ -346,26 +439,34 @@ its focused view.  Ordinary views are unchanged.  Return nil."
                    (emacs-tui--view-visible-items view)))
          (terms (split-string (emacs-tui-query session) nil t))
          (case-fold-search t)
+         (tree-terms (unless (or (emacs-tui--workspace-on-query session)
+                                 (emacs-tui--workspace-provider session)) terms))
+         (projection (when (emacs-tui--view-tree view)
+                       (emacs-tui--tree-project (emacs-tui--view-tree view) tree-terms)))
          (items
-          (if (or (emacs-tui--workspace-on-query session)
-                  (emacs-tui--workspace-provider session))
-              (emacs-tui--view-items view)
-            (cl-remove-if-not
-             (lambda (item)
-               (cl-every
-                (lambda (term)
-                  (string-match-p
-                   (regexp-quote term)
-                   (concat (emacs-tui--item-label item)
-                           (when (emacs-tui--view-columns view)
-                             (concat " "
-                                     (mapconcat
-                                      (lambda (column)
-                                        (emacs-tui--cell-text
-                                         (emacs-tui--table-value column item)))
-                                      (emacs-tui--view-columns view) " "))))))
-                terms))
-             (emacs-tui--view-items view)))))
+          (if projection (car projection)
+            (if (or (emacs-tui--workspace-on-query session)
+                    (emacs-tui--workspace-provider session))
+		(emacs-tui--view-items view)
+              (cl-remove-if-not
+               (lambda (item)
+		 (cl-every
+                  (lambda (term)
+                    (string-match-p
+                     (regexp-quote term)
+                     (concat (emacs-tui--item-label item)
+                             (when (emacs-tui--view-columns view)
+                               (concat " "
+                                       (mapconcat
+					(lambda (column)
+                                          (emacs-tui--cell-text
+                                           (emacs-tui--table-value column item)))
+					(emacs-tui--view-columns view) " "))))))
+                  terms))
+               (emacs-tui--view-items view))))))
+    (when projection
+      (setf (emacs-tui--view-tree-open view) (cdr projection)
+            (emacs-tui--view-tree-search view) (and tree-terms t)))
     (when (emacs-tui--view-sort-column view)
       (setq items (emacs-tui--table-sort
                    items (emacs-tui--view-sort-column view)
@@ -463,6 +564,9 @@ Return (CONTENT . POSITION).  Projection errors leave the live buffer intact."
                       (line
                        (concat (when (emacs-tui--view-multi-select view)
                                  (if (emacs-tui--marked-p view item) "[x] " "[ ] "))
+                               (when (emacs-tui--view-tree view)
+                                 (emacs-tui--tree-prefix (emacs-tui--view-tree view)
+                                                         (emacs-tui--view-tree-open view) item))
                                (if columns (emacs-tui--table-line columns item)
                                  (emacs-tui--item-label item))
                                (when annotation
@@ -532,7 +636,8 @@ in ITEMS; non-nil TEXT clears marks.  Multi-select item identities must
 be unique.  Identical preview text, including properties, retains its reading
 position; changed text starts at the beginning.  Editable views accept only
 string TEXT updates; changed values reset undo without calling ON-CHANGE.
-Return SESSION."
+Tree ITEMS are root snapshots; descendants are indexed through CHILDREN.
+Non-nil TEXT is rejected for trees.  Return SESSION."
   (emacs-tui--require-session session)
   (let ((view (cl-find id (emacs-tui--workspace-views session)
                        :key #'emacs-tui--view-id :test #'equal)))
@@ -540,12 +645,20 @@ Return SESSION."
     (when (and (emacs-tui--view-editable view)
                (or items-p (and text-p (not (stringp text)))))
       (error "Editable views accept only string TEXT updates"))
+    (when (and (emacs-tui--view-tree view) text-p text)
+      (error "Tree views accept item updates, not text previews"))
     (when items-p
       (emacs-tui--validate-items items (emacs-tui--view-multi-select view)))
     (when (and text-p (not (or (null text) (stringp text))))
       (error "TEXT must be a string or nil"))
     (let ((candidate (copy-emacs-tui--view view)))
-      (when items-p (setf (emacs-tui--view-items candidate) items))
+      (when items-p
+        (when (emacs-tui--view-tree view)
+          (let ((data (emacs-tui--tree-index items (emacs-tui--view-children view)
+                                            (emacs-tui--view-tree view))))
+            (setf (emacs-tui--view-tree candidate) data)
+            (setq items (emacs-tui--tree-data-items data))))
+        (setf (emacs-tui--view-items candidate) items))
       (when text-p (setf (emacs-tui--view-text candidate) text))
       (when (emacs-tui--view-marks candidate)
 	(if (emacs-tui--view-text candidate)
@@ -559,6 +672,9 @@ Return SESSION."
       (emacs-tui--filter session candidate)
       (emacs-tui--render-view session candidate)
       (setf (emacs-tui--view-items view) (emacs-tui--view-items candidate)
+            (emacs-tui--view-tree view) (emacs-tui--view-tree candidate)
+            (emacs-tui--view-tree-open view) (emacs-tui--view-tree-open candidate)
+            (emacs-tui--view-tree-search view) (emacs-tui--view-tree-search candidate)
             (emacs-tui--view-text view) (emacs-tui--view-text candidate)
             (emacs-tui--view-marks view) (emacs-tui--view-marks candidate)
             (emacs-tui--view-visible-items view) (emacs-tui--view-visible-items candidate)
@@ -1113,10 +1229,17 @@ KEYMAP supplies application commands for view buffers."
                                                (emacs-tui--view-id view)))
                   (emacs-tui--view-window view) nil
                   (emacs-tui--view-marks view) nil)
+            (when (emacs-tui--view-tree view)
+              (let ((data (copy-emacs-tui--tree-data (emacs-tui--view-tree view))))
+                (setf (emacs-tui--tree-data-expanded data)
+                      (copy-hash-table (emacs-tui--tree-data-expanded data))
+                      (emacs-tui--view-tree view) data)))
             (with-current-buffer (emacs-tui--view-buffer view)
-              (if (emacs-tui--view-editable view)
+              (if (emacs-tui--view-tree view)
+                  (emacs-tui-tree-mode)
+                (if (emacs-tui--view-editable view)
                   (emacs-tui-field-mode)
-                (emacs-tui-view-mode))
+                  (emacs-tui-view-mode)))
               (when (or keymap (emacs-tui--view-keymap view))
                 (use-local-map
                  (make-composed-keymap

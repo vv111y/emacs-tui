@@ -1,10 +1,10 @@
 EMACS ?= emacs
 
-.PHONY: test compile checkdoc check clean demo async-demo dashboard panel composer tty-smoke
+.PHONY: test compile checkdoc check clean demo async-demo dashboard panel composer tree tty-smoke
 test:
 	$(EMACS) -Q --batch -L . -L test -l test/run-tests.el
 compile:
-	$(EMACS) -Q --batch -L . --eval '(setq byte-compile-error-on-warn t)' -f batch-byte-compile emacs-tui-layout.el emacs-tui-table.el emacs-tui.el examples/*.el
+	$(EMACS) -Q --batch -L . --eval '(setq byte-compile-error-on-warn t)' -f batch-byte-compile emacs-tui-layout.el emacs-tui-table.el emacs-tui-tree.el emacs-tui.el examples/*.el
 checkdoc:
 	$(EMACS) -Q --batch -L . -l test/check-docs.el
 check: test compile checkdoc
@@ -14,6 +14,7 @@ tty-smoke:
 	EMACS=$(EMACS) python3 test/run-tty-smoke.py test/tty-embed-smoke.el
 	EMACS=$(EMACS) python3 test/run-tty-smoke.py test/tty-table-smoke.el
 	EMACS=$(EMACS) python3 test/run-tty-smoke.py test/tty-input-smoke.el
+	EMACS=$(EMACS) python3 test/run-tty-smoke.py test/tty-tree-smoke.el
 clean:
 	rm -f emacs-tui*.elc examples/*.elc
 demo:
@@ -26,3 +27,5 @@ panel:
 	$(EMACS) -Q -nw -L . -l examples/emacs-tui-buffer-panel.el -f emacs-tui-buffer-panel
 composer:
 	$(EMACS) -Q -nw -L . -l examples/emacs-tui-composer.el -f emacs-tui-composer
+tree:
+	$(EMACS) -Q -nw -L . -l examples/emacs-tui-buffer-tree.el -f emacs-tui-buffer-tree
