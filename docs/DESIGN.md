@@ -17,7 +17,7 @@ use the package. Add controls and abstractions through concrete use cases.
 
 ## Separate primitives from policies
 
-Shared capabilities include list/text views and later tables, trees and forms;
+Shared capabilities include list/text/table views and later trees and forms;
 layout and resize; focus and input routing; selection and marks; updates and
 async lifecycle management; and discoverable application-defined actions.
 
@@ -69,3 +69,9 @@ multiple views inside one borrowed surface remain future work.
 Application and per-view keymaps compose with native defaults, while ephemeral
 query input retains ordinary editing. Forms, trees and persistent input widgets
 remain work for subsequent application-driven increments. No stable API claim is made.
+
+Table columns project existing items for display and sorting; they do not
+introduce a separate row identity or action model. The buffer/process dashboard
+exercises numeric sort, string metadata and stable updates. Columns use fixed
+display widths with horizontal scrolling; editing and adaptive widths remain
+future work.

@@ -57,6 +57,42 @@ application-owned panels; multi-view owned layouts remain available via
 `emacs-tui-mount`. Embedding within a text region of an existing buffer is not
 implemented.
 
+## Tables
+
+Give a view `:columns` to display its existing items as table rows:
+
+```elisp
+(emacs-tui-embed
+ :view (emacs-tui-view
+        :id 'jobs
+        :items '((:id a :label "Build" :seconds 12)
+                 (:id b :label "Test" :seconds 3))
+        :columns (list (emacs-tui-column :id 'name :title "Job"
+                                         :width 24 :value :label)
+                       (emacs-tui-column :id 'time :title "Seconds"
+                                         :width 10 :value :seconds :align 'right))))
+```
+
+Column `:value` is a plist keyword or a pure function receiving the original
+item. Widths count display columns; wide characters are clipped at cell
+boundaries, and tabs/newlines display as spaces. Fixed-width columns can be
+scrolled horizontally with ordinary Emacs commands. Headers occupy the first
+buffer line; they are not sticky while scrolling. Table rows use their columns
+instead of the list annotation. Actions still receive the original item.
+
+Press s to choose a column; C-u s sorts descending. An empty answer restores
+source order. Applications can call `(emacs-tui-sort app 'jobs 'time t)` directly.
+Sorting is stable, preserves the selected identity and marks, and survives
+streaming replacement updates without mutating source order. Marked items are
+still returned in source order. The default comparator orders numbers
+numerically before other values, then compares their displayed strings;
+`:lessp` can supply a comparator over raw projected values.
+
+Local ephemeral queries search full column values and item labels, including
+text clipped from display. Provider-driven filtering stays application-owned.
+The dashboard demonstrates sortable buffer sizes, modes and process metadata.
+Column editing, automatic width allocation and sticky headers are future work.
+
 ## Application commands
 
 Pass an ordinary Emacs keymap as `:keymap` to any entry point, or to an
@@ -155,6 +191,8 @@ and continue exploration; commitment is a separate command.
 | `emacs-tui-view` | Describe a list or text preview |
 | `emacs-tui-open` | Open an ephemeral query workspace |
 | `emacs-tui-embed` | Borrow an application window for one panel; restore it on close |
+| `emacs-tui-column` | Describe a table column and its item projection |
+| `emacs-tui-sort` | Sort table rows without changing source order or item identity |
 | `emacs-tui-current-session` | Return the current live interface handle for application commands |
 | `emacs-tui-mount` | Open a persistent interface without query or origin policy |
 | `emacs-tui-live-p` | Check whether an interface handle is active |

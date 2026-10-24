@@ -80,5 +80,24 @@
       (should (equal timers timer-list))
       (should-not emacs-tui--sessions))))
 
+(ert-deftest emacs-tui-dashboard-buffer-table-sorts-numeric-snapshots ()
+  (save-window-excursion
+    (delete-other-windows)
+    (let ((small (generate-new-buffer "*Dashboard small*"))
+          (large (generate-new-buffer "*Dashboard large*")) session)
+      (unwind-protect
+          (progn
+            (with-current-buffer small (insert "xx"))
+            (with-current-buffer large (insert "xxxxxxxxxx"))
+            (setq session (emacs-tui-dashboard))
+            (emacs-tui-sort session 'buffers 'size)
+            (let ((buffers (mapcar (lambda (row) (plist-get row :value))
+                                   (emacs-tui--view-visible-items
+                                    (car (emacs-tui--workspace-views session))))))
+              (should (< (cl-position small buffers) (cl-position large buffers)))))
+        (when session (emacs-tui-close session))
+        (kill-buffer small)
+        (kill-buffer large)))))
+
 (provide 'emacs-tui-dashboard-test)
 ;;; emacs-tui-dashboard-test.el ends here
