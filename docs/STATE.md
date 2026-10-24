@@ -10,10 +10,13 @@ and an `:on-close` callback for application resources. A persistent buffer and
 process dashboard demonstrates periodic refresh and actions that keep the UI
 open. Existing ephemeral behavior remains covered by its original regressions.
 
-The PR is stacked on scope clarification PR #5. Both await independent review;
-do not treat the author's checks as independent review. Review and integrate
-#5 first, then retarget #6 to main and recheck its head/base and CI. The implementation claim is released for independent review; inspect the latest
-remote head before resuming changes.
+The owner merged scope clarification PR #5 at
+`040894331b38a6797ff006d5c2f7fbc7a710f11b`. PR #6 now targets main.
+The merged base tree exactly matches the previous scope branch, so integrating
+main into #6 changes no implementation files. The handoff records the new base;
+verify the resulting head and CI before integration. PR #6 still needs independent
+review; author testing does not satisfy that gate. Inspect the latest remote
+head before resuming changes.
 
 Local evidence for #6: 106 ERT tests, strict package/example compilation,
 checkdoc and both real Emacs 29.3 TTY smoke scripts pass. The new script tests
@@ -27,7 +30,7 @@ Implementation commit `4a4449e31437de628895f4fc9e1ce7210d6e7d1a` passes
 [CI run 40047094457](https://github.com/vv111y/emacs-tui/actions/runs/40047094457).
 Emacs 31.1 exercised native TTY child frames in both scripts; earlier versions
 used ordinary windows. This handoff update changes documentation only; verify
-the latest head and CI when reviewing. Neither PR has independent review yet.
+the latest head and CI when reviewing. PR #6 has no recorded independent review yet.
 Package-lint was rerun for #6 with only the same two package-name warnings.
 
 ## Implementation and handoff
@@ -53,6 +56,8 @@ Check its live review and CI state before treating it as integrated.
 - [PR #4](https://github.com/vv111y/emacs-tui/pull/4): merged opt-in
   multi-selection, stable identity marks, non-color indicators and explicit
   batch commits. Final-head CI also passed on all four supported test versions.
+- [PR #5](https://github.com/vv111y/emacs-tui/pull/5): merged by the owner;
+  general-purpose toolkit scope and lifecycle priorities are now on main.
 
 API and runnable examples are in README.md. `make demo` explores an in-memory
 sample graph; `make async-demo` searches buffer snapshots. Marks are per view
@@ -84,7 +89,7 @@ trampoline generation because it has no configured native compiler toolchain.
 
 ## Remaining work
 
-1. Inspect and independently review open PRs #5 and #6. The shared lifecycle
+1. Independently review open PR #6. PR #5 was merged by the owner. The shared lifecycle
    and persistent dashboard are implemented in #6, pending review and CI. Next
    prove embedding with explicit ownership of host buffers/windows and add
    application input/action composition. Preserve ephemeral behavior. Extend
