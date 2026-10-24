@@ -34,12 +34,29 @@ adding absent plist keys detached the association's recorded state. Mutable keys
 are now preinitialized. Review also required waiting for both providers and
 checking both resize dimensions. Revised run 40092491823 passed the complete
 flow on Linux 28.1/28.2/29.4/30.2 and macOS 30.2, but native-child-frame 31.1
-stalled after switching to terminal A. The driver now emits standard xterm
-focus-in events when switching terminals and keeps a bounded native command
-trace for failure diagnosis. This is a test revision, not a proven core fix.
-These failed/incomplete runs are not counted as passing. Positive runtime
-coverage, independent exact-head review and all eight fresh CI jobs are required
-before integration. No new
+stalled after switching to terminal A. Diagnostic run 40092856451 confirmed that focus-in events alone do not fix
+31.1: incoming A keys dispatch to its parent host buffer instead of its child.
+The driver retains a bounded native command trace. These failed runs are not
+counted as passing.
+
+Native terminal input routing now remembers the last owned interface frame on
+each terminal and filters incoming cross-terminal switch-frame events to that
+live child, including nested children. Same-terminal explicit frame selection,
+GUI frames, unrelated roots and invalidated surfaces keep normal Emacs routing.
+No redirect-frame-focus is installed: Emacs retargets those redirects on frame
+selection and could send one terminal's input to another. The observer/advice
+exist only while native TTY child sessions remain; nested close restores an
+owned ancestor's remembered focus without selecting a background frame.
+
+Local 293 ERT, strict compilation/checkdoc passed on Emacs 29.3/Linux. Seven new
+modeled routing tests cover event identity, prefix preservation, explicit parent
+selection, background memory, dead/foreign/GUI roots, terminal mismatch, nested
+close and final observer/advice cleanup with unrelated advice retained. These
+are unit boundaries, not positive native display evidence. The actual two-PTY
+fixture now also checks a numeric prefix across terminal return, continued
+survivor editing and final routing-hook cleanup. Independent exact-head review
+and all eight fresh CI jobs, including positive native 31.1 Linux/macOS evidence,
+are required before integration. No new
 performance, physical emulator, GUI or long-term maturity claim is made.
 
 PR #35 merged at `e4be92a9a941526ab1e4081e0a1f8f106de8ae68` after independent

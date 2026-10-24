@@ -63,7 +63,7 @@
 (cl-defstruct (emacs-tui--workspace (:constructor emacs-tui--make-workspace))
   views (focus 0) layout backend on-query on-commit origin origin-window
   origin-frame frame query-buffer root windows active origin-kill-hook geometry
-  provider debounce request provider-views on-close host maximized)
+  provider debounce request provider-views on-close host maximized tty-focus)
 
 (cl-defstruct (emacs-tui--host (:constructor emacs-tui--make-host))
   window buffer point start hscroll vscroll)
@@ -1013,6 +1013,74 @@ results belonging to the previous query.  Untouched views are retained."
   (and (not noninteractive)
        (or (display-graphic-p) (featurep 'tty-child-frames))))
 
+(defun emacs-tui--tty-child-p (session)
+  "Whether SESSION has a live native terminal child frame."
+  (let ((frame (emacs-tui--workspace-frame session)))
+    (and (frame-live-p frame) (not (display-graphic-p frame)))))
+
+(defun emacs-tui--remember-tty-focus ()
+  "Remember each terminal's last explicitly selected interface frame."
+  (let ((selected (selected-frame)))
+    (dolist (session emacs-tui--sessions)
+      (when (and (emacs-tui--tty-child-p session)
+                 (eq (frame-terminal selected)
+                     (frame-terminal (emacs-tui--workspace-frame session))))
+        (setf (emacs-tui--workspace-tty-focus session)
+              (and (eq selected (emacs-tui--workspace-frame session))
+                   (emacs-tui--subtree session) t))))))
+
+(defun emacs-tui--frame-below-p (frame ancestor)
+  "Whether live FRAME is ANCESTOR or one of its descendants."
+  (while (and (frame-live-p frame) (not (eq frame ancestor)))
+    (setq frame (frame-parent frame)))
+  (and (frame-live-p frame) (eq frame ancestor)))
+
+(defun emacs-tui--tty-switch-frame (arguments)
+  "Restore owned terminal child focus in switch-frame ARGUMENTS.
+Emacs assigns input on a returning terminal to its top-level frame when
+another terminal is selected.  Preserve that terminal's last interface
+focus, including nested children.  Explicit selection within one terminal
+and invalidated surfaces retain normal Emacs routing."
+  (let* ((event (car arguments))
+         (target (and (consp event) (eq (car event) 'switch-frame) (cadr event)))
+         (selected (selected-frame))
+         (session
+          (when (and (frame-live-p target) (not (display-graphic-p target))
+                     (not (eq (frame-terminal target) (frame-terminal selected))))
+            (cl-find-if
+             (lambda (app)
+               (and (emacs-tui--workspace-tty-focus app)
+                    (emacs-tui--tty-child-p app)
+                    (eq (frame-terminal target)
+                        (frame-terminal (emacs-tui--workspace-frame app)))
+                    (emacs-tui--frame-below-p (emacs-tui--workspace-frame app) target)
+                    (emacs-tui--subtree app)))
+             emacs-tui--sessions))))
+    (if session
+        (cons (list 'switch-frame (emacs-tui--workspace-frame session)) (cdr arguments))
+      arguments)))
+
+(defun emacs-tui--restore-tty-focus (session)
+  "Restore a remembered owned ancestor when SESSION's child closes.
+Do not select a frame or resurrect focus after explicit parent selection."
+  (when (emacs-tui--workspace-tty-focus session)
+    (let ((parent (emacs-tui--workspace-origin-frame session)))
+      (dolist (app emacs-tui--sessions)
+        (when (and (emacs-tui--tty-child-p app)
+                   (eq parent (emacs-tui--workspace-frame app))
+                   (emacs-tui--subtree app))
+          (setf (emacs-tui--workspace-tty-focus app) t))))))
+
+(defun emacs-tui--sync-tty-focus-hooks ()
+  "Install terminal routing only while native terminal interfaces are live."
+  (if (cl-some #'emacs-tui--tty-child-p emacs-tui--sessions)
+      (progn
+        (add-hook 'post-command-hook #'emacs-tui--remember-tty-focus)
+        (unless (advice-member-p #'emacs-tui--tty-switch-frame #'handle-switch-frame)
+          (advice-add #'handle-switch-frame :filter-args #'emacs-tui--tty-switch-frame)))
+    (remove-hook 'post-command-hook #'emacs-tui--remember-tty-focus)
+    (advice-remove #'handle-switch-frame #'emacs-tui--tty-switch-frame)))
+
 (defun emacs-tui--fit-child (session)
   "Fit SESSION's existing child frame inside its live parent.
 Dimensions are converted from parent inner pixels to child character
@@ -1510,6 +1578,7 @@ KEYMAP supplies application commands for view buffers."
           (push session emacs-tui--sessions)
           (add-hook 'delete-frame-functions #'emacs-tui--frame-deleted)
           (add-hook 'window-state-change-hook #'emacs-tui--window-state-changed)
+          (emacs-tui--sync-tty-focus-hooks)
           (when ephemeral
             (let ((hook (lambda () (emacs-tui-close session))))
               (setf (emacs-tui--workspace-origin-kill-hook session) hook)
@@ -1520,6 +1589,7 @@ KEYMAP supplies application commands for view buffers."
           (with-current-buffer (or query (emacs-tui--view-buffer
                                           (emacs-tui--focused-view session)))
             (emacs-tui--query-changed 'initial))
+          (emacs-tui--remember-tty-focus)
           (setq initialized t)
           session)
       (unless initialized (emacs-tui-close session)))))
@@ -1579,6 +1649,7 @@ windows are preserved."
              (emacs-tui--workspace-active session))
     (setf (emacs-tui--workspace-active session) nil)
     (setq emacs-tui--sessions (delq session emacs-tui--sessions))
+    (emacs-tui--restore-tty-focus session)
     (unwind-protect
         (let* ((origin (emacs-tui--workspace-origin session))
                (origin-window (emacs-tui--workspace-origin-window session))
@@ -1620,6 +1691,7 @@ windows are preserved."
       (unless emacs-tui--sessions
 	(remove-hook 'delete-frame-functions #'emacs-tui--frame-deleted)
 	(remove-hook 'window-state-change-hook #'emacs-tui--window-state-changed))
+      (emacs-tui--sync-tty-focus-hooks)
       (unwind-protect
           (emacs-tui--stop-request (emacs-tui--workspace-request session))
         (let ((callback (emacs-tui--workspace-on-close session)))

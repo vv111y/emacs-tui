@@ -89,9 +89,11 @@ def main():
             resize(masters[1], 45, 140)
             os.killpg(processes[1].pid, signal.SIGWINCH)
             await_phase("second-resized")
+            os.write(masters[0], b"\x1b[I\x15\x02\x03\x05")
+            await_phase("first-prefix")
             os.write(masters[1], b"\x1b[I\x03\x04")
             await_phase("second-deleted")
-            os.write(masters[0], b"\x1b[I!\x03\x05")
+            os.write(masters[0], b"\x1b[I\x15\x06!\x03\x05")
             while processes[0].poll() is None and time.monotonic() < deadline:
                 drain()
             status = processes[0].wait(timeout=1)

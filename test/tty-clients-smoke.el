@@ -166,6 +166,11 @@
            (cl-assert (> (plist-get b :changes) 0))
            (emacs-tui-test--clients-isolated)
            (emacs-tui-test--clients-ready 'second-edited))
+          ('second-resized
+           (cl-assert (eq sa (emacs-tui-current-session)))
+           (cl-assert (equal "alpha" (emacs-tui-input-value sa 'body)))
+           (cl-assert (= 2 (point)))
+           (emacs-tui-test--clients-ready 'first-prefix))
           ('second-deleted
            (cl-assert (eq sa (emacs-tui-current-session)))
            (cl-assert (equal "alpha!" (emacs-tui-input-value sa 'body)))
@@ -186,6 +191,8 @@
            (cl-assert (null emacs-tui--sessions))
            (cl-assert (not (memq #'emacs-tui--frame-deleted delete-frame-functions)))
            (cl-assert (not (memq #'emacs-tui--window-state-changed window-state-change-hook)))
+           (cl-assert (not (memq #'emacs-tui--remember-tty-focus post-command-hook)))
+           (cl-assert (not (advice-member-p #'emacs-tui--tty-switch-frame #'handle-switch-frame)))
            (cl-assert (= 1 (length (frame-list))))
            (emacs-tui-test--clients-write
             "result" (format "PASS Emacs %s; two real terminals; backend=%s; native input, background updates, independent resize, frame deletion, stale publication and cleanup\n"
@@ -200,7 +207,7 @@
   (condition-case err
       (let* ((b (emacs-tui-test--clients-state 'B))
              (session (plist-get b :session)))
-        (cl-assert (eq emacs-tui-test--clients-phase 'second-resized))
+        (cl-assert (eq emacs-tui-test--clients-phase 'first-prefix))
         (cl-assert (eq session (emacs-tui-current-session)))
         (delete-frame (plist-get b :parent) t))
     ((error quit) (emacs-tui-test--clients-fail err))))
@@ -233,7 +240,7 @@
             (cl-assert (equal "bravo" (emacs-tui-input-value sb 'body)))
             (emacs-tui-test--clients-ready
              (if (eq phase 'second-edited) 'first-resized 'second-resized))))
-        (when (and (eq phase 'second-resized) (not (frame-live-p (plist-get b :parent))))
+        (when (and (eq phase 'first-prefix) (not (frame-live-p (plist-get b :parent))))
           (cl-assert (not (emacs-tui-live-p sb)))
           (cl-assert (emacs-tui-live-p sa))
           (cl-assert (= 1 (plist-get b :closed)))
