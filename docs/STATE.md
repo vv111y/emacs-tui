@@ -18,8 +18,8 @@ A fourth real TTY script invokes the interactive sort prompt and verifies marks,
 actions, two terminal resizes and host restoration. Tables use fixed display
 widths; sticky headers, editing and automatic width allocation remain future.
 
-Active worker owns core, new table module/tests/smoke, dashboard, Makefile,
-checkdoc harness and documentation. Independent review and current-head CI are
+Implementation claim released after separate review; inspect the remote head
+before editing or integrating. Independent review and current-head CI are
 required before integration. Local checks passed 143 ERT tests, strict compile,
 checkdoc and all four real Emacs 29.3 PTY scripts, including the dashboard
 numeric-sort regression. Package-lint's new module check is clean; the
@@ -30,7 +30,14 @@ Separate review found that failing table projections/comparators could partially
 apply an update. The fix stages candidate state and complete rendered content
 before changing either. New direct-update, preview-transition and invalid async
 publication regressions preserve the last valid source, selection, marks and
-display. The revised head needs separate re-review and CI before integration.
+display. Separate review approved implementation head
+`bba9b189bd8d6c7d4c4af0cf2554eaa400676094`, independently repeating all
+143 tests, compilation, checkdoc and four TTY scripts. The reviewer also verified
+a nonlocal exit during sort rendering preserves the previous sort and content.
+That implementation also passes all four Emacs versions in
+[CI run 40051399759](https://github.com/vv111y/emacs-tui/actions/runs/40051399759).
+This final checkpoint changes documentation only; verify current-head CI before
+integration.
 A separate existing preview focus/scroll reset bug has been reproduced and is
 the next focused fix after tables are integrated.
 
