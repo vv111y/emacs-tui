@@ -6,7 +6,9 @@ before/after removing row reconstruction from selection movement. It covers
 interpreted Emacs 29.3 and ordinary windows on one host, not universal latency.
 The [query-clear pair](../bench/results/2026-10-24-query-clear/README.md) separates
 native insertion from deletion and measures skipping predicates for empty terms.
-Both retain every sample; compiled/native-code performance remains unmeasured.
+Both retain every sample. The [fresh-bytecode profile](../bench/results/2026-10-24-bytecode/README.md)
+adds all five workloads on one compiled-library configuration; native-code
+performance remains unmeasured.
 
 Run `make clean benchmark` with Python 3 and a real terminal-capable Emacs.
 The driver creates its own 120x40 PTY and starts `emacs -Q -nw`; it does not

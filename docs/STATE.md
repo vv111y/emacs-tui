@@ -29,8 +29,21 @@ fix. CI smoke exercises all five workloads in both modes. The fixture remains
 interpreted and deferred native compilation remains disabled in either mode.
 
 Local Emacs 29.3 passes both five-workload protocol runs, strict fixture compile,
-Python syntax and process/PTY regressions. Independent review and all current-head
-CI remain required. Next: record compiled-library costs before selecting another
+Python syntax and process/PTY regressions. Independent agent review approved implementation `8f3718defd561238a46c13bb7df3601044838fae`.
+All eight implementation CI jobs passed in
+[40069924764](https://github.com/vv111y/emacs-tui/actions/runs/40069924764), including
+both load modes on every supported runtime. Negative probes reject stale-source
+bytecode, compiler failure and original-source mutation; compiler deadline cleanup
+also passed. PR #21's bounded lifecycle and exit drainage remain intact.
+
+A full fresh-bytecode profile is under bench/results/2026-10-24-bytecode, retaining
+all 1,100 records, warmups, per-command/pooled percentiles, environment and source/
+bytecode fingerprints. On this Emacs 29.3/Linux host, 10,000-row table navigation
+p50/p95/p99 is 0.546/0.789/0.849ms; table query clearing is 272.447/320.990/333.227ms.
+Provider waiting and publish/redisplay stages remain separate. This is one current
+bytecode profile with interpreted fixture callbacks and native JIT disabled, not
+a before/after compiled-code or physical-paint comparison. Artifact/doc review
+and all eight final-head CI jobs remain integration gates. Next: record compiled-library costs before selecting another
 rendering optimization, add repeated lifecycle/resource stress, broaden display
 validation and extend applications through concrete feature needs. No maturity
 or MELPA acceptance claim is made.
