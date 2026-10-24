@@ -1344,7 +1344,9 @@ ARRANGING means old windows were already captured before layout changes."
   "Select SESSION's focused view when there is no separate query input."
   (unless (emacs-tui--workspace-query-buffer session)
     (let ((window (emacs-tui--view-window (emacs-tui--focused-view session))))
-      (when (window-live-p window) (select-window window)))))
+      (when (window-live-p window)
+        (select-window window)
+        (emacs-tui--remember-tty-focus)))))
 
 (defun emacs-tui-refresh (&optional session)
   "Reflow SESSION safely, preserving its query and logical selection.

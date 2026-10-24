@@ -48,10 +48,10 @@ selection and could send one terminal's input to another. The observer/advice
 exist only while native TTY child sessions remain; nested close restores an
 owned ancestor's remembered focus without selecting a background frame.
 
-Local 293 ERT, strict compilation/checkdoc passed on Emacs 29.3/Linux. Seven new
+Local 294 ERT, strict compilation/checkdoc passed on Emacs 29.3/Linux. Eight new
 modeled routing tests cover event identity, prefix preservation, explicit parent
 selection, background memory, dead/foreign/GUI roots, terminal mismatch, nested
-close and final observer/advice cleanup with unrelated advice retained. These
+close, immediate application focus changes and final observer/advice cleanup with unrelated advice retained. These
 are unit boundaries, not positive native display evidence. The actual two-PTY
 fixture now also checks a numeric prefix across terminal return, continued
 survivor editing and final routing-hook cleanup. Independent exact-head review

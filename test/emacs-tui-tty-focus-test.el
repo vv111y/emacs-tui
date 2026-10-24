@@ -107,6 +107,25 @@
       (emacs-tui--restore-tty-focus nested)
       (should-not (emacs-tui--workspace-tty-focus a)))))
 
+(ert-deftest emacs-tui-tty-focus-public-focus-records-selection-before-next-command ()
+  (emacs-tui-tty-focus-test--with
+    (let* ((view (emacs-tui--make-view :id 'first :window 'wa))
+           (nested (emacs-tui--make-workspace :active t :frame 'an :origin-frame 'ac)))
+      (setf (emacs-tui--workspace-views a) (list view))
+      (push nested emacs-tui--sessions) (push nested owned)
+      (setq selected 'an)
+      (emacs-tui--remember-tty-focus)
+      (should (emacs-tui--workspace-tty-focus nested))
+      (cl-letf (((symbol-function 'window-live-p) (lambda (window) (eq window 'wa)))
+                ((symbol-function 'select-window) (lambda (_) (setq selected 'ac)))
+                ((symbol-function 'emacs-tui--render-view) #'ignore))
+        (should (eq a (emacs-tui-focus-view a 'first))))
+      (should (emacs-tui--workspace-tty-focus a))
+      (should-not (emacs-tui--workspace-tty-focus nested))
+      (setq selected 'bc)
+      (emacs-tui--remember-tty-focus)
+      (should (equal '((switch-frame ac)) (emacs-tui--tty-switch-frame '((switch-frame ar))))))))
+
 (ert-deftest emacs-tui-tty-focus-hook-lifetime-preserves-other-advice-and-window-sessions ()
   (emacs-tui-tty-focus-test--with
     (let ((post-command-hook (list #'ignore))
