@@ -79,9 +79,9 @@ def main():
                    "--socket-name=" + str(root / "socket" / "tui"), "--tty", "--eval",
                    "(emacs-tui-test--clients-join)"], 35, 100)
             await_phase("both-ready")
-            os.write(masters[0], b"alpha\x03\x05")
+            os.write(masters[0], b"\x1b[Ialpha\x03\x05")
             await_phase("first-edited")
-            os.write(masters[1], b"bravo\x03\x05")
+            os.write(masters[1], b"\x1b[Ibravo\x03\x05")
             await_phase("second-edited")
             resize(masters[0], 30, 90)
             os.killpg(processes[0].pid, signal.SIGWINCH)
@@ -89,9 +89,9 @@ def main():
             resize(masters[1], 45, 140)
             os.killpg(processes[1].pid, signal.SIGWINCH)
             await_phase("second-resized")
-            os.write(masters[1], b"\x03\x04")
+            os.write(masters[1], b"\x1b[I\x03\x04")
             await_phase("second-deleted")
-            os.write(masters[0], b"!\x03\x05")
+            os.write(masters[0], b"\x1b[I!\x03\x05")
             while processes[0].poll() is None and time.monotonic() < deadline:
                 drain()
             status = processes[0].wait(timeout=1)
@@ -103,6 +103,8 @@ def main():
             return 0
         except (OSError, RuntimeError, subprocess.TimeoutExpired) as error:
             print(f"FAIL terminal clients: {error}")
+            if (root / "commands").exists():
+                print("Native command trace:\n" + (root / "commands").read_text())
             for index, transcript in enumerate(transcripts):
                 print(f"Terminal {index + 1}:\n" + transcript.decode(errors="replace"))
             return 1

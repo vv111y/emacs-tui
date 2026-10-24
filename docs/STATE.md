@@ -29,8 +29,17 @@ Emacs 29.3/Linux; the new fixture also passed strict compilation/checkdoc and
 Python syntax validation. Its real
 local execution could not start the private server: this host rejects the Unix
 socket with make-network-process "Operation not permitted". This is not a
-passing two-client test. Positive runtime coverage, independent exact-head
-review and all eight fresh CI jobs are required before integration. No new
+passing two-client test. Initial CI 40092353647 caught a fixture state bug:
+adding absent plist keys detached the association's recorded state. Mutable keys
+are now preinitialized. Review also required waiting for both providers and
+checking both resize dimensions. Revised run 40092491823 passed the complete
+flow on Linux 28.1/28.2/29.4/30.2 and macOS 30.2, but native-child-frame 31.1
+stalled after switching to terminal A. The driver now emits standard xterm
+focus-in events when switching terminals and keeps a bounded native command
+trace for failure diagnosis. This is a test revision, not a proven core fix.
+These failed/incomplete runs are not counted as passing. Positive runtime
+coverage, independent exact-head review and all eight fresh CI jobs are required
+before integration. No new
 performance, physical emulator, GUI or long-term maturity claim is made.
 
 PR #35 merged at `e4be92a9a941526ab1e4081e0a1f8f106de8ae68` after independent

@@ -19,6 +19,18 @@
 (defvar emacs-tui-test--clients nil)
 (defvar emacs-tui-test--clients-phase 'starting)
 (defvar emacs-tui-test--clients-timer nil)
+(defvar emacs-tui-test--clients-commands nil)
+
+(defun emacs-tui-test--clients-command ()
+  "Retain a bounded native input trace for failure diagnostics."
+  (push (list emacs-tui-test--clients-phase
+              (terminal-name (frame-terminal)) (frame-parameter nil 'name)
+              (buffer-name) last-command-event this-command)
+        emacs-tui-test--clients-commands)
+  (setq emacs-tui-test--clients-commands
+        (seq-take emacs-tui-test--clients-commands 30))
+  (emacs-tui-test--clients-write
+   "commands" (pp-to-string (reverse emacs-tui-test--clients-commands))))
 
 (defun emacs-tui-test--clients-write (name text)
   "Write TEXT to coordination file NAME in the private test directory."
@@ -79,7 +91,7 @@
             (plist-get state :buffers)
             (mapcar #'emacs-tui--view-buffer (emacs-tui--workspace-views session)))
       (cl-assert (eq parent (emacs-tui--workspace-origin-frame session)))
-      (when-let ((child (emacs-tui--workspace-frame session)))
+      (when-let* ((child (emacs-tui--workspace-frame session)))
         (cl-assert (eq parent (frame-parent child)))
         (cl-assert (eq (frame-terminal parent) (frame-terminal child))))
       state)))
@@ -242,6 +254,7 @@
         (make-directory server-socket-dir t)
         (set-file-modes server-socket-dir #o700)
         (server-start)
+        (add-hook 'pre-command-hook #'emacs-tui-test--clients-command)
         (emacs-tui-test--clients-create 'A)
         (setq emacs-tui-test--clients-timer
               (run-at-time 0.05 0.05 #'emacs-tui-test--clients-poll))
