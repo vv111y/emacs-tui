@@ -1499,6 +1499,20 @@ windows are preserved."
   (let ((enabled (emacs-tui--action-enabled action)))
     (if (functionp enabled) (funcall enabled session items) enabled)))
 
+(defun emacs-tui--action-choice (answer choices)
+  "Resolve accepted completion ANSWER in CHOICES without case ambiguity.
+Prefer an exact spelling.  Native completion can accept another spelling
+when case folding is enabled, including by minibuffer-local configuration."
+  (or (assoc answer choices)
+      (let ((matches (cl-remove-if-not
+                      (lambda (choice)
+                        (eq t (compare-strings answer nil nil (car choice) nil nil t)))
+                      choices)))
+        (when (cdr matches)
+          (user-error "Ambiguous action spelling; choose an exact candidate"))
+        (car matches))
+      (user-error "No matching action chosen")))
+
 (defun emacs-tui-act (&optional session id)
   "Invoke action ID in SESSION's focused view, or prompt when ID is nil.
 Use marked objects in source order, including hidden marks, before falling
@@ -1529,11 +1543,11 @@ no implicit close, commit or transaction; applications own all effects."
                          (puthash choice t labels)
                          (cons choice (emacs-tui--action-id action))))))
         (unless choices (user-error "No actions are available for these targets"))
-        (setq id (cdr (assoc (completing-read
-                              (format "Action (%d target%s): " (length items)
-                                      (if (= 1 (length items)) "" "s"))
-                              choices nil t)
-                            choices)))))
+        (setq id (cdr (emacs-tui--action-choice (completing-read
+						 (format "Action (%d target%s): " (length items)
+							 (if (= 1 (length items)) "" "s"))
+						 choices nil t)
+						choices)))))
     (emacs-tui--require-session session)
     (unless (eq view (emacs-tui--focused-view session))
       (user-error "Focused view changed; choose an action again"))

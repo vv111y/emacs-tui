@@ -204,5 +204,37 @@
           (emacs-tui-act session))
         (should (eq 'second result))))))
 
+(ert-deftest emacs-tui-action-accepted-case-insensitive-menu-answer-resolves ()
+  (let ((completion-ignore-case t) result)
+    (emacs-tui-action-test--with
+        (list (emacs-tui-view :id 'a :items '("x")
+                              :actions (list (emacs-tui-action :id 'run :title "Run"
+                                                               :run (lambda (&rest _) (setq result 'ran))))))
+      (cl-letf (((symbol-function 'completing-read) (lambda (&rest _) "run (run)")))
+        (emacs-tui-act session))
+      (should (eq 'ran result)))))
+
+(ert-deftest emacs-tui-action-case-folded-menu-prefers-exact-candidate ()
+  (let ((completion-ignore-case t) result)
+    (emacs-tui-action-test--with
+        (list (emacs-tui-view
+               :id 'a :items '("x")
+               :actions (list (emacs-tui-action :id 'run :title "Run" :run (lambda (&rest _) (setq result 'first)))
+                              (emacs-tui-action :id 'RUN :title "RUN" :run (lambda (&rest _) (setq result 'second))))))
+      (cl-letf (((symbol-function 'completing-read) (lambda (&rest _) "RUN (RUN)")))
+        (emacs-tui-act session))
+      (should (eq 'second result)))))
+
+(ert-deftest emacs-tui-action-ambiguous-folded-answer-does-not-dispatch ()
+  (let ((completion-ignore-case t) (runs 0))
+    (emacs-tui-action-test--with
+        (list (emacs-tui-view
+               :id 'a :items '("x")
+               :actions (list (emacs-tui-action :id 'run :title "Run" :run (lambda (&rest _) (cl-incf runs)))
+                              (emacs-tui-action :id 'RUN :title "RUN" :run (lambda (&rest _) (cl-incf runs))))))
+      (cl-letf (((symbol-function 'completing-read) (lambda (&rest _) "rUn (rUn)")))
+        (should-error (emacs-tui-act session) :type 'user-error))
+      (should (= 0 runs)))))
+
 (provide 'emacs-tui-action-test)
 ;;; emacs-tui-action-test.el ends here

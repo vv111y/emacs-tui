@@ -230,6 +230,8 @@ Refresh. Optional `:enabled` accepts t (the default), nil to disable, or a pure
 availability function receiving the same arguments; it must return promptly. Rendering/navigation never evaluate action callbacks
 or predicates. Menus re-read targets and recheck availability after selection;
 closing the interface or changing its focused view aborts stale menu dispatch.
+Accepted case-insensitive names resolve to their action; exact spelling wins,
+and ambiguous folded names require an exact candidate.
 
 Action IDs are unique within each view. Descriptions are shared configuration;
 do not mutate them after use. The toolkit does not automatically close, commit,

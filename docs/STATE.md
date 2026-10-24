@@ -24,14 +24,20 @@ availability after the prompt. The buffer-tree demo offers Preview, Display,
 Copy names and Refresh, alongside existing shortcuts. Colliding printed labels
 are disambiguated, including valid distinct uninterned symbol IDs.
 
-Local Emacs 29.3 passes 215 ERT tests, strict compilation, checkdoc and six PTY
+Local Emacs 29.3 passes 218 ERT tests, strict compilation, checkdoc and six PTY
 scripts. New cases cover hidden batch marks, source refresh during menus,
 availability changes, menu cancellation/focus/close races, target-free input
 actions, explicit close/error behavior and original object identity. The tree
 PTY opens/completes a real action menu, copies an updated marked leaf, then
 retains state through maximize and resizes. Package-lint has only the two
-existing main/layout name warnings. Independent review and six-job CI are
-pending.
+existing main/layout name warnings.
+
+Independent review found accepted case-insensitive menu input was looked up
+with exact `assoc`, causing a valid lowercase answer to fail dispatch. The
+fix canonicalizes accepted names, prefers exact spelling and rejects ambiguous
+case-folded choices. Three new regressions and actual lowercase full-name
+completion in the real TTY scenario pass. The corrected head still requires
+independent re-review and current-head Linux/macOS CI before integration.
 
 Active worker owns action descriptions/dispatch, the tree demo and regressions,
 build integration and documentation through review and CI. Next: actual
