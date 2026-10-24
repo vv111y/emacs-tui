@@ -41,6 +41,7 @@
           (cl-assert (= 2 (window-total-height (emacs-tui--workspace-root session))))
           (cl-assert (equal (emacs-tui-query session) "a"))
           (cl-assert (equal (emacs-tui-current-item session) "beta"))
+          (cl-assert (equal (emacs-tui-marked-items session) '("alpha" "beta")))
           (cl-assert (= (with-current-buffer (emacs-tui--workspace-query-buffer session) (point)) 1))
           (cl-assert (equal (with-current-buffer "*terminal smoke source*" (buffer-string)) "origin:"))
           (cl-assert (= (with-current-buffer "*terminal smoke source*" (point)) 8))
@@ -57,11 +58,11 @@
                       emacs-tui-test--smoke-attempts 0)
                 (with-temp-file (getenv "EMACS_TUI_SMOKE_READY") (insert "2")))
             (execute-kbd-macro (kbd "C-c C-c"))
-            (cl-assert (equal (with-current-buffer "*terminal smoke source*" (buffer-string)) "origin:beta"))
+            (cl-assert (equal (with-current-buffer "*terminal smoke source*" (buffer-string)) "origin:alpha|beta"))
             (cl-assert (null emacs-tui--sessions))
             (cl-assert (> emacs-tui-test--smoke-cancellations 0))
             (with-temp-file (getenv "EMACS_TUI_SMOKE_REPORT")
-              (insert (format "PASS Emacs %s; real TTY; backend=%s; async=passed; resize=120x40->90x30->140x45\n"
+              (insert (format "PASS Emacs %s; real TTY; backend=%s; async=passed; marks=passed; resize=120x40->90x30->140x45\n"
                               emacs-version backend)))
             (kill-emacs 0))))
     ((error quit) (emacs-tui-test--smoke-failure err))))
@@ -76,7 +77,7 @@
           (cancel-timer emacs-tui-test--smoke-result-timer)
           (cl-assert (equal (emacs-tui-query session) "a"))
           (cl-assert (equal (emacs-tui-current-item session) "alpha"))
-          (execute-kbd-macro (kbd "M-n RET C-a"))
+          (execute-kbd-macro (kbd "C-c C-m M-n C-c C-m RET C-a"))
           (cl-assert (equal (emacs-tui-current-item session) "beta"))
           (cl-assert (equal (emacs-tui--view-text (cadr (emacs-tui--workspace-views session))) "beta"))
           (setq emacs-tui-test--smoke-phase 1
@@ -97,7 +98,7 @@
         (setq session
               (emacs-tui-open
                :backend backend
-               :views (list (emacs-tui-view :id 'items
+               :views (list (emacs-tui-view :id 'items :multi-select t
                                            :on-select
                                            (lambda (workspace item)
                                              (emacs-tui-update workspace 'preview :text item)))
@@ -116,7 +117,12 @@
                    (lambda ()
                      (cl-incf emacs-tui-test--smoke-cancellations)
                      (cancel-timer timer))))
-               :on-commit (lambda (_ item marker) (goto-char marker) (insert item))))
+               :on-commit
+               (lambda (workspace item marker)
+                 (goto-char marker)
+                 (insert (mapconcat #'identity
+                                    (or (emacs-tui-marked-items workspace) (list item))
+                                    "|")))))
         (cl-assert (eq (emacs-tui--workspace-backend session) backend))
         (cl-assert (eq (current-buffer) (emacs-tui--workspace-query-buffer session)))
         (execute-kbd-macro "a")

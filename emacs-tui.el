@@ -51,7 +51,8 @@
   :group 'emacs-tui)
 
 (cl-defstruct (emacs-tui--view (:constructor emacs-tui--make-view))
-  id title items visible-items (selected 0) text on-select buffer window)
+  id title items visible-items (selected 0) text on-select buffer window
+  multi-select marks)
 
 (cl-defstruct (emacs-tui--workspace (:constructor emacs-tui--make-workspace))
   views (focus 0) layout backend on-query on-commit origin origin-window
@@ -78,6 +79,8 @@
     (define-key map (kbd "M-p") #'emacs-tui-previous-item)
     (define-key map (kbd "RET") #'emacs-tui-select)
     (define-key map (kbd "C-c C-c") #'emacs-tui-commit)
+    (define-key map (kbd "C-c C-m") #'emacs-tui-toggle-mark)
+    (define-key map (kbd "C-c C-u") #'emacs-tui-clear-marks)
     (define-key map (kbd "C-c C-l") #'emacs-tui-cycle-layout)
     (define-key map (kbd "C-g") #'emacs-tui-close)
     (define-key map (kbd "C-c C-q") #'emacs-tui-close)
@@ -105,8 +108,8 @@
   "Return the stable identity of ITEM."
   (if (stringp item) item (or (plist-get item :id) item)))
 
-(defun emacs-tui--validate-items (items)
-  "Validate ITEMS and return them."
+(defun emacs-tui--validate-items (items &optional unique)
+  "Validate ITEMS and return them, requiring distinct identities if UNIQUE."
   (unless (proper-list-p items)
     (error "Items must be a proper list"))
   (dolist (item items)
@@ -114,13 +117,25 @@
                 (and (proper-list-p item)
                      (stringp (plist-get item :label))))
       (error "Each item must be a string or a plist with a string :label")))
+  (when unique
+    (let ((identities (make-hash-table :test #'equal)))
+      (dolist (item items)
+        (let ((id (emacs-tui--item-id item)))
+          (when (gethash id identities)
+            (error "Multi-select item identities must be unique: %S" id))
+          (puthash id t identities)))))
   items)
 
-(cl-defun emacs-tui-view (&key id title items text on-select)
+(cl-defun emacs-tui-view (&key id title items text on-select multi-select)
   "Describe an ephemeral view.
 ID is a unique symbol or string.  TITLE defaults to ID.  ITEMS is a list
 of strings or plists with :label, optional :id, :value and :annotation.
 TEXT is a preview string and takes precedence over ITEMS when non-nil.
+Non-nil MULTI-SELECT enables independent marks.  Item identities must
+then be unique under `equal': strings identify themselves, plists use
+their non-nil :id or otherwise the entire plist.  Use stable :id values
+to retain marks when labels or payloads change.  Text previews cannot
+be marked.
 ON-SELECT is called with the workspace and selected item; it need not
 close the workspace.  View descriptions are copied when opened."
   (unless (and id (or (symbolp id) (stringp id)))
@@ -129,8 +144,9 @@ close the workspace.  View descriptions are copied when opened."
   (unless (or (null on-select) (functionp on-select))
     (error "ON-SELECT must be a function"))
   (emacs-tui--make-view :id id :title (or title (format "%s" id))
-                        :items (emacs-tui--validate-items items)
-                        :visible-items items :text text :on-select on-select))
+                        :items (emacs-tui--validate-items items multi-select)
+                        :visible-items items :text text :on-select on-select
+                        :multi-select multi-select))
 
 (defun emacs-tui--require-session (session)
   "Return live SESSION, defaulting to the current buffer's workspace."
@@ -153,6 +169,66 @@ close the workspace.  View descriptions are copied when opened."
                (window-live-p (emacs-tui--view-window view)))
       (nth (emacs-tui--view-selected view)
            (emacs-tui--view-visible-items view)))))
+
+(defun emacs-tui--resolve-view (session id)
+  "Return SESSION's view ID, or its focused view if ID is nil."
+  (if id
+      (or (cl-find id (emacs-tui--workspace-views session)
+                   :key #'emacs-tui--view-id :test #'equal)
+          (error "Unknown view: %S" id))
+    (emacs-tui--focused-view session)))
+
+(defun emacs-tui--marked-p (view item)
+  "Return non-nil if ITEM is marked in VIEW."
+  (and (emacs-tui--view-marks view)
+       (gethash (emacs-tui--item-id item) (emacs-tui--view-marks view))))
+
+(defun emacs-tui-marked-items (&optional session id)
+  "Return marked source items in SESSION's view ID, in source order.
+SESSION defaults to the current buffer's workspace, and ID defaults to
+its focused view.  Include items hidden by local filtering.  Return
+nil for ordinary views and text previews.  Removed source identities
+lose their marks; updates with the same identities return new items."
+  (let ((view (emacs-tui--resolve-view
+               (emacs-tui--require-session session) id)))
+    (when (and (emacs-tui--view-multi-select view)
+               (not (emacs-tui--view-text view)))
+      (cl-remove-if-not (lambda (item) (emacs-tui--marked-p view item))
+                        (emacs-tui--view-items view)))))
+
+(defun emacs-tui-toggle-mark (&optional session)
+  "Toggle the selected item's mark in SESSION's focused multi-select view.
+Return non-nil when the item becomes marked, nil when unmarked.  Marks
+do not invoke selection or commit callbacks.  SESSION defaults to the
+current buffer's workspace."
+  (interactive)
+  (setq session (emacs-tui--require-session session))
+  (let* ((view (emacs-tui--focused-view session))
+         (item (emacs-tui-current-item session)))
+    (unless (and (emacs-tui--view-multi-select view)
+                 (not (emacs-tui--view-text view)))
+      (user-error "This view does not support marks"))
+    (unless item (user-error "No selected item"))
+    (unless (emacs-tui--view-marks view)
+      (setf (emacs-tui--view-marks view) (make-hash-table :test #'equal)))
+    (let* ((marks (emacs-tui--view-marks view))
+           (id (emacs-tui--item-id item))
+           (marked (not (gethash id marks))))
+      (if marked (puthash id t marks) (remhash id marks))
+      (emacs-tui--render-view session view)
+      marked)))
+
+(defun emacs-tui-clear-marks (&optional session id)
+  "Clear the marked state of SESSION's view ID, including hidden items.
+SESSION defaults to the current buffer's workspace, and ID defaults to
+its focused view.  Ordinary views are unchanged.  Return nil."
+  (interactive)
+  (setq session (emacs-tui--require-session session))
+  (let ((view (emacs-tui--resolve-view session id)))
+    (when (emacs-tui--view-marks view)
+      (setf (emacs-tui--view-marks view) nil)
+      (emacs-tui--render-view session view)))
+  nil)
 
 (defun emacs-tui-query (&optional session)
   "Return the private query string of SESSION."
@@ -196,7 +272,13 @@ close the workspace.  View descriptions are copied when opened."
           (setq header-line-format
                 (concat (if (eq view (emacs-tui--focused-view session))
                             "* " "  ")
-                        (emacs-tui--view-title view)))
+                        (emacs-tui--view-title view)
+                        (when (and (emacs-tui--view-multi-select view)
+                                   (not (emacs-tui--view-text view)))
+                          (format " | %d marked"
+                                  (if (emacs-tui--view-marks view)
+                                      (hash-table-count (emacs-tui--view-marks view))
+                                    0)))))
           (if (emacs-tui--view-text view)
               (insert (emacs-tui--view-text view))
             (cl-loop for item in (emacs-tui--view-visible-items view)
@@ -204,6 +286,9 @@ close the workspace.  View descriptions are copied when opened."
                      (let ((start (point))
                            (annotation (and (listp item)
                                             (plist-get item :annotation))))
+                       (when (emacs-tui--view-multi-select view)
+                         (insert (if (emacs-tui--marked-p view item)
+                                     "[x] " "[ ] ")))
                        (insert (emacs-tui--item-label item))
                        (when annotation
                          (insert "  " (propertize (format "%s" annotation)
@@ -245,16 +330,28 @@ to propagate initialization failures to the workspace opener."
   "Update SESSION's view ID, reusing its display resources.
 Supplying ITEMS, including nil, replaces its source items.  Supplying
 TEXT, including nil, replaces or clears the preview.  Omitted fields
-are unchanged.  Return SESSION."
+are unchanged.  Marks survive by identity while the identity remains
+in ITEMS; non-nil TEXT clears marks.  Multi-select item identities must
+be unique.  Return SESSION."
   (emacs-tui--require-session session)
   (let ((view (cl-find id (emacs-tui--workspace-views session)
                        :key #'emacs-tui--view-id :test #'equal)))
     (unless view (error "Unknown view: %S" id))
-    (when items-p (emacs-tui--validate-items items))
+    (when items-p
+      (emacs-tui--validate-items items (emacs-tui--view-multi-select view)))
     (when (and text-p (not (or (null text) (stringp text))))
       (error "TEXT must be a string or nil"))
     (when items-p (setf (emacs-tui--view-items view) items))
     (when text-p (setf (emacs-tui--view-text view) text))
+    (when (emacs-tui--view-marks view)
+      (if (emacs-tui--view-text view)
+          (setf (emacs-tui--view-marks view) nil)
+        (when items-p
+          (let ((marks (make-hash-table :test #'equal)))
+            (dolist (item items)
+              (when (emacs-tui--marked-p view item)
+                (puthash (emacs-tui--item-id item) t marks)))
+            (setf (emacs-tui--view-marks view) marks)))))
     (emacs-tui--filter session view)
     (emacs-tui--render-view session view))
   session)
@@ -665,6 +762,8 @@ query edits; it replaces built-in case-insensitive substring matching.
 It can publish results with `emacs-tui-update'.  ON-COMMIT receives
  (SESSION ITEM ORIGIN-MARKER) in the live origin buffer in an atomic
 change group.  Only a successful commit closes the workspace.
+ITEM may be nil when the focused multi-select view has marked items
+but no visible selection; use `emacs-tui-marked-items' for a batch.
 
 PROVIDER is an asynchronous alternative to ON-QUERY; supplying both
 is an error.  It receives (SESSION QUERY PUBLISH FAIL) after DEBOUNCE
@@ -716,7 +815,8 @@ are not modified by opening, filtering, selecting or cancelling."
             (setf (emacs-tui--view-buffer view)
                   (generate-new-buffer (format " *emacs-tui %s*"
                                                (emacs-tui--view-id view)))
-                  (emacs-tui--view-window view) nil)
+                  (emacs-tui--view-window view) nil
+                  (emacs-tui--view-marks view) nil)
             (with-current-buffer (emacs-tui--view-buffer view)
               (emacs-tui-view-mode)
               (setq-local emacs-tui--session session)
@@ -849,14 +949,18 @@ Selection is separate from commitment and does not close the workspace."
 (defun emacs-tui-commit (&optional session)
   "Run SESSION's explicit commit callback, then close on success.
 Errors in a callback roll back its edits to the origin buffer and leave
-the workspace open.  Applications own all persistence semantics."
+the workspace open.  Applications own all persistence semantics.
+The callback receives a nil item only when the focused multi-select
+view has marked items but no visible selection.  Read those items with
+`emacs-tui-marked-items' to implement batch commits."
   (interactive)
   (setq session (emacs-tui--require-session session))
   (let ((callback (emacs-tui--workspace-on-commit session))
         (origin (emacs-tui--workspace-origin session))
         (item (emacs-tui-current-item session)))
     (unless callback (user-error "This workspace has no commit action"))
-    (unless item (user-error "No selected item"))
+    (unless (or item (emacs-tui-marked-items session))
+      (user-error "No selected item or marked items"))
     (unless (buffer-live-p (marker-buffer origin))
       (user-error "The origin buffer no longer exists"))
     (with-current-buffer (marker-buffer origin)

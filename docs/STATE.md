@@ -9,10 +9,9 @@ Automatic viewport reflow and real terminal resize tests shipped in merged
 [PR #2](https://github.com/vv111y/emacs-tui/pull/2), commit `80e552d`.
 Cancellable asynchronous query providers shipped in merged
 [PR #3](https://github.com/vv111y/emacs-tui/pull/3), commit `e6d6749`.
-The next active scope is opt-in multi-selection per view with stable identities,
-non-color mark indicators, explicit batch commits, regression tests and docs.
-The current worker owns core, mark tests, graph example, terminal smoke and
-README; inspect active drafts before starting overlapping work.
+Opt-in multi-selection is implemented in
+[PR #4](https://github.com/vv111y/emacs-tui/pull/4), pending final review and CI.
+Inspect its live head/check and merge status before overlapping work.
 The repository started empty; this is still an experimental development release.
 
 Implemented: pure columns/rows/grid geometry, editable temporary queries,
@@ -48,6 +47,15 @@ smoke on Emacs 28.2, 29.4, 30.2 and 31.1, with native child frames on 31.1. The 
 is available with `make async-demo`; its snapshots are collected synchronously,
 then searched in bounded batches. No performance claims are established.
 
+PR #4 adds per-view marks with stable identities, visible checkbox indicators
+and counts, public toggle/read/clear commands, and explicit batch commit use.
+Local filtering retains hidden marks; source removal, text previews and async
+query supersession invalidate affected marks. The graph example retains its
+node-specific query behavior and commits marked links in source order.
+Local validation: all 88 ERT tests, strict package/example compilation and
+checkdoc pass. The real Emacs 29.3 TTY smoke marks two asynchronous results,
+checks both marks through shrink/expand, and commits the batch explicitly.
+
 Latest package-lint was inspected and executed from upstream commit
 `1865be780a16098f972fef50a52b21ca6ee04df9`: both source files produce only its
 package-name warning that the word `emacs` is redundant. This is a known
@@ -57,9 +65,9 @@ the extracted test runtime has no configured native compiler toolchain.
 
 ## Next work
 
-1. Implement opt-in multi-selection without changing existing commit callback
-   signatures. Keep marks stable across local filtering/reordering, invalidate
-   absent identities and obsolete provider results, and validate batch commits.
+1. Finish PR #4 final review and CI if still open, then integrate its reviewed
+   head. Multi-selection and async lifecycle are implemented; extend these
+   APIs from demonstrated application needs rather than duplicating them.
 2. Broaden TTY coverage beyond Linux pseudo-terminals, including macOS terminals,
    multiple clients and visual behavior; CI smoke alone is not complete UI QA.
 3. Expand narrow-terminal and multiple-client coverage. Automatic reflow and
