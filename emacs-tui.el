@@ -54,7 +54,7 @@
 
 (cl-defstruct (emacs-tui--view (:constructor emacs-tui--make-view))
   id title items visible-items (selected 0) text on-select buffer window
-  multi-select marks keymap columns sort-column sort-descending)
+  multi-select marks keymap columns sort-column sort-descending editable on-change)
 
 (cl-defstruct (emacs-tui--workspace (:constructor emacs-tui--make-workspace))
   views (focus 0) layout backend on-query on-commit origin origin-window
@@ -75,6 +75,9 @@
 
 (defvar emacs-tui--refreshing nil
   "Non-nil while workspace geometry is being changed.")
+
+(defvar emacs-tui--rendering nil
+  "Non-nil while rendering, suppressing editable-view change callbacks.")
 
 (defvar emacs-tui-input-mode-map
   (let ((map (make-sparse-keymap)))
@@ -113,6 +116,21 @@
   (setq-local mode-line-format nil)
   (setq-local truncate-lines t)
   (setq-local cursor-type nil))
+
+(defvar emacs-tui-field-mode-map
+  (let ((map (make-sparse-keymap)))
+    (define-key map (kbd "TAB") #'emacs-tui-next-view)
+    (define-key map (kbd "<backtab>") #'emacs-tui-previous-view)
+    (define-key map (kbd "C-c C-q") #'emacs-tui-close)
+    (define-key map (kbd "C-c C-l") #'emacs-tui-cycle-layout)
+    map)
+  "Keymap for editable views; ordinary text editing remains available.")
+
+(define-derived-mode emacs-tui-field-mode text-mode "TUI-Input"
+  "Edit an application's scratch input with native Emacs editing and undo."
+  (setq-local mode-line-format nil)
+  (setq-local truncate-lines t)
+  (buffer-enable-undo))
 
 (defun emacs-tui--item-label (item)
   "Return the display label of ITEM."
@@ -169,6 +187,54 @@ View descriptions are copied when opened."
                         :items (emacs-tui--validate-items items multi-select)
                         :visible-items items :text text :on-select on-select
                         :multi-select multi-select :keymap keymap :columns columns))
+
+(cl-defun emacs-tui-input (&key id title (value "") on-change keymap)
+  "Describe an editable input for `emacs-tui-mount' or `emacs-tui-embed'.
+ID, TITLE and KEYMAP follow `emacs-tui-view'.  VALUE is the initial string.
+Ordinary editing, multiline input, input methods and undo use native Emacs
+commands; `emacs-tui-next-view' changes view and `emacs-tui-close' closes it.
+ON-CHANGE, when non-nil, receives (SESSION ID VALUE) after edits, including
+undo.  VALUE has no text properties.  It is not called during initialization,
+focus changes or programmatic `emacs-tui-update' calls.  Errors are reported
+without discarding the edit or closing the interface.  Read the current value
+with `emacs-tui-input-value'.  Applications own validation and persistence.
+The ephemeral `emacs-tui-open' query workflow does not accept editable views."
+  (unless (stringp value) (error "VALUE must be a string"))
+  (unless (or (null on-change) (functionp on-change))
+    (error "ON-CHANGE must be a function or nil"))
+  (let ((view (emacs-tui-view :id id :title title :text value :keymap keymap)))
+    (setf (emacs-tui--view-editable view) t
+          (emacs-tui--view-on-change view) on-change)
+    view))
+
+(defun emacs-tui-input-value (&optional session id)
+  "Return the full input string in SESSION's editable view ID.
+SESSION defaults to the current interface; nil ID means its focused view.
+Ignore narrowing and strip text properties.  Signal an error for other views."
+  (let ((view (emacs-tui--resolve-view (emacs-tui--require-session session) id)))
+    (unless (emacs-tui--view-editable view)
+      (user-error "This view is not editable"))
+    (with-current-buffer (emacs-tui--view-buffer view)
+      (save-restriction
+        (widen)
+        (buffer-substring-no-properties (point-min) (point-max))))))
+
+(defun emacs-tui--field-changed (&rest _arguments)
+  "Record native edits and notify the current editable view's application."
+  (when (and (not emacs-tui--rendering) (emacs-tui-live-p emacs-tui--session))
+    (let* ((session emacs-tui--session)
+           (view (cl-find (current-buffer) (emacs-tui--workspace-views session)
+                          :key #'emacs-tui--view-buffer :test #'eq)))
+      (when (and view (emacs-tui--view-editable view))
+        (setf (emacs-tui--view-text view)
+              (save-restriction (widen) (buffer-string)))
+        (when (emacs-tui--view-on-change view)
+          (condition-case err
+              (funcall (emacs-tui--view-on-change view) session
+                       (emacs-tui--view-id view)
+                       (substring-no-properties (emacs-tui--view-text view)))
+            ((error quit)
+             (message "emacs-tui input callback: %s" (error-message-string err)))))))))
 
 (defun emacs-tui--require-session (session)
   "Return live SESSION, defaulting to the current buffer's workspace."
@@ -416,6 +482,7 @@ Prepare application projections before changing any displayed content."
     (when (buffer-live-p buffer)
       (with-current-buffer buffer
         (let ((inhibit-read-only t)
+              (emacs-tui--rendering t)
               (content (emacs-tui--view-content view)))
           (unless (and (emacs-tui--view-text view)
                        (save-restriction
@@ -426,6 +493,9 @@ Prepare application projections before changing any displayed content."
               (insert (car content))
               (goto-char (cdr content)))
             (set-buffer-modified-p nil)
+            (when (emacs-tui--view-editable view)
+              (buffer-disable-undo)
+              (buffer-enable-undo))
             (when (window-live-p (emacs-tui--view-window view))
               (set-window-point (emacs-tui--view-window view) (point))))
           (setq header-line-format (emacs-tui--view-header session view)))))))
@@ -460,11 +530,16 @@ TEXT, including nil, replaces or clears the preview.  Omitted fields
 are unchanged.  Marks survive by identity while the identity remains
 in ITEMS; non-nil TEXT clears marks.  Multi-select item identities must
 be unique.  Identical preview text, including properties, retains its reading
-position; changed text starts at the beginning.  Return SESSION."
+position; changed text starts at the beginning.  Editable views accept only
+string TEXT updates; changed values reset undo without calling ON-CHANGE.
+Return SESSION."
   (emacs-tui--require-session session)
   (let ((view (cl-find id (emacs-tui--workspace-views session)
                        :key #'emacs-tui--view-id :test #'equal)))
     (unless view (error "Unknown view: %S" id))
+    (when (and (emacs-tui--view-editable view)
+               (or items-p (and text-p (not (stringp text)))))
+      (error "Editable views accept only string TEXT updates"))
     (when items-p
       (emacs-tui--validate-items items (emacs-tui--view-multi-select view)))
     (when (and text-p (not (or (null text) (stringp text))))
@@ -995,6 +1070,8 @@ KEYMAP supplies application commands for view buffers."
   (unless (and (proper-list-p views) views
                (cl-every #'emacs-tui--view-p views))
     (error "VIEWS must be a nonempty list of emacs-tui-view descriptions"))
+  (when (and ephemeral (cl-some #'emacs-tui--view-editable views))
+    (error "Editable views require emacs-tui-mount or emacs-tui-embed"))
   (unless (memq layout '(columns rows grid)) (error "Unknown layout: %S" layout))
   (when (and on-query provider)
     (error "PROVIDER and ON-QUERY are mutually exclusive"))
@@ -1037,13 +1114,17 @@ KEYMAP supplies application commands for view buffers."
                   (emacs-tui--view-window view) nil
                   (emacs-tui--view-marks view) nil)
             (with-current-buffer (emacs-tui--view-buffer view)
-              (emacs-tui-view-mode)
+              (if (emacs-tui--view-editable view)
+                  (emacs-tui-field-mode)
+                (emacs-tui-view-mode))
               (when (or keymap (emacs-tui--view-keymap view))
                 (use-local-map
                  (make-composed-keymap
                   (delq nil (list (emacs-tui--view-keymap view) keymap))
                   (current-local-map))))
               (setq-local emacs-tui--session session)
+              (when (emacs-tui--view-editable view)
+                (add-hook 'after-change-functions #'emacs-tui--field-changed nil t))
               (add-hook 'kill-buffer-hook #'emacs-tui--buffer-killed nil t)
               (unless query
                 (add-hook 'post-command-hook #'emacs-tui--sync-view-focus nil t))))

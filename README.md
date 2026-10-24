@@ -100,6 +100,40 @@ Text previews retain their cursor, scroll and narrowing when focus changes or
 updates repeat identical text and properties. Changed text or properties render
 from the beginning. Unchanged previews do not trigger buffer-change hooks.
 
+## Editable inputs
+
+Use native Emacs editing in persistent applications and embedded panels:
+
+```elisp
+(emacs-tui-mount
+ :views
+ (list (emacs-tui-input
+        :id 'body :title "Draft" :value "Edit me"
+        :on-change (lambda (app _id value)
+                     (emacs-tui-update app 'preview :text (upcase value))))
+       (emacs-tui-view :id 'preview :text "EDIT ME")))
+```
+
+`emacs-tui-input-value` reads the full current string by session and view ID,
+ignoring narrowing and stripping text properties. Inputs support multiline
+text, Unicode, ordinary editing and undo. `TAB`/`S-TAB` switch views;
+`C-c C-q` closes. Ordinary letters and `RET` retain their editing meanings.
+Application/view keymaps can add explicit validation, submit or reset commands.
+
+`:on-change` receives `(session id value)` after edits, including undo. It is
+not called on initialization, focus/reflow or programmatic updates. Errors are
+reported while retaining the edit and live interface. Update an input with
+`emacs-tui-update :text STRING`: changed content starts at the beginning and
+clears undo; identical text/properties preserve edit state. Inputs reject item
+updates and nil text. Rendering does not submit or save application data.
+
+Run `make composer` for two editable fields and a live composition preview.
+`C-c C-c` explicitly copies the composition to the kill ring, keeping the
+application open. Closing discards scratch inputs. This initial control is
+available through `emacs-tui-mount` and `emacs-tui-embed`; the dedicated-query
+`emacs-tui-open` workflow currently rejects editable views. Field validation,
+completion and application persistence remain application policies.
+
 ## Application commands
 
 Pass an ordinary Emacs keymap as `:keymap` to any entry point, or to an
@@ -195,7 +229,9 @@ and continue exploration; commitment is a separate command.
 
 | Function | Purpose |
 | --- | --- |
-| `emacs-tui-view` | Describe a list or text preview |
+| `emacs-tui-view` | Describe a list, table or text preview |
+| `emacs-tui-input` | Describe an editable input view |
+| `emacs-tui-input-value` | Read the full input string |
 | `emacs-tui-open` | Open an ephemeral query workspace |
 | `emacs-tui-embed` | Borrow an application window for one panel; restore it on close |
 | `emacs-tui-column` | Describe a table column and its item projection |
@@ -350,7 +386,7 @@ workspace surface closes safely; unrelated windows and application buffers are
 preserved. `emacs-tui-refresh` is also available for an explicit reflow.
 
 The four-sided around-point layout, multiple floating surfaces,
-history, per-view queries and editable inputs are planned in
+history, per-view query providers and richer form controls are planned in
 [ROADMAP.md](ROADMAP.md). The initial implementation renders full view content;
 large-data performance is not yet characterized.
 
@@ -370,6 +406,8 @@ typing/select/commit, shrinks and expands
 the terminal using real resize signals, and requires the
 native child-frame backend when its capability is present. A second PTY smoke
 checks queryless view navigation, actions, resize and launcher-buffer disposal.
+Additional scripts check embedded host restoration, table sorting and marks,
+and multiline editable views with undo across focus changes and resizes.
 These checks are not a visual
 quality or performance benchmark.
 

@@ -67,8 +67,10 @@ host window or overwrites a repurposed window. Region-level embedding and
 multiple views inside one borrowed surface remain future work.
 
 Application and per-view keymaps compose with native defaults, while ephemeral
-query input retains ordinary editing. Forms, trees and persistent input widgets
-remain work for subsequent application-driven increments. No stable API claim is made.
+query input retains ordinary editing. Editable text views now use native editing and undo in persistent and embedded
+interfaces, with application-owned change callbacks and explicit actions.
+The composer demonstrates two fields and a preview without a query provider
+or origin-buffer commit. Richer form controls and trees remain future work. No stable API claim is made.
 
 Table columns project existing items for display and sorting; they do not
 introduce a separate row identity or action model. The buffer/process dashboard
