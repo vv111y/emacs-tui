@@ -21,12 +21,14 @@ native view focus, actions without closing, survival of launcher-buffer death,
 marks and resize, and explicit disposal. The additional regression covers a
 queryless mount from a four-row launcher window. Python harness compiles.
 
-The preceding implementation at `d587865cdfb2062c984451fd4ec56d9b2645df07`
-passed 105 tests, compilation, checkdoc and both real TTY scripts on Emacs 28.2,
-29.4, 30.2 and 31.1 in
-[CI run 40046772234](https://github.com/vv111y/emacs-tui/actions/runs/40046772234).
-The small-window fix and its 106th test are locally verified; require final-head
-CI before integration. Neither PR has received independent review yet.
+Implementation commit `4a4449e31437de628895f4fc9e1ce7210d6e7d1a` passes
+106 ERT tests, strict compilation, checkdoc and both real TTY scripts on Emacs
+28.2, 29.4, 30.2 and 31.1 in
+[CI run 40047094457](https://github.com/vv111y/emacs-tui/actions/runs/40047094457).
+Emacs 31.1 exercised native TTY child frames in both scripts; earlier versions
+used ordinary windows. This handoff update changes documentation only; verify
+the latest head and CI when reviewing. Neither PR has independent review yet.
+Package-lint was rerun for #6 with only the same two package-name warnings.
 
 ## Implementation and handoff
 
