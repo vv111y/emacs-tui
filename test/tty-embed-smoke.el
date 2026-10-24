@@ -1,4 +1,8 @@
 ;;; tty-embed-smoke.el --- Exercise embedded native TTY views -*- lexical-binding: t; -*-
+
+;; Copyright (C) 2026 Willy Rempel
+;; Assisted-by: Codex:gpt-6.1-sol-wm
+;; SPDX-License-Identifier: GPL-3.0-or-later
 (setq load-prefer-newer t)
 (require 'cl-lib)
 (require 'emacs-tui)
@@ -33,6 +37,9 @@
         (redisplay t)
         (when (and (= (frame-width parent) width)
                    (<= (- height 2) (frame-height parent) height)
+                   ;; Wait for the automatic hook, within the existing bound.
+                   (equal (emacs-tui--workspace-geometry session)
+                          (emacs-tui--geometry session))
                    (or (not child)
                        (and (< (frame-width child) width) (< (frame-height child) height)
                             (or (= phase 1) (> (frame-width child) emacs-tui-test--embed-small-width)))))

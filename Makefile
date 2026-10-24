@@ -17,6 +17,7 @@ tty-smoke:
 	EMACS=$(EMACS) python3 test/run-tty-smoke.py test/tty-tree-smoke.el
 	EMACS=$(EMACS) python3 test/run-tty-smoke.py test/tty-lifecycle-smoke.el
 	EMACS=$(EMACS) python3 test/run-tty-smoke.py test/tty-demo-smoke.el
+	EMACS=$(EMACS) python3 test/check-reflow-smoke.py
 clean:
 	rm -f emacs-tui*.elc examples/*.elc bench/*.elc
 demo:

@@ -4,6 +4,42 @@ Updated 2026-10-24 (America/Toronto).
 
 ## Active implementation
 
+PR #32 merged at `e2cb99115807bfce5cf63bea2bbf7d681077102e` after independent
+exact-head review and all eight jobs in
+[40082067979](https://github.com/vv111y/emacs-tui/actions/runs/40082067979).
+Every runtime job passed 274 ERT, strict compilation/checkdoc, eight terminal
+scripts, three Python regressions and original plus multi-term source/fresh-
+bytecode benchmark smokes. Linux/macOS 31.1 logs confirm native child frames;
+the archive built and clean-installed on 31.1/28.1. Independent review verified
+all 880 raw profile records, summaries, source/artifact hashes and limitations.
+
+The four remaining resize fixtures (ephemeral, embedded, input and tree) now
+wait for automatic cached-geometry convergence within their existing 100-poll
+bounds. No refresh is forced and previous assertions remain. This complements
+the already corrected persistent, table and graph fixtures. Local 274 ERT,
+strict compilation/checkdoc and all eight ordinary PTY scenarios passed on
+Emacs 29.3/Linux. A 16-case old/new fault matrix shows old ephemeral/embedded
+assert too early with a delayed hook; all revisions tolerate the delay. Old
+input/tree also pass with automatic reflow disabled, revealing missing coverage.
+All revisions instead fail at their original deadline when reflow is disabled.
+Independent review reproduced all eight representative old/new probes.
+
+The reproducible test/tty-reflow-probe.el accepts a selected resize fixture and
+an explicit delay/disabled fault. It observes the origin frame even when a
+child frame is selected, prefers newer source before loading the library, and
+preserves normal native input/action/resize assertions. Local strict compile
+and checkdoc passed the helper. Its 14-case matrix covers delayed success and
+bounded missing-hook failure in all seven live-resize scenarios. The repeated-
+lifetime fixture creates sessions after each resize and has a different purpose.
+The default tty-smoke target now also verifies four representative input/tree
+fault cases. The driver requires the specific bounded failure output and exit
+status; unrelated failures cannot satisfy its negative check. All four local
+driver cases passed. Independent final review and all eight fresh CI jobs remain
+integration gates.
+These diagnostics do not establish emulator paint, physical macOS, GUI or
+multiple-terminal correctness. Runtime code and published performance sources
+are unchanged by this validation work.
+
 PR #31 merged at `1a0616c87f717a6ee14d02a7d238f1a33cf19712` after independent
 exact-head review and all eight jobs in
 [40081401204](https://github.com/vv111y/emacs-tui/actions/runs/40081401204).
@@ -45,7 +81,7 @@ to 210,310 for DEL. Each operation has only 50 measured samples; p99 is the
 maximum. Some list tails did not improve. These are one-host PTY-output results,
 not emulator paint or a cross-platform guarantee. Large-table full rebuilds
 remain costly. Pilot data is excluded from the published pair. Independent
-exact-head review and all eight fresh CI jobs remain integration gates.
+exact-head review and all eight fresh CI jobs passed as recorded above.
 
 PR #30 merged at `dc086fb71117f82803c13ce3d42ec0b5ee3ba9c7` after independent
 exact-head review and all eight jobs in
