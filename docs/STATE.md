@@ -4,6 +4,98 @@ Updated 2026-10-24 (America/Toronto).
 
 ## Active implementation
 
+PR #36 merged at `59795f276f61a866f8104459b5f354fb6f5c82f7` after independent
+exact-head review and all eight jobs in
+[40088634179](https://github.com/vv111y/emacs-tui/actions/runs/40088634179).
+Runtime validation passed 286 ERT, strict compilation/checkdoc, eight terminal
+scenarios, four reflow fault checks, three Python regressions and original plus
+multi-term source/bytecode benchmark smokes. The expanded installed-client
+checks passed against the same real recipe archive on 31.1 and 28.1.
+
+Two-terminal validation now starts a private server in an interactive Emacs on
+one PTY and attaches a second actual PTY with emacsclient. Both clients mount
+independent input/list interfaces, selecting native child frames when supported.
+The driver sends real terminal keys, updates A while B owns native focus, resizes
+each terminal independently, deletes B's parent frame, then continues editing A.
+Assertions cover terminal/surface identity, input, selection, marks, background
+focus preservation, automatic reflow, cancellation, stale publication, buffers,
+close callbacks, host edits and final hook/frame cleanup. The driver has one
+45-second deadline and always reaps its dedicated process groups and PTYs.
+This is an additional required tty-smoke scenario; EMACSCLIENT selects the
+client executable when it is not on PATH.
+
+Local 286 ERT, strict package/example compilation and checkdoc passed on
+Emacs 29.3/Linux; the new fixture also passed strict compilation/checkdoc and
+Python syntax validation. Its real
+local execution could not start the private server: this host rejects the Unix
+socket with make-network-process "Operation not permitted". This is not a
+passing two-client test. Initial CI 40092353647 caught a fixture state bug:
+adding absent plist keys detached the association's recorded state. Mutable keys
+are now preinitialized. Review also required waiting for both providers and
+checking both resize dimensions. Revised run 40092491823 passed the complete
+flow on Linux 28.1/28.2/29.4/30.2 and macOS 30.2, but native-child-frame 31.1
+stalled after switching to terminal A. Diagnostic run 40092856451 confirmed that focus-in events alone do not fix
+31.1: incoming A keys dispatch to its parent host buffer instead of its child.
+The driver retains a bounded native command trace. These failed runs are not
+counted as passing.
+
+Native terminal input routing now remembers the last owned interface frame on
+each terminal and filters incoming cross-terminal switch-frame events to that
+live child, including nested children. Same-terminal explicit frame selection,
+GUI frames, unrelated roots and invalidated surfaces keep normal Emacs routing.
+No redirect-frame-focus is installed: Emacs retargets those redirects on frame
+selection and could send one terminal's input to another. The observer/advice
+exist only while native TTY child sessions remain; nested close restores an
+owned ancestor's remembered focus without selecting a background frame.
+
+The first routing fix passed native terminal returns and numeric prefixes, but
+run 40093402855 exposed a second case: deleting B implicitly selects A's parent.
+Scoped before/after frame-deletion hooks now restore A's remembered owned child
+only if deletion removed the selected frame and changed native selection.
+The late tracker honors application delete hooks and close-callback focus effects;
+a captured late hook cannot recreate pending records after the last interface closes. Background deletion, explicit parent
+focus and repurposed surfaces do not capture focus. Pending deletion records and
+all routing hooks are released with the last native terminal interface.
+Run 40094038742 still reached the survivor-input failure. Close-callback focus
+recording now distinguishes an actual application selection change from an
+unchanged callback observing Emacs's implicit fallback. Bounded diagnostics now
+include routing/deletion-hook ordering and remembered focus flags. Native proof
+is still required; no unsuccessful iteration is treated as passing.
+The resulting native trace confirms server disposal defers frame hooks until
+frames are dead. A late synchronous delete-terminal hook now records live-frame
+selection before that server path. Completed records are consumed once before
+post-command focus tracking can classify Emacs's fallback parent as deliberate.
+Both observer-before-frame-hook and deferred-after-before orderings have modeled
+coverage; a handled deletion cannot recapture later explicit parent focus.
+Abrupt client hangup/force-noelisp terminal disconnection remains untested and is
+separate from this explicit native parent-frame deletion scenario.
+Run 40094695876 now completes native returns, resizes, prefix commands, client
+deletion and survivor editing on Linux31.1, then fails the final owned-buffer
+cleanup assertion. It is not a passing run. Diagnostics report the specific live
+buffer and kill result. Explicit focus recording is now separate from automatic
+post-command deletion consumption so pending cleanup cannot override an actual
+application selection; the reviewed pending-callback regression is covered.
+Run 40095035338 identified a B input buffer with no kill attempt: native frame
+hook disposal aborted in window cleanup before reaching buffer release. The
+frame-deletion hook now drops its window/frame claims before closing, leaving
+physical subtree destruction to Emacs while releasing buffers and providers.
+A new persistent/ephemeral regression injects a dying-window error: the old hook
+fails, the revised hook avoids the invalid window mutation and releases buffers,
+origin markers, requests and callbacks. The terminal assertion remains intact.
+No buffer query is bypassed and no failed run is counted as passing.
+
+Local 299 ERT, strict compilation/checkdoc passed on Emacs 29.3/Linux. Thirteen new
+modeled routing tests cover event identity, prefix preservation, explicit parent
+selection, background memory, dead/foreign/GUI roots, terminal mismatch, nested
+close, immediate application focus changes, implicit deletion fallback versus
+background/explicit/foreign selection and final observer/advice cleanup with unrelated advice retained. These
+are unit boundaries, not positive native display evidence. The actual two-PTY
+fixture now also checks a numeric prefix across terminal return, continued
+survivor editing and final routing-hook cleanup. Independent exact-head review
+and all eight fresh CI jobs, including positive native 31.1 Linux/macOS evidence,
+are required before integration. No new
+performance, physical emulator, GUI or long-term maturity claim is made.
+
 PR #35 merged at `e4be92a9a941526ab1e4081e0a1f8f106de8ae68` after independent
 exact-head review and all eight jobs in
 [40088239840](https://github.com/vv111y/emacs-tui/actions/runs/40088239840).

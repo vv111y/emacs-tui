@@ -63,7 +63,7 @@
 (cl-defstruct (emacs-tui--workspace (:constructor emacs-tui--make-workspace))
   views (focus 0) layout backend on-query on-commit origin origin-window
   origin-frame frame query-buffer root windows active origin-kill-hook geometry
-  provider debounce request provider-views on-close host maximized)
+  provider debounce request provider-views on-close host maximized tty-focus)
 
 (cl-defstruct (emacs-tui--host (:constructor emacs-tui--make-host))
   window buffer point start hscroll vscroll)
@@ -1013,6 +1013,137 @@ results belonging to the previous query.  Untouched views are retained."
   (and (not noninteractive)
        (or (display-graphic-p) (featurep 'tty-child-frames))))
 
+(defun emacs-tui--tty-child-p (session)
+  "Whether SESSION has a live native terminal child frame."
+  (let ((frame (emacs-tui--workspace-frame session)))
+    (and (frame-live-p frame) (not (display-graphic-p frame)))))
+
+(defun emacs-tui--remember-tty-focus ()
+  "Remember each terminal's last explicitly selected interface frame."
+  (let ((selected (selected-frame)))
+    (dolist (session emacs-tui--sessions)
+      (when (and (emacs-tui--tty-child-p session)
+                 (eq (frame-terminal selected)
+                     (frame-terminal (emacs-tui--workspace-frame session))))
+        (setf (emacs-tui--workspace-tty-focus session)
+              (and (eq selected (emacs-tui--workspace-frame session))
+                   (emacs-tui--subtree session) t))))))
+
+(defun emacs-tui--track-tty-focus ()
+  "Observe command completion after restoring any implicit deletion fallback."
+  (emacs-tui--consume-tty-deletions)
+  (emacs-tui--remember-tty-focus))
+
+(defun emacs-tui--frame-below-p (frame ancestor)
+  "Whether live FRAME is ANCESTOR or one of its descendants."
+  (while (and (frame-live-p frame) (not (eq frame ancestor)))
+    (setq frame (frame-parent frame)))
+  (and (frame-live-p frame) (eq frame ancestor)))
+
+(defun emacs-tui--tty-switch-frame (arguments)
+  "Restore owned terminal child focus in switch-frame ARGUMENTS.
+Emacs assigns input on a returning terminal to its top-level frame when
+another terminal is selected.  Preserve that terminal's last interface
+focus, including nested children.  Explicit selection within one terminal
+and invalidated surfaces retain normal Emacs routing."
+  (let* ((event (car arguments))
+         (target (and (consp event) (eq (car event) 'switch-frame) (cadr event)))
+         (selected (selected-frame))
+         (session
+          (when (and (frame-live-p target) (not (display-graphic-p target))
+                     (not (eq (frame-terminal target) (frame-terminal selected))))
+            (cl-find-if
+             (lambda (app)
+               (and (emacs-tui--workspace-tty-focus app)
+                    (emacs-tui--tty-child-p app)
+                    (eq (frame-terminal target)
+                        (frame-terminal (emacs-tui--workspace-frame app)))
+                    (emacs-tui--frame-below-p (emacs-tui--workspace-frame app) target)
+                    (emacs-tui--subtree app)))
+             emacs-tui--sessions))))
+    (if session
+        (cons (list 'switch-frame (emacs-tui--workspace-frame session)) (cdr arguments))
+      arguments)))
+
+(defun emacs-tui--restore-tty-focus (session)
+  "Restore a remembered owned ancestor when SESSION's child closes.
+Do not select a frame or resurrect focus after explicit parent selection."
+  (when (emacs-tui--workspace-tty-focus session)
+    (let ((parent (emacs-tui--workspace-origin-frame session)))
+      (dolist (app emacs-tui--sessions)
+        (when (and (emacs-tui--tty-child-p app)
+                   (eq parent (emacs-tui--workspace-frame app))
+                   (emacs-tui--subtree app))
+          (setf (emacs-tui--workspace-tty-focus app) t))))))
+
+(defvar emacs-tui--tty-deleting-frames nil
+  "Frames being deleted and their previously selected frame.")
+
+(defun emacs-tui--tty-frame-deleting (frame)
+  "Remember native selection before deleting live FRAME."
+  (when (and (cl-some #'emacs-tui--tty-child-p emacs-tui--sessions)
+             (frame-live-p frame) (not (assq frame emacs-tui--tty-deleting-frames)))
+    (push (list frame (selected-frame)
+                (emacs-tui--frame-below-p (selected-frame) frame))
+          emacs-tui--tty-deleting-frames)))
+
+(defun emacs-tui--restore-tty-deletion (entry)
+  "Restore an owned survivor for recorded deletion ENTRY, once.
+Do not change focus for a background deletion or an explicit parent choice."
+  (when (and (nth 2 entry) (not (eq (nth 1 entry) (selected-frame))))
+    (let ((app (cl-find-if
+                (lambda (session)
+                  (and (emacs-tui--workspace-tty-focus session)
+                       (emacs-tui--tty-child-p session)
+                       (not (eq (emacs-tui--workspace-frame session) (selected-frame)))
+                       (emacs-tui--frame-below-p
+                        (emacs-tui--workspace-frame session) (selected-frame))
+                       (emacs-tui--subtree session)))
+                emacs-tui--sessions)))
+      (when app
+        (select-window (frame-selected-window (emacs-tui--workspace-frame app)))
+        t))))
+
+(defun emacs-tui--consume-tty-deletions ()
+  "Consume completed deletions before recording implicit fallback focus.
+Emacs can defer frame hooks until after the command's post-command hooks."
+  (let ((dead (cl-remove-if (lambda (entry) (frame-live-p (car entry)))
+                            emacs-tui--tty-deleting-frames)))
+    (setq emacs-tui--tty-deleting-frames
+          (cl-set-difference emacs-tui--tty-deleting-frames dead :test #'eq))
+    (cl-some #'emacs-tui--restore-tty-deletion dead)))
+
+(defun emacs-tui--tty-terminal-deleting (terminal)
+  "Capture live frames before an ordinary server deletes TERMINAL.
+Server client disposal can defer both frame hooks until frames are dead."
+  (dolist (frame (frame-list))
+    (when (and (frame-live-p frame) (eq terminal (frame-terminal frame)))
+      (emacs-tui--tty-frame-deleting frame))))
+
+(defun emacs-tui--tty-frame-deleted (frame)
+  "Preserve a surviving terminal interface after deleting FRAME."
+  (let ((entry (assq frame emacs-tui--tty-deleting-frames)))
+    (setq emacs-tui--tty-deleting-frames (delq entry emacs-tui--tty-deleting-frames))
+    (when (emacs-tui--restore-tty-deletion entry)
+      (emacs-tui--track-tty-focus))))
+
+(defun emacs-tui--sync-tty-focus-hooks ()
+  "Install terminal routing only while native terminal interfaces are live."
+  (if (cl-some #'emacs-tui--tty-child-p emacs-tui--sessions)
+      (progn
+        (add-hook 'post-command-hook #'emacs-tui--track-tty-focus)
+        (add-hook 'delete-frame-functions #'emacs-tui--tty-frame-deleting t)
+        (add-hook 'after-delete-frame-functions #'emacs-tui--tty-frame-deleted)
+        (add-hook 'delete-terminal-functions #'emacs-tui--tty-terminal-deleting t)
+        (unless (advice-member-p #'emacs-tui--tty-switch-frame #'handle-switch-frame)
+          (advice-add #'handle-switch-frame :filter-args #'emacs-tui--tty-switch-frame)))
+    (remove-hook 'post-command-hook #'emacs-tui--track-tty-focus)
+    (remove-hook 'delete-frame-functions #'emacs-tui--tty-frame-deleting)
+    (remove-hook 'after-delete-frame-functions #'emacs-tui--tty-frame-deleted)
+    (remove-hook 'delete-terminal-functions #'emacs-tui--tty-terminal-deleting)
+    (setq emacs-tui--tty-deleting-frames nil)
+    (advice-remove #'handle-switch-frame #'emacs-tui--tty-switch-frame)))
+
 (defun emacs-tui--fit-child (session)
   "Fit SESSION's existing child frame inside its live parent.
 Dimensions are converted from parent inner pixels to child character
@@ -1276,7 +1407,9 @@ ARRANGING means old windows were already captured before layout changes."
   "Select SESSION's focused view when there is no separate query input."
   (unless (emacs-tui--workspace-query-buffer session)
     (let ((window (emacs-tui--view-window (emacs-tui--focused-view session))))
-      (when (window-live-p window) (select-window window)))))
+      (when (window-live-p window)
+        (select-window window)
+        (emacs-tui--remember-tty-focus)))))
 
 (defun emacs-tui-refresh (&optional session)
   "Reflow SESSION safely, preserving its query and logical selection.
@@ -1510,6 +1643,7 @@ KEYMAP supplies application commands for view buffers."
           (push session emacs-tui--sessions)
           (add-hook 'delete-frame-functions #'emacs-tui--frame-deleted)
           (add-hook 'window-state-change-hook #'emacs-tui--window-state-changed)
+          (emacs-tui--sync-tty-focus-hooks)
           (when ephemeral
             (let ((hook (lambda () (emacs-tui-close session))))
               (setf (emacs-tui--workspace-origin-kill-hook session) hook)
@@ -1520,6 +1654,7 @@ KEYMAP supplies application commands for view buffers."
           (with-current-buffer (or query (emacs-tui--view-buffer
                                           (emacs-tui--focused-view session)))
             (emacs-tui--query-changed 'initial))
+          (emacs-tui--remember-tty-focus)
           (setq initialized t)
           session)
       (unless initialized (emacs-tui-close session)))))
@@ -1535,7 +1670,10 @@ KEYMAP supplies application commands for view buffers."
   (dolist (session (copy-sequence emacs-tui--sessions))
     (when (or (eq frame (emacs-tui--workspace-frame session))
               (eq frame (emacs-tui--workspace-origin-frame session)))
-      (setf (emacs-tui--workspace-frame session) nil)
+      ;; Emacs owns deletion of this frame and all descendant windows.  Do
+      ;; not mutate a dying subtree, including when hooks were deferred.
+      (setf (emacs-tui--workspace-frame session) nil
+            (emacs-tui--workspace-windows session) nil)
       (emacs-tui-close session))))
 
 (defun emacs-tui--restore-host (session)
@@ -1579,6 +1717,7 @@ windows are preserved."
              (emacs-tui--workspace-active session))
     (setf (emacs-tui--workspace-active session) nil)
     (setq emacs-tui--sessions (delq session emacs-tui--sessions))
+    (emacs-tui--restore-tty-focus session)
     (unwind-protect
         (let* ((origin (emacs-tui--workspace-origin session))
                (origin-window (emacs-tui--workspace-origin-window session))
@@ -1620,14 +1759,20 @@ windows are preserved."
       (unless emacs-tui--sessions
 	(remove-hook 'delete-frame-functions #'emacs-tui--frame-deleted)
 	(remove-hook 'window-state-change-hook #'emacs-tui--window-state-changed))
+      (emacs-tui--sync-tty-focus-hooks)
       (unwind-protect
           (emacs-tui--stop-request (emacs-tui--workspace-request session))
-        (let ((callback (emacs-tui--workspace-on-close session)))
+        (let ((callback (emacs-tui--workspace-on-close session))
+              (callback-frame (selected-frame))
+              (callback-window (selected-window)))
           (setf (emacs-tui--workspace-on-close session) nil)
           (when callback
             (condition-case err (funcall callback session)
               ((error quit)
-               (message "emacs-tui close callback: %s" (error-message-string err)))))))))
+               (message "emacs-tui close callback: %s" (error-message-string err))))
+            (when (or (not (eq callback-frame (selected-frame)))
+                      (not (eq callback-window (selected-window))))
+              (emacs-tui--remember-tty-focus)))))))
   nil)
 
 (defun emacs-tui-next-view (&optional session delta)

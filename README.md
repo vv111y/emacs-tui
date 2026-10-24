@@ -654,8 +654,12 @@ live, dispatches actual provider timers, and checks cancellation, stale replies,
 owned buffers/processes/timers/markers, display resources and host edits.
 The graph demo's eighth terminal script exercises Back/Forward keys, retained
 query/marks, maximize/restore, both resizes and explicit selection commitment.
-These checks are not a visual
-quality or performance benchmark.
+A ninth scenario attaches two distinct PTYs to one private Emacs server using
+`emacsclient`. It sends native input to each, updates a background interface
+without taking the other client's focus, resizes the terminals independently,
+deletes one client frame and continues using the survivor before checking final
+resource cleanup. Set `EMACSCLIENT` if the matching executable is not on PATH.
+These checks are not a visual quality or performance benchmark.
 
 To diagnose asynchronous resize ordering, run an opt-in fault probe:
 
