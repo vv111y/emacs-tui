@@ -206,9 +206,19 @@
           (cl-assert (= 0 (plist-get a :closed)))
           (cl-assert (= 0 (plist-get a :cancelled)))
           (cl-assert (memq (plist-get a :timer) timer-list))
-          (cl-assert (memq #'emacs-tui--track-tty-focus post-command-hook))
-          (cl-assert (advice-member-p
-                      #'emacs-tui--tty-switch-frame #'handle-switch-frame))
+          (if (eq (emacs-tui--workspace-backend (plist-get a :session))
+                  'child-frame)
+              (progn
+                (cl-assert (memq #'emacs-tui--track-tty-focus
+                                 post-command-hook))
+                (cl-assert (advice-member-p
+                            #'emacs-tui--tty-switch-frame
+                            #'handle-switch-frame)))
+            (cl-assert (not (memq #'emacs-tui--track-tty-focus
+                                  post-command-hook)))
+            (cl-assert (not (advice-member-p
+                             #'emacs-tui--tty-switch-frame
+                             #'handle-switch-frame))))
           (emacs-tui-test--hangup-ready 'client-hung-up)))
     ((error quit) (emacs-tui-test--hangup-fail err))))
 
