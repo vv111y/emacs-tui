@@ -524,6 +524,10 @@ large-data performance is not yet characterized.
 
 ## Development and readiness
 
+`make clean benchmark` measures real command-loop/PTY latency, allocations and
+controlled provider stages, retaining raw samples and p50/p95/p99. See
+[docs/PERFORMANCE.md](docs/PERFORMANCE.md) for workloads, clocks and limitations.
+
 ```sh
 make check
 make tty-smoke
