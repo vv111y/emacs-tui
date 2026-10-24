@@ -254,6 +254,34 @@
         (should (= 1 selections))
         (should-not emacs-tui--tty-deleting-frames)))))
 
+(ert-deftest emacs-tui-tty-focus-abrupt-fallback-restores-only-remembered-child ()
+  (emacs-tui-tty-focus-test--with
+    (let ((selections 0))
+      (cl-letf (((symbol-function 'frame-selected-window) (lambda (frame) frame))
+                ((symbol-function 'select-window)
+                 (lambda (window) (cl-incf selections) (setq selected window))))
+        ;; A dead terminal may leave the survivor's parent selected without a
+        ;; usable pre-deletion record.  Remembered, owned native focus wins.
+        (setq selected 'ar)
+        (should (emacs-tui--restore-tty-survivor))
+        (should (eq 'ac selected))
+        (should (= 1 selections))
+        ;; Native focus already on the child needs no selection or bookkeeping.
+        (should-not (emacs-tui--restore-tty-survivor))
+        (should (= 1 selections))
+        ;; Explicit parent focus is represented by cleared terminal memory.
+        (setq selected 'ar)
+        (setf (emacs-tui--workspace-tty-focus a) nil)
+        (should-not (emacs-tui--restore-tty-survivor))
+        (should (eq 'ar selected))
+        ;; Repurposed and graphical surfaces cannot be captured.
+        (setf (emacs-tui--workspace-tty-focus a) t)
+        (setq owned (list b))
+        (should-not (emacs-tui--restore-tty-survivor))
+        (setq owned (list a b) selected 'gui)
+        (should-not (emacs-tui--restore-tty-survivor))
+        (should (= 1 selections))))))
+
 (ert-deftest emacs-tui-tty-focus-frame-deletion-releases-buffers-without-window-mutation ()
   (dolist (kind '(persistent ephemeral))
     (save-window-excursion

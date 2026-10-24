@@ -29,7 +29,16 @@ runtimes, but native Linux 31.1 exposed a fixture assertion that read the curren
 input buffer's local `post-command-hook` instead of the default/global routing
 hook. Its deletion trace showed the disconnected session disposed and the
 survivor child selected; the harness now checks the default hook. That run is
-not counted as passing and fresh exact-head evidence remains required.
+not counted as passing. Run 40097308643 then passed the package job, every Linux
+runtime and macOS 30.2, including the real Linux 31.1 child-frame boundary, but
+macOS 31.1 exposed a platform ordering in which both client frames were already
+dead before its terminal/deletion hooks arrived. Disposal completed, yet native
+fallback left the surviving terminal on its application host. The lifecycle
+cleanup now restores a remembered live owned child after closing the abruptly
+lost child-frame session, with guards for background deletion, explicit parent
+selection, application close-callback focus, foreign ownership and graphical
+frames. Neither failed run is counted as passing; fresh exact-head Linux/macOS
+proof remains required.
 
 PR #37 merged at `0645f8f22b1b4d4e24dc04438f18a9c54932b15c` after independent
 exact-head review and all eight jobs in
