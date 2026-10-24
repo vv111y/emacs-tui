@@ -17,13 +17,19 @@ entire ERT/compile/checkdoc and real PTY suite; no platform-specific checks are
 skipped. Runtime OS/architecture, Emacs version and build features are printed
 so capability-based backend results can be interpreted accurately.
 
-The pinned setup-emacs action documents Linux and macOS support. This is a new
-validation target, not evidence of a pass yet: independent review and actual
-macOS CI results are pending. Hosted PTYs do not establish Ghostty/iTerm2,
-zellij/tmux, GUI child-frame or physical Apple M5 compatibility.
+Implementation `e9c3b0ca5880ab41f14836ccae3e64e8e2bea3f6` received independent
+agent approval. CI [40056716049](https://github.com/vv111y/emacs-tui/actions/runs/40056716049)
+passed all six jobs: Linux 28.2/29.4/30.2/31.1 and ARM64 macOS 30.2/31.1.
+Each passed 190 ERT tests, strict compilation, checkdoc and six PTY scripts.
+Mac logs identify Darwin arm64; 31.1 used native terminal child frames in the
+ephemeral, persistent, editable-input and tree/maximize scripts. 30.2 used
+ordinary windows. Embedded/table scripts used borrowed windows on both.
 
-Active worker owns CI platform expansion and this handoff through review and
-passing current-head CI. Next: richer application controls, broader display
+This final documentation checkpoint still needs independent review and CI.
+Hosted PTYs do not establish Ghostty/iTerm2, zellij/tmux, GUI child-frame or
+physical Apple M5 compatibility.
+
+No other scope is claimed in this platform PR during final-head validation. Next: richer application controls, broader display
 validation and measured performance. No stability or MELPA-readiness claim.
 
 ## Implementation and handoff
@@ -81,7 +87,7 @@ Current evidence is recorded above. The suite covers persistent, embedded and
 ephemeral presentations, async cancellation/streaming, stable selection and
 marks, tables, editable inputs, callback failure rollback and preview position. The merged four-version CI suite runs strict package/example byte compilation,
 checkdoc and six real terminal smoke scripts, including maximize/restore
-through terminal resizes. The macOS extension is not yet validated. Emacs 31.1 uses native TTY child frames in the ephemeral
+through terminal resizes. ARM64 macOS 30.2 and 31.1 also passed that suite in the implementation CI above. Emacs 31.1 uses native TTY child frames in the ephemeral
 persistent and input scripts; earlier versions use ordinary windows. Embedded/table
 scripts use a borrowed window. Resize coverage is 120x40 -> 90x30 -> 140x45.
 A separate real `cat` subprocess test verifies streaming and process disposal.

@@ -473,7 +473,9 @@ across focus changes and resizes.
 These checks are not a visual
 quality or performance benchmark.
 
-CI targets Emacs 28.2, 29.4, 30.2 and 31.1 with pinned actions. Read
+CI targets Emacs 28.2, 29.4, 30.2 and 31.1 on Linux, plus 30.2 and 31.1
+on hosted macOS, with pinned actions. Every job runs the complete checks and
+real terminal scripts; runtime identity and backend results are logged. Read
 [docs/STATE.md](docs/STATE.md) for what has actually passed and remaining gaps,
 and [docs/MELPA.md](docs/MELPA.md) for external release gates.
 
