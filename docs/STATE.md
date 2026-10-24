@@ -4,42 +4,32 @@ Updated 2026-10-23 (America/Toronto).
 
 ## Active implementation
 
-PR #8 merged at `132a397dc3d443d97f98da7aaf874302bfa51a20` after separate
+PR #9 merged at `c298015a47a073365fe12d58408c89415f6da012` after separate
 agent review and final-head CI
-[40049670216](https://github.com/vv111y/emacs-tui/actions/runs/40049670216):
-125 ERT tests, strict compilation, checkdoc and three real TTY scripts on
-Emacs 28.2, 29.4, 30.2 and 31.1. PRs #6 and #7 previously merged persistent
-interfaces and borrowed-window embedding after independent agent review.
+[40051525489](https://github.com/vv111y/emacs-tui/actions/runs/40051525489):
+143 ERT tests, strict compilation, checkdoc and four real PTY scripts on Emacs
+28.2, 29.4, 30.2 and 31.1. Tables share existing identities, selection, marks,
+queries/actions and async updates. The dashboard demonstrates numeric sorting
+and metadata columns. Fixed widths and first-line headers remain initial limits.
 
-[PR #9](https://github.com/vv111y/emacs-tui/pull/9) adds table columns over the existing item model, stable
-numeric/custom sorting, full-cell query matching and identity-preserving
-selection/marks across updates. Dashboard buffers/processes now use real tables.
-A fourth real TTY script invokes the interactive sort prompt and verifies marks,
-actions, two terminal resizes and host restoration. Tables use fixed display
-widths; sticky headers, editing and automatic width allocation remain future.
+Review found and resolved a partial-update bug: comparator/projection failures
+now preserve previous source, selection, marks, sort and displayed content by
+staging new state and rendered content. Independent review repeated the complete
+suite on Emacs 29.3 and reproduced failing-update/nonlocal-exit cases.
 
-Implementation claim released after separate review; inspect the remote head
-before editing or integrating. Independent review and current-head CI are
-required before integration. Local checks passed 143 ERT tests, strict compile,
-checkdoc and all four real Emacs 29.3 PTY scripts, including the dashboard
-numeric-sort regression. Package-lint's new module check is clean; the
-main/layout files retain the two known package-name warnings. No clean overall
-lint or maturity claim is made.
+The current focused fix preserves text-preview reading position when switching
+views or repeating unchanged text/properties. It avoids erasing identical text,
+including narrowed previews; changed content retains the existing reset behavior.
+The pre-fix regression suite reproduced three failures. Local checks pass 149
+ERT tests, compilation, checkdoc and four real PTY scripts, including the narrowing
+regression. The persistent PTY script now verifies preview
+point across focus round trips and actual terminal resizes.
 
-Separate review found that failing table projections/comparators could partially
-apply an update. The fix stages candidate state and complete rendered content
-before changing either. New direct-update, preview-transition and invalid async
-publication regressions preserve the last valid source, selection, marks and
-display. Separate review approved implementation head
-`bba9b189bd8d6c7d4c4af0cf2554eaa400676094`, independently repeating all
-143 tests, compilation, checkdoc and four TTY scripts. The reviewer also verified
-a nonlocal exit during sort rendering preserves the previous sort and content.
-That implementation also passes all four Emacs versions in
-[CI run 40051399759](https://github.com/vv111y/emacs-tui/actions/runs/40051399759).
-This final checkpoint changes documentation only; verify current-head CI before
-integration.
-A separate existing preview focus/scroll reset bug has been reproduced and is
-the next focused fix after tables are integrated.
+Active worker owns core rendering, preview tests, persistent TTY smoke, README
+and this handoff through independent review and current-head CI. After this fix,
+continue application input widgets or tree controls with a concrete example.
+Package-lint still has only the two known package-name warnings. No stability
+or MELPA-readiness claim is made.
 
 ## Implementation and handoff
 
@@ -97,7 +87,7 @@ trampoline generation because it has no configured native compiler toolchain.
 
 ## Remaining work
 
-1. Review and integrate table views, then extend application input/action
+1. Review and integrate preview-position preservation, then extend application input/action
    composition. Preserve ephemeral behavior. Extend layouts, history, per-view
    input, maximize/restore and tree/form controls as real consumers require them. Avoid treating every preview as navigation.
 2. Broaden actual display validation: GUI child frames, macOS terminal emulators,

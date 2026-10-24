@@ -96,6 +96,10 @@ marks and rendered content intact. Failed provider publications terminate that
 request while retaining its last valid results.
 Column editing, automatic width allocation and sticky headers are future work.
 
+Text previews retain their cursor, scroll and narrowing when focus changes or
+updates repeat identical text and properties. Changed text or properties render
+from the beginning. Unchanged previews do not trigger buffer-change hooks.
+
 ## Application commands
 
 Pass an ordinary Emacs keymap as `:keymap` to any entry point, or to an

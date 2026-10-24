@@ -417,14 +417,18 @@ Prepare application projections before changing any displayed content."
       (with-current-buffer buffer
         (let ((inhibit-read-only t)
               (content (emacs-tui--view-content view)))
-          (atomic-change-group
-            (erase-buffer)
-            (insert (car content))
-            (goto-char (cdr content)))
-          (setq header-line-format (emacs-tui--view-header session view))
-          (set-buffer-modified-p nil)
-          (when (window-live-p (emacs-tui--view-window view))
-            (set-window-point (emacs-tui--view-window view) (point))))))))
+          (unless (and (emacs-tui--view-text view)
+                       (save-restriction
+                         (widen)
+                         (equal-including-properties (car content) (buffer-string))))
+            (atomic-change-group
+              (erase-buffer)
+              (insert (car content))
+              (goto-char (cdr content)))
+            (set-buffer-modified-p nil)
+            (when (window-live-p (emacs-tui--view-window view))
+              (set-window-point (emacs-tui--view-window view) (point))))
+          (setq header-line-format (emacs-tui--view-header session view)))))))
 
 (defun emacs-tui--query-changed (&rest arguments)
   "Refresh the workspace after a query edit.
@@ -455,7 +459,8 @@ Supplying ITEMS, including nil, replaces its source items.  Supplying
 TEXT, including nil, replaces or clears the preview.  Omitted fields
 are unchanged.  Marks survive by identity while the identity remains
 in ITEMS; non-nil TEXT clears marks.  Multi-select item identities must
-be unique.  Return SESSION."
+be unique.  Identical preview text, including properties, retains its reading
+position; changed text starts at the beginning.  Return SESSION."
   (emacs-tui--require-session session)
   (let ((view (cl-find id (emacs-tui--workspace-views session)
                        :key #'emacs-tui--view-id :test #'equal)))
