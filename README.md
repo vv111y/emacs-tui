@@ -96,7 +96,7 @@ running Emacs session, not automatic storage across restarts.
 A mounted provider uses the existing async contract with an empty query string.
 It starts once; applications can publish updates until disposal. Mounted views
 have no origin commit action; use explicit application actions for persistence.
-Host-owned buffer/window embedding is a separate, unimplemented lifecycle.
+Use `emacs-tui-embed` for a single panel in an application-owned window.
 
 ## Ephemeral workspaces
 

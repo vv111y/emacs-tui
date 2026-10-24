@@ -12,7 +12,7 @@ All four CI jobs passed in
 [run 40048314834](https://github.com/vv111y/emacs-tui/actions/runs/40048314834).
 This was agent review, not human/MELPA review.
 
-The next increment adds `emacs-tui-embed` for one panel in a borrowed application
+[PR #7](https://github.com/vv111y/emacs-tui/pull/7) adds `emacs-tui-embed` for one panel in a borrowed application
 window, restoring the original buffer and tracked point/scroll on close. It
 preserves repurposed windows, supports async providers and explicit actions,
 and never deletes the borrowed host window. A buffer browser demonstrates it.
@@ -24,6 +24,14 @@ handoff. Independent review and current-head CI are required before integration.
 Local validation passed 118 ERT tests, strict compilation, checkdoc and all
 three real TTY scripts on Emacs 29.3. Do not treat these author checks as
 independent review.
+
+Implementation head `e81ee3e7d50dd7be226b9f1919907f6c23d9e9ff` passes all four
+Emacs versions, including all three real TTY scripts, in
+[CI run 40048997759](https://github.com/vv111y/emacs-tui/actions/runs/40048997759).
+A separate reviewer reran 118 ERT tests; further restoration probes are in
+progress. The reviewer caught a stale README statement about embedding, now
+corrected. The owner confirmed routine independent review belongs to a separate
+coding agent, not to them; AGENTS.md records this workflow.
 
 ## Implementation and handoff
 
