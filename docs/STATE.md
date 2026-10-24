@@ -69,6 +69,12 @@ Both observer-before-frame-hook and deferred-after-before orderings have modeled
 coverage; a handled deletion cannot recapture later explicit parent focus.
 Abrupt client hangup/force-noelisp terminal disconnection remains untested and is
 separate from this explicit native parent-frame deletion scenario.
+Run 40094695876 now completes native returns, resizes, prefix commands, client
+deletion and survivor editing on Linux31.1, then fails the final owned-buffer
+cleanup assertion. It is not a passing run. Diagnostics report the specific live
+buffer and kill result. Explicit focus recording is now separate from automatic
+post-command deletion consumption so pending cleanup cannot override an actual
+application selection; the reviewed pending-callback regression is covered.
 
 Local 298 ERT, strict compilation/checkdoc passed on Emacs 29.3/Linux. Twelve new
 modeled routing tests cover event identity, prefix preservation, explicit parent

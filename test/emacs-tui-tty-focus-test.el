@@ -190,7 +190,20 @@
               (push noop emacs-tui--sessions)
               (emacs-tui-close noop))
             (should (eq 'ar selected))
-            (should (emacs-tui--workspace-tty-focus a)))
+            (should (emacs-tui--workspace-tty-focus a))
+            ;; Pending dead-frame cleanup must not override a changed callback.
+            (setq selected 'bc)
+            (emacs-tui--tty-frame-deleting 'br)
+            (setq frames (cl-set-difference frames '(br bc)) selected 'gui)
+            (let ((explicit (emacs-tui--make-workspace
+                             :active t :on-close (lambda (_) (setq selected 'ar)))))
+              (push explicit emacs-tui--sessions)
+              (emacs-tui-close explicit))
+            (should (eq 'ar selected))
+            (should-not (emacs-tui--workspace-tty-focus a))
+            (emacs-tui--track-tty-focus)
+            (should (eq 'ar selected))
+            (should-not emacs-tui--tty-deleting-frames))
         (advice-remove #'handle-switch-frame #'emacs-tui--tty-switch-frame)))))
 
 (ert-deftest emacs-tui-tty-focus-server-terminal-capture-survives-deferred-frame-hooks ()
@@ -204,7 +217,7 @@
         (should (nth 2 (assq 'br emacs-tui--tty-deleting-frames)))
         (setq frames (cl-set-difference frames '(br bc)) selected 'ar)
         ;; Post-command may arrive before either deferred frame hook.
-        (emacs-tui--remember-tty-focus)
+        (emacs-tui--track-tty-focus)
         (should (eq 'ac selected))
         (should (= 1 selections))
         (should-not emacs-tui--tty-deleting-frames)
@@ -214,7 +227,7 @@
         (should-not emacs-tui--tty-deleting-frames)
         ;; The completed deletion must not recapture a later parent choice.
         (setq selected 'ar)
-        (emacs-tui--remember-tty-focus)
+        (emacs-tui--track-tty-focus)
         (should (eq 'ar selected))
         (should-not (emacs-tui--workspace-tty-focus a))))))
 
@@ -236,7 +249,7 @@
         (setf (emacs-tui--workspace-tty-focus a) nil)
         (emacs-tui--tty-terminal-deleting 'B)
         (setq frames (cl-set-difference frames '(br bc)))
-        (emacs-tui--remember-tty-focus)
+        (emacs-tui--track-tty-focus)
         (should (eq 'ar selected))
         (should (= 1 selections))
         (should-not emacs-tui--tty-deleting-frames)))))
@@ -254,7 +267,7 @@
             (advice-add #'handle-switch-frame :before other-advice)
             (emacs-tui--sync-tty-focus-hooks)
             (emacs-tui--sync-tty-focus-hooks)
-            (should (= 1 (cl-count #'emacs-tui--remember-tty-focus post-command-hook)))
+            (should (= 1 (cl-count #'emacs-tui--track-tty-focus post-command-hook)))
             (should (advice-member-p #'emacs-tui--tty-switch-frame #'handle-switch-frame))
             (setf (emacs-tui--workspace-frame a) nil)
             (emacs-tui--sync-tty-focus-hooks)

@@ -202,13 +202,19 @@
              (cl-assert (= 1 (plist-get state :cancelled)))
              (cl-assert (not (memq (plist-get state :timer) timer-list)))
              (dolist (buffer (plist-get state :buffers))
-               (cl-assert (not (buffer-live-p buffer))))
+               (when (buffer-live-p buffer)
+                 (error "Owned buffer still live: %S; modified=%S; queries=%S; hooks=%S; windows=%S"
+                        buffer (buffer-modified-p buffer)
+                        (buffer-local-value 'kill-buffer-query-functions buffer)
+                        (buffer-local-value 'kill-buffer-hook buffer)
+                        (get-buffer-window-list buffer nil t))))
              (cl-assert (equal (format "host-%s edited" (car (rassq state emacs-tui-test--clients)))
                                (with-current-buffer (plist-get state :host) (buffer-string)))))
            (cl-assert (null emacs-tui--sessions))
            (cl-assert (not (memq #'emacs-tui--frame-deleted delete-frame-functions)))
            (cl-assert (not (memq #'emacs-tui--window-state-changed window-state-change-hook)))
            (cl-assert (not (memq #'emacs-tui--remember-tty-focus post-command-hook)))
+           (cl-assert (not (memq #'emacs-tui--track-tty-focus post-command-hook)))
            (cl-assert (not (advice-member-p #'emacs-tui--tty-switch-frame #'handle-switch-frame)))
            (cl-assert (not (memq #'emacs-tui--tty-frame-deleting delete-frame-functions)))
            (cl-assert (not (memq #'emacs-tui--tty-frame-deleted after-delete-frame-functions)))
@@ -283,6 +289,17 @@
         (set-file-modes server-socket-dir #o700)
         (server-start)
         (add-hook 'pre-command-hook #'emacs-tui-test--clients-command)
+        (advice-add
+         #'kill-buffer :around
+         (lambda (original &rest args)
+           (let* ((buffer (get-buffer (or (car args) (current-buffer))))
+                  (owned (cl-some (lambda (entry) (memq buffer (plist-get (cdr entry) :buffers)))
+                                  emacs-tui-test--clients))
+                  (result (apply original args)))
+             (when owned
+               (emacs-tui-test--clients-record
+                'kill-owned (list buffer result (buffer-live-p buffer))))
+             result)))
         (advice-add #'emacs-tui--remember-tty-focus :before
                     (lambda (&rest _) (emacs-tui-test--clients-record 'remember-before nil)))
         (advice-add #'emacs-tui--remember-tty-focus :after

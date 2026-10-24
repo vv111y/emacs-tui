@@ -1020,7 +1020,6 @@ results belonging to the previous query.  Untouched views are retained."
 
 (defun emacs-tui--remember-tty-focus ()
   "Remember each terminal's last explicitly selected interface frame."
-  (emacs-tui--consume-tty-deletions)
   (let ((selected (selected-frame)))
     (dolist (session emacs-tui--sessions)
       (when (and (emacs-tui--tty-child-p session)
@@ -1029,6 +1028,11 @@ results belonging to the previous query.  Untouched views are retained."
         (setf (emacs-tui--workspace-tty-focus session)
               (and (eq selected (emacs-tui--workspace-frame session))
                    (emacs-tui--subtree session) t))))))
+
+(defun emacs-tui--track-tty-focus ()
+  "Observe command completion after restoring any implicit deletion fallback."
+  (emacs-tui--consume-tty-deletions)
+  (emacs-tui--remember-tty-focus))
 
 (defun emacs-tui--frame-below-p (frame ancestor)
   "Whether live FRAME is ANCESTOR or one of its descendants."
@@ -1121,19 +1125,19 @@ Server client disposal can defer both frame hooks until frames are dead."
   (let ((entry (assq frame emacs-tui--tty-deleting-frames)))
     (setq emacs-tui--tty-deleting-frames (delq entry emacs-tui--tty-deleting-frames))
     (when (emacs-tui--restore-tty-deletion entry)
-      (emacs-tui--remember-tty-focus))))
+      (emacs-tui--track-tty-focus))))
 
 (defun emacs-tui--sync-tty-focus-hooks ()
   "Install terminal routing only while native terminal interfaces are live."
   (if (cl-some #'emacs-tui--tty-child-p emacs-tui--sessions)
       (progn
-        (add-hook 'post-command-hook #'emacs-tui--remember-tty-focus)
+        (add-hook 'post-command-hook #'emacs-tui--track-tty-focus)
         (add-hook 'delete-frame-functions #'emacs-tui--tty-frame-deleting t)
         (add-hook 'after-delete-frame-functions #'emacs-tui--tty-frame-deleted)
         (add-hook 'delete-terminal-functions #'emacs-tui--tty-terminal-deleting t)
         (unless (advice-member-p #'emacs-tui--tty-switch-frame #'handle-switch-frame)
           (advice-add #'handle-switch-frame :filter-args #'emacs-tui--tty-switch-frame)))
-    (remove-hook 'post-command-hook #'emacs-tui--remember-tty-focus)
+    (remove-hook 'post-command-hook #'emacs-tui--track-tty-focus)
     (remove-hook 'delete-frame-functions #'emacs-tui--tty-frame-deleting)
     (remove-hook 'after-delete-frame-functions #'emacs-tui--tty-frame-deleted)
     (remove-hook 'delete-terminal-functions #'emacs-tui--tty-terminal-deleting)
