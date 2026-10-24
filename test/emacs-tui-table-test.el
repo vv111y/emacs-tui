@@ -114,12 +114,56 @@
 
 (ert-deftest emacs-tui-table-column-validation-rejects-invalid-layouts ()
   (dolist (args '((:id x :value :label :width 0) (:id x :value :label :width 1.5)
+                  (:id x :value :label :width stretch)
                   (:id x :value :label :align center) (:id x :value 7)
                   (:id x :value :label :lessp 7)))
     (should-error (apply #'emacs-tui-column args)))
   (let ((column (emacs-tui-column :id 'x :value :label)))
     (should-error (emacs-tui-view :id 'a :columns (list column column)))
-    (should-error (emacs-tui-view :id 'a :columns '(invalid)))))
+    (should-error (emacs-tui-view :id 'a :columns '(invalid))))
+  (should-error
+   (emacs-tui-view
+    :id 'a :columns (list (emacs-tui-column :id 'a :value :label :width 'fill)
+                          (emacs-tui-column :id 'b :value :label :width 'fill)))))
+
+(ert-deftest emacs-tui-table-fill-column-uses-remainder-without-mutating-description ()
+  (let* ((fill (emacs-tui-column :id 'name :value :label :width 'fill))
+         (fixed (emacs-tui-column :id 'size :value :size :width 3))
+         (columns (list fill fixed))
+         (fixed-only (list fixed))
+         (wide (emacs-tui--table-resolve-columns columns 20))
+         (narrow (emacs-tui--table-resolve-columns columns 4)))
+    (should (= 15 (emacs-tui--column-width (car wide))))
+    (should (= 1 (emacs-tui--column-width (car narrow))))
+    (should (= 20 (string-width (emacs-tui--table-line wide '(:label "Alpha" :size 7)))))
+    (should (= 6 (string-width (emacs-tui--table-line narrow '(:label "Alpha" :size 7)))))
+    (should (eq 'fill (emacs-tui--column-width fill)))
+    (should (eq fixed (cadr wide)))
+    (should (eq fixed-only (emacs-tui--table-resolve-columns fixed-only 20)))))
+
+(ert-deftest emacs-tui-table-fill-column-renders-to-live-window-width ()
+  (save-window-excursion
+    (delete-other-windows)
+    (let (session)
+      (unwind-protect
+          (progn
+            (setq session
+                  (emacs-tui-mount
+                   :views
+                   (list (emacs-tui-view
+                          :id 'rows :items emacs-tui-table-test--rows :multi-select t
+                          :columns
+                          (list (emacs-tui-column :id 'name :value :label :width 'fill)
+                                (emacs-tui-column :id 'size :value :size :width 6))))))
+            (let* ((view (car (emacs-tui--workspace-views session)))
+                   (window (emacs-tui--view-window view)))
+              (with-current-buffer (emacs-tui--view-buffer view)
+                (goto-char (point-min))
+                (should (= (window-body-width window)
+                           (string-width (buffer-substring
+                                          (line-beginning-position)
+                                          (line-end-position))))))))
+        (when session (emacs-tui-close session))))))
 
 (ert-deftest emacs-tui-table-comparison-failure-keeps-previous-order ()
   (emacs-tui-table-test--session ()

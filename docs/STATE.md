@@ -4,6 +4,25 @@ Updated 2026-10-24 (America/Toronto).
 
 ## Active implementation
 
+PR #40 merged at `e761ac8ff3f72e652b278b13df2e4109f2289000` after independent
+exact-head review and all eight jobs in
+[40098931357](https://github.com/vv111y/emacs-tui/actions/runs/40098931357).
+Every runtime passed 308 ERT, strict compilation/checkdoc, ten terminal
+scenarios and benchmark protocol smokes. The package job proved literal header
+`0.1.0-beta1` and canonical package version `0.1.0beta1`, built the disclosed
+dated recipe snapshot and clean-installed the identical archive on 31.1/28.1.
+Latest package-lint retained only the disclosed package-name advisory. The beta
+tag and GitHub prerelease are not yet published: the available GitHub connector
+cannot create releases, and the release UI requires an authenticated browser
+session. Do not claim that the straight.el tag exists until that external step
+is complete.
+
+A post-beta candidate lets one table column use width `fill`. Rendering derives
+the remainder from the live window on each render/reflow, reserves mark-prefix
+and separator columns, clamps narrow layouts at one column and never mutates the
+application's column description. The persistent dashboard and real terminal
+table fixture exercise it across resize. Fresh review and CI are required.
+
 The 0.1.0-beta1 release candidate packages the reviewed public surface for
 community testing. The main package metadata uses the prerelease version,
 README installation instructions pin `v0.1.0-beta1` with a file-filtered
