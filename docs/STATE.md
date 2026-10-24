@@ -4,10 +4,23 @@ Updated 2026-10-23 (America/Toronto).
 
 ## Active implementation
 
-A persistent-application lifecycle is in progress on `codex/persistent-applications`,
-stacked on the scope clarification PR #5. Claimed files: core, lifecycle tests,
-dashboard example, terminal smoke, Makefile, README and this handoff. Other
-workers should review or choose disjoint work while this branch is active.
+[PR #6](https://github.com/vv111y/emacs-tui/pull/6) adds shared construction and
+disposal, queryless `emacs-tui-mount`, native view navigation, `emacs-tui-live-p`,
+and an `:on-close` callback for application resources. A persistent buffer and
+process dashboard demonstrates periodic refresh and actions that keep the UI
+open. Existing ephemeral behavior remains covered by its original regressions.
+
+The PR is stacked on scope clarification PR #5. Both await independent review;
+do not treat the author's checks as independent review. Review and integrate
+#5 first, then retarget #6 to main and recheck its head/base and CI. This worker
+owns core, lifecycle tests, dashboard, terminal smoke, README, Makefile and this
+handoff while implementation remains active.
+
+Local evidence for #6: 105 ERT tests, strict package/example compilation,
+checkdoc and both real Emacs 29.3 TTY smoke scripts pass. The new script tests
+native view focus, actions without closing, survival of launcher-buffer death,
+marks and resize, and explicit disposal. CI must verify all four Emacs versions,
+including native 31.1 child frames, before integration. Python harness compiles.
 
 ## Implementation and handoff
 
@@ -17,8 +30,8 @@ Scope clarification from the owner, 2026-10-23: build a general-purpose TUI
 toolkit for Emacs. The ephemeral XOB-style workflow is one supported application
 pattern. Persistent applications and embedded panels must not require query
 input, an origin marker, or commit-then-close. See docs/DESIGN.md and the new
-immediate priorities in ROADMAP.md. Existing lifecycle coupling remains to be
-refactored; this documentation change does not claim those capabilities exist.
+immediate priorities in ROADMAP.md. PR #6 implements the first persistent lifecycle; embedding remains planned.
+Check its live review and CI state before treating it as integrated.
 
 - [PR #1](https://github.com/vv111y/emacs-tui/pull/1): merged foundation with
   editable temporary queries, independent list/text views, explicit selection
@@ -63,10 +76,10 @@ trampoline generation because it has no configured native compiler toolchain.
 
 ## Remaining work
 
-1. Inspect open PRs and current remote heads. First separate general UI lifecycle
-   from the existing ephemeral query/origin/commit policy and demonstrate a
-   persistent dashboard without mandatory query input or commit destination.
-   Preserve existing ephemeral behavior. Then extend shared interactions with
+1. Inspect and independently review open PRs #5 and #6. The shared lifecycle
+   and persistent dashboard are implemented in #6, pending review and CI. Next
+   prove embedding with explicit ownership of host buffers/windows and add
+   application input/action composition. Preserve ephemeral behavior. Extend
    layouts, history, per-view input, maximize/restore and tables as real consumers
    require them. Avoid treating every preview as navigation.
 2. Broaden actual display validation: GUI child frames, macOS terminal emulators,

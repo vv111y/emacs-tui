@@ -52,9 +52,15 @@ Do not commit to a large widget inheritance framework or replace the current
 implementation wholesale. Reuse the working layout, selection, async and
 cleanup mechanisms, extracting their policies incrementally.
 
-## Current limitations
+## Current implementation and limitations
 
-As of PR #4, the public opener always allocates a temporary query buffer,
-captures an origin marker, and closes on successful commit. Existing tests
-validate that implementation, not the proposed general lifecycle. Persistent
-and embedded modes, forms and trees remain planned work.
+The persistent lifecycle PR adds `emacs-tui-mount`, sharing construction, layout,
+selection, updates and disposal with `emacs-tui-open`. Mounted interfaces do not
+allocate a query buffer or capture an origin marker. They use native view focus
+and explicit application actions; the dashboard supplies an example with a
+periodic timer released through the new close callback.
+
+`emacs-tui-open` retains its query/origin/commit convenience policy. Neither
+entry point yet embeds into application-owned surfaces. Forms, trees, general
+application keybinding configuration and persistent input widgets remain work
+for subsequent application-driven increments. No stable API claim is made.

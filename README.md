@@ -5,10 +5,10 @@ for terminal use. Compose views, layouts, input and actions into persistent
 applications, embedded panels or ephemeral workspaces. Applications supply the
 data, behavior and persistence policies.
 
-The current implementation provides an ephemeral workspace API: type in a
-temporary query buffer, inspect views, explore objects and optionally commit a
-result to the originating buffer. General persistent and embedded lifecycles
-are the next architectural milestone, not capabilities already implemented.
+The implementation now provides both long-lived mounted interfaces and ephemeral
+query workspaces. Mounted interfaces stay open across actions and do not require
+a query field or origin-buffer commit. Embedding into application-owned surfaces
+remains planned work.
 XOB is an intended consumer; the toolkit is not specific to XOB, Org or graphs.
 
 **Experimental foundation; not a stable release or a MELPA package yet.**
@@ -31,7 +31,48 @@ advertising `tty-child-frames` (introduced in 31.1). Older terminal builds use
 ordinary windows. Graphical builds can also use native child frames. There are
 no third-party runtime dependencies.
 
-## Small application API
+## Persistent applications
+
+Run `make dashboard` for a live buffer/process dashboard. It updates once per
+second, previews selected objects, and offers Refresh and Pause/Resume actions.
+Use TAB to change views, n/p to move through items, RET to act, and q to close.
+The dashboard does not edit buffers or start/terminate processes.
+
+Use `emacs-tui-mount` to build an application without query or origin-buffer
+policies. For example, in a file with `lexical-binding: t`:
+
+```elisp
+(let ((count 0))
+  (emacs-tui-mount
+   :views
+   (list
+    (emacs-tui-view
+     :id 'actions :items '("Increment")
+     :on-select (lambda (app _item)
+                  (setq count (1+ count))
+                  (emacs-tui-update app 'status :text (number-to-string count))))
+    (emacs-tui-view :id 'status :text "0"))))
+```
+
+Mounted applications share views, layouts, marks and update APIs with ephemeral
+workspaces. They own their split windows or child frame and view buffers. The
+launching buffer/window may disappear without ending the application. Native
+window focus and keyboard navigation select the active view. Application
+callbacks own data mutations; rendering and layout do not perform them.
+
+Both openers accept `:on-close (lambda (app) ...)` for application cleanup. It is
+called once after the handle becomes inactive, including startup failures after
+allocation. Use it to cancel application-owned timers or processes. The toolkit
+still cancels its own provider work. `emacs-tui-live-p` checks a retained handle;
+`emacs-tui-close` explicitly disposes it. Persistent here means long-lived in the
+running Emacs session, not automatic storage across restarts.
+
+A mounted provider uses the existing async contract with an empty query string.
+It starts once; applications can publish updates until disposal. Mounted views
+have no origin commit action; use explicit application actions for persistence.
+Host-owned buffer/window embedding is a separate, unimplemented lifecycle.
+
+## Ephemeral workspaces
 
 ```elisp
 (require 'emacs-tui)
@@ -63,7 +104,9 @@ and continue exploration; commitment is a separate command.
 | Function | Purpose |
 | --- | --- |
 | `emacs-tui-view` | Describe a list or text preview |
-| `emacs-tui-open` | Open views with layout, backend and callbacks |
+| `emacs-tui-open` | Open an ephemeral query workspace |
+| `emacs-tui-mount` | Open a persistent interface without query or origin policy |
+| `emacs-tui-live-p` | Check whether an interface handle is active |
 | `emacs-tui-update` | Replace a view's items or preview, reusing its buffer |
 | `emacs-tui-refresh` | Reflow the workspace while preserving its input and selection |
 | `emacs-tui-query` | Read the temporary query |
@@ -75,7 +118,7 @@ and continue exploration; commitment is a separate command.
 | `emacs-tui-commit` | Invoke the application's explicit commit callback |
 | `emacs-tui-close` | Dispose the session without committing |
 
-`emacs-tui-open` returns an opaque session handle. Pass it to update/read/action
+Both openers return an opaque session handle. Pass it to update/read/action
 functions; interactive commands infer it from the workspace buffer. Internal
 `emacs-tui--*` structures are not an application API.
 
@@ -105,7 +148,9 @@ case-insensitively and in any order. Supply `:on-query (lambda (session query)
 captured location. Successful callbacks close the workspace. An error rolls
 back edits to that buffer and leaves the workspace open. Applications remain
 responsible for transactions involving other buffers, files or external state.
-Selection/query callbacks should only browse and update ephemeral views.
+In the ephemeral workflow, selection/query callbacks should browse and update
+views; commit is the explicit persistence boundary. Mounted applications choose
+their own action and persistence semantics.
 
 ## Multi-selection and batch actions
 
@@ -227,7 +272,9 @@ also streams results through a pipe and checks process disposal (requires
 TTY in a pseudo-terminal, waits for asynchronous results, exercises
 typing/select/commit, shrinks and expands
 the terminal using real resize signals, and requires the
-native child-frame backend when its capability is present. It is not a visual
+native child-frame backend when its capability is present. A second PTY smoke
+checks queryless view navigation, actions, resize and launcher-buffer disposal.
+These checks are not a visual
 quality or performance benchmark.
 
 CI targets Emacs 28.2, 29.4, 30.2 and 31.1 with pinned actions. Read
