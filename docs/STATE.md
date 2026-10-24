@@ -30,6 +30,18 @@ benchmark modes passed on Emacs 29.3/Linux. Independent review and all eight
 current-head jobs remain integration gates. No GUI/physical terminal or
 multi-terminal validation is added by these deterministic ownership tests.
 
+Initial CI run 40073514199 failed Linux 29.4's existing persistent PTY resize
+assertion: terminal dimensions matched while cached geometry differed from the
+current surface. All 247 ERT passed there. The revised fixture waits for both
+terminal dimensions and automatic cached-geometry convergence within the same
+100-poll bound, retaining state assertions and invoking no refresh itself.
+A delayed-hook probe reproduces the old failure and passes with the revised
+fixture; disabling automatic reflow still fails at the bound. Independent
+review also confirmed normal/disabled-hook behavior. This identifies an
+ordering-sensitive assertion, not a proven root cause of every resize race.
+Fresh review and all current-head checks remain required; the failed run is
+not passing evidence.
+
 PR #24 merged at `38e7bde0b8d928926a3c20f950425c1ed7639e16` after independent
 review and all eight final-head CI jobs in
 [40072584963](https://github.com/vv111y/emacs-tui/actions/runs/40072584963).
