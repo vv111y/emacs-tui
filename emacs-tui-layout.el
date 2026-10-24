@@ -1,12 +1,9 @@
-;;; emacs-tui-layout.el --- Geometry for ephemeral workspaces -*- lexical-binding: t; -*-
+;;; emacs-tui-layout.el --- Geometry for text interfaces -*- lexical-binding: t; -*-
 
 ;; Copyright (C) 2026 Willy Rempel
 ;; Author: Willy Rempel <https://github.com/vv111y>
 ;; Assisted-by: Codex:GPT-6
-;; Version: 0.1.0
-;; Package-Requires: ((emacs "28.1"))
-;; Keywords: convenience, terminals
-;; URL: https://github.com/vv111y/emacs-tui
+;; Assisted-by: Codex:gpt-6.1-sol-wm
 
 ;; This file is part of emacs-tui.
 ;;
@@ -99,4 +96,8 @@ returns nil.  No input is modified."
       (nreverse result))))
 
 (provide 'emacs-tui-layout)
+
+;; Local Variables:
+;; package-lint-main-file: "emacs-tui.el"
+;; End:
 ;;; emacs-tui-layout.el ends here

@@ -17,6 +17,14 @@ CONTRIBUTING.org was `1c5c09605cbe26c8279d0efa83375ef3c679077d`.
 - Build the actual recipe using package-build and install/test its output in a
   clean Emacs. A source checkout test is not a package installation test.
 
+The latest checked package-lint revision on 2026-10-24 is
+`1865be780a16098f972fef50a52b21ca6ee04df9`. It reports one remaining warning:
+`emacs` is redundant in the main package name. The layout/table/tree/action
+files are helpers of that package and declare `package-lint-main-file`; their
+metadata checks are clean. The main warning is not suppressed or resolved by
+this helper cleanup; settle the name/justification question before submission.
+The `emacs-tui-*` prefix currently avoids conflict with existing `tui-*` APIs.
+
 Candidate recipe, not yet submitted:
 
 ```elisp
