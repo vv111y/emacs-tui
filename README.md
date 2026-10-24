@@ -1,8 +1,15 @@
 # emacs-tui
 
-Rich, ephemeral workspaces inside Emacs. Type in a temporary query buffer,
-inspect several views, explore objects, and explicitly commit a result to your
-original buffer. Applications supply the data and actions.
+A general-purpose text user interface toolkit for Emacs, designed primarily
+for terminal use. Compose views, layouts, input and actions into persistent
+applications, embedded panels or ephemeral workspaces. Applications supply the
+data, behavior and persistence policies.
+
+The current implementation provides an ephemeral workspace API: type in a
+temporary query buffer, inspect views, explore objects and optionally commit a
+result to the originating buffer. General persistent and embedded lifecycles
+are the next architectural milestone, not capabilities already implemented.
+XOB is an intended consumer; the toolkit is not specific to XOB, Org or graphs.
 
 **Experimental foundation; not a stable release or a MELPA package yet.**
 

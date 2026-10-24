@@ -5,11 +5,37 @@ independent review and regression coverage. Features may be redesigned when
 integration reveals a better interface. This is a capability roadmap, not a
 promise to finish on an arbitrary date.
 
+## Scope and immediate priority
+
+The package is a general-purpose TUI toolkit inside Emacs. Persistent dashboards,
+explorers, forms and embedded panels are target applications alongside ephemeral
+workspaces. XOB is a consumer that should exercise the toolkit's expressiveness;
+it does not define the toolkit's lifecycle or data model.
+
+The first four PRs establish useful primitives through an ephemeral workflow.
+Before adding more workflow-specific machinery:
+
+- Separate UI mounting/updating/disposal from optional query, origin and commit
+  policies; retain existing ephemeral behavior and its regression tests.
+- Build a persistent buffer/process dashboard as a second application. It must
+  remain usable without a query field or origin-buffer commit, support explicit
+  actions without closing, and release owned resources when disposed.
+- Prove embedding in application-owned buffers/windows with explicit ownership;
+  disposing toolkit resources must preserve the host's unrelated state.
+- Extract shared primitives from these working applications. Avoid speculative
+  widget hierarchies and do not freeze new public API shapes before use proves them.
+
+See docs/DESIGN.md for boundaries and acceptance scenarios. The following
+milestones remain capability goals, not claims of completed generality.
+
 ## 1. Usable foundation
 
-- Ephemeral sessions with editable query and independent list/text views.
-- Separate selection, exploration and explicit application commit.
-- Captured origin marker; cancellation preserves application content.
+- Composable list/text views, focus, input, layout and owned resource lifetimes.
+- Persistent, embedded and ephemeral presentations over shared primitives.
+- Optional query input and application-defined actions; state and persistence
+  remain application-owned.
+- Ephemeral convenience workflow with captured origin marker, separate preview
+  and commit, and cancellation that preserves application content.
 - Native child-frame backend and ordinary-window fallback.
 - Columns, rows and grid geometry; resize and resource cleanup.
 - Executable example, API reference, ERT, byte compilation and CI.
@@ -17,7 +43,8 @@ promise to finish on an arbitrary date.
 ## 2. Rich interaction
 
 - Per-view queries, selection and scroll state; navigation history.
-- Context actions, multi-selection, tables, metadata and formatted previews.
+- Context actions, multi-selection, tables, trees, form controls, metadata and
+  formatted previews, prioritized through real applications.
 - Around-point north/east/south/west layout, overlays and full-workspace mode.
 - User-switchable layouts, maximize/restore, hidden views and narrow-screen
   collapse with keyboard access to every view.

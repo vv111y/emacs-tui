@@ -6,6 +6,13 @@ Updated 2026-10-23 (America/Toronto).
 
 This is an experimental development release, not a stable or MELPA package.
 
+Scope clarification from the owner, 2026-10-23: build a general-purpose TUI
+toolkit for Emacs. The ephemeral XOB-style workflow is one supported application
+pattern. Persistent applications and embedded panels must not require query
+input, an origin marker, or commit-then-close. See docs/DESIGN.md and the new
+immediate priorities in ROADMAP.md. Existing lifecycle coupling remains to be
+refactored; this documentation change does not claim those capabilities exist.
+
 - [PR #1](https://github.com/vv111y/emacs-tui/pull/1): merged foundation with
   editable temporary queries, independent list/text views, explicit selection
   and atomic origin-buffer commit, columns/rows/grid, native child frames and
@@ -15,10 +22,9 @@ This is an experimental development release, not a stable or MELPA package.
 - [PR #3](https://github.com/vv111y/emacs-tui/pull/3): merged debounced async
   providers with cancellation, streaming replacement updates, obsolete callback
   rejection, failure recovery and a chunked buffer-search example.
-- [PR #4](https://github.com/vv111y/emacs-tui/pull/4): independently reviewed
-  opt-in multi-selection, stable identity marks, non-color indicators and
-  explicit batch commits. Its implementation CI passes; inspect the live PR
-  for final documentation-commit checks and merge state before overlapping work.
+- [PR #4](https://github.com/vv111y/emacs-tui/pull/4): merged opt-in
+  multi-selection, stable identity marks, non-color indicators and explicit
+  batch commits. Final-head CI also passed on all four supported test versions.
 
 API and runnable examples are in README.md. `make demo` explores an in-memory
 sample graph; `make async-demo` searches buffer snapshots. Marks are per view
@@ -50,9 +56,12 @@ trampoline generation because it has no configured native compiler toolchain.
 
 ## Remaining work
 
-1. Inspect open PRs and current remote heads, then continue focused feature work:
-   around-point layouts, explicit traversal history, per-view query state,
-   maximize/restore and tables. Avoid treating every preview as navigation.
+1. Inspect open PRs and current remote heads. First separate general UI lifecycle
+   from the existing ephemeral query/origin/commit policy and demonstrate a
+   persistent dashboard without mandatory query input or commit destination.
+   Preserve existing ephemeral behavior. Then extend shared interactions with
+   layouts, history, per-view input, maximize/restore and tables as real consumers
+   require them. Avoid treating every preview as navigation.
 2. Broaden actual display validation: GUI child frames, macOS terminal emulators,
    multiplexers, narrow screens, multiple clients/terminals and visual behavior.
    Linux PTY smoke is not complete UI QA.

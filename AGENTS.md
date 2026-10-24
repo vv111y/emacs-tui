@@ -1,9 +1,16 @@
 # Project mandate
 
-Build a general-purpose, terminal-first Emacs workspace package. Prioritize
-expressive functionality, a clean concise API, then measured performance. The
-goal is a mature stable release accepted into MELPA, not a prototype declared
-finished. XOB will consume this package; core must not depend on Org or graphs.
+Build a general-purpose TUI toolkit for Emacs, with terminal Emacs as the primary
+runtime. Support persistent applications, embedded panels and ephemeral
+workspaces through shared UI primitives. Prioritize expressive functionality,
+a clean concise API, then measured performance. The goal is a mature stable
+release accepted into MELPA. XOB is an important consumer and acceptance use
+case, not the core domain model. Core must not depend on Org or graphs.
+
+The owner clarified this scope on 2026-10-23. Temporary query buffers, origin
+markers and commit-then-close are policies of the existing ephemeral workflow,
+not universal requirements of a TUI application. Read docs/DESIGN.md before
+extending those assumptions.
 
 ## Working agreement
 
@@ -21,10 +28,16 @@ finished. XOB will consume this package; core must not depend on Org or graphs.
 
 ## Design invariants
 
-- Browsing, typing queries, previewing and traversing do not modify application
-  data. Only explicit application commit callbacks may do so.
-- Use real temporary buffers for editable input, retaining native editing,
-  Unicode, input methods, paste and undo.
+- Rendering, layout and focus changes must not implicitly modify application
+  data. Applications explicitly bind actions, choose their effects, and own
+  persistence/transaction semantics. Explicit actions may update data without
+  closing the UI. Retain the existing ephemeral workflow's preview/commit split.
+- Use native Emacs buffers and editing for input, retaining Unicode, input
+  methods, paste and undo. Query input is optional in the target general API;
+  applications need not have an origin buffer or commit destination.
+- Separate reusable views, layout, focus, input and async resource lifetimes
+  from presentation and application policies. Validate the separation with a
+  persistent application as well as the ephemeral XOB-style workflow.
 - Model general objects and views, not completion candidates exclusively.
 - Application state, input, layout, rendering and persistent actions have clear
   boundaries. Avoid a speculative framework before a second use case proves it.
