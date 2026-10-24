@@ -4,54 +4,41 @@ Updated 2026-10-23 (America/Toronto).
 
 ## Active implementation
 
-PR #9 merged at `c298015a47a073365fe12d58408c89415f6da012` after separate
+PR #11 merged at `13cbc56a6a1d20e40b95ee3f47ef735b7d59baf4` after independent
 agent review and final-head CI
-[40051525489](https://github.com/vv111y/emacs-tui/actions/runs/40051525489):
-143 ERT tests, strict compilation, checkdoc and four real PTY scripts on Emacs
-28.2, 29.4, 30.2 and 31.1. Tables share existing identities, selection, marks,
-queries/actions and async updates. The dashboard demonstrates numeric sorting
-and metadata columns. Fixed widths and first-line headers remain initial limits.
+[40052760805](https://github.com/vv111y/emacs-tui/actions/runs/40052760805).
+All four Emacs versions passed 165 ERT tests, strict compilation, checkdoc and
+five real PTY scripts, including native editable input/undo on 31.1 child frames.
 
-Review found and resolved a partial-update bug: comparator/projection failures
-now preserve previous source, selection, marks, sort and displayed content by
-staging new state and rendered content. Independent review repeated the complete
-suite on Emacs 29.3 and reproduced failing-update/nonlocal-exit cases.
+Current work adds `emacs-tui-tree` over the existing original-item selection,
+marks, actions and source-update APIs. Expansion, first-child/parent navigation
+and non-color branch cues are display state. Local search reveals matching
+paths without changing stored expansion. Source replacements retain surviving
+expansion/selection/marks and reject invalid hierarchies before publication.
+The buffer-tree example groups live buffers by major mode with refresh, preview
+and explicit display actions. `make tree` runs it.
 
-PR #10 merged at `c8895c2775503e64d1866b9984ea2129deae07b3` after independent
-review and final-head CI
-[40052013584](https://github.com/vv111y/emacs-tui/actions/runs/40052013584).
-All four versions passed 149 ERT tests and four PTY scripts. Unchanged text
-previews now retain point, scroll, narrowing and buffer-change state across
-focus and repeated updates. Changed content still starts at the beginning.
+Initial boundaries: the entire finite forest is indexed once per snapshot;
+children accessors must be pure and return promptly. Plist nodes require stable
+non-nil :id values and all identities must be globally unique. Cycles and shared
+occurrences are rejected. Lazy loading, tree tables and graph occurrence IDs
+are not implemented. Applications/providers own data acquisition and search
+policy. Tree views support mount, embed and the ephemeral query lifecycle.
 
-PR #11 implementation `aad86cff25f8e98f1dda23d492834d50b99fef1d` adds editable views
-through `emacs-tui-input`
-and `emacs-tui-input-value`, with application-owned change callbacks. Inputs
-share mount/embed lifecycle, focus, layout and keymap composition. The persistent
-composer demonstrates two fields, a preview and explicit copying to the kill
-ring without closing or requiring an origin buffer. The dedicated-query
-`emacs-tui-open` workflow rejects editable views for now. Programmatic updates
-are quiet; changed values reset undo, while identical values preserve it.
+Local Emacs 29.3 passes 180 ERT tests, strict compilation, checkdoc and six real
+PTY scripts. New cases exercise navigation, original-object actions, hidden
+marks, retained expansion, query ancestor paths, failed update/render rollback,
+provider supersession, descriptor reuse, embedding and the buffer example.
+The new PTY script expands/collapses, marks a hidden leaf, replaces its source,
+retains selection through real resizes and invokes preview actions explicitly.
+Package-lint still reports only the two existing main/layout name warnings;
+the tree module has no new findings. Independent review and four-version CI
+are pending.
 
-Local Emacs 29.3 passes 165 ERT tests, strict compilation, checkdoc and five real
-PTY scripts. New regressions cover native Unicode/multiline editing, undo,
-callback errors/closure/self-normalization, narrowing, focus/reflow, embedding
-and the explicit copy action. The new input PTY script types multiline text,
-undoes an edit, updates a preview, switches focus and verifies state over real
-terminal resizes. Separate agent review approved this exact implementation,
-repeated the full local suite and probed sibling-field updates, callback quits,
-undo and continued editing. A local Latin-prefix input-method probe produced
-`ä` through native key translation with the interface remaining live.
-
-Implementation CI [40052594921](https://github.com/vv111y/emacs-tui/actions/runs/40052594921)
-passed 165 ERT tests, compilation, checkdoc and all five PTY scripts on Emacs
-28.2, 29.4, 30.2 and 31.1. Native child frames passed the input script on 31.1.
-Package-lint was rerun: only the two known main/layout package-name warnings.
-
-This documentation-only checkpoint still requires final-head review and CI
-before integration. No other scope is claimed. Next: trees or richer form
-controls through a concrete consumer; preserve existing ephemeral behavior.
-No stability or MELPA-readiness claim is made.
+Active worker owns tree indexing/navigation, the buffer-tree example and tests,
+build integration and documentation through review and CI. Next: view
+maximize/restore, navigation history or richer form controls through concrete
+applications, plus broader terminal validation. No maturity or MELPA claim.
 
 ## Implementation and handoff
 
@@ -88,6 +75,8 @@ dashboard. PR #7 added borrowed-window embedding over the same primitives.
   structured dashboard rows and failure-safe updates.
 - [PR #10](https://github.com/vv111y/emacs-tui/pull/10): preview reading position
   survives focus changes and unchanged updates.
+- [PR #11](https://github.com/vv111y/emacs-tui/pull/11): native editable inputs,
+  application change callbacks and a persistent composer with explicit copying.
 
 API and runnable examples are in README.md. `make demo` explores an in-memory
 sample graph; `make async-demo` searches buffer snapshots. Marks are per view
@@ -100,24 +89,24 @@ navigable. Query edits there may prune marks as its source results change.
 
 Current evidence is recorded above. The suite covers persistent, embedded and
 ephemeral presentations, async cancellation/streaming, stable selection and
-marks, tables, callback failure rollback and preview position. The merged four-version CI suite runs strict package/example byte compilation,
-checkdoc and four actual terminal smoke scripts; the pending input change adds
-a fifth script. Emacs 31.1 uses native TTY child frames in the ephemeral
-and persistent scripts; earlier versions use ordinary windows. Embedded/table
+marks, tables, editable inputs, callback failure rollback and preview position. The merged four-version CI suite runs strict package/example byte compilation,
+checkdoc and five real terminal smoke scripts; the pending tree change adds
+a sixth script. Emacs 31.1 uses native TTY child frames in the ephemeral
+persistent and input scripts; earlier versions use ordinary windows. Embedded/table
 scripts use a borrowed window. Resize coverage is 120x40 -> 90x30 -> 140x45.
 A separate real `cat` subprocess test verifies streaming and process disposal.
 
 Package-lint at upstream commit `1865be780a16098f972fef50a52b21ca6ee04df9`
-was rerun against the current input implementation. Its only findings are the two warnings
-that `emacs` is redundant in the main/layout package names; the new table module
-is clean. This remains a packaging question, not an overall clean lint pass.
+was rerun against the current tree implementation. Its only findings are the two warnings
+that `emacs` is redundant in the main/layout package names; the table and tree modules
+are clean. This remains a packaging question, not an overall clean lint pass.
 The extracted local runtime disables native compiler trampoline generation
 because it has no configured native compiler toolchain.
 
 ## Remaining work
 
-1. After PR #11 final-head review/CI and integration, extend application controls
-   with a concrete tree or form consumer. Preserve ephemeral behavior. Extend layouts, history, per-view
+1. Review and integrate tree views, then extend application controls
+   through concrete consumers. Preserve ephemeral behavior. Extend layouts, history, per-view
    input, maximize/restore and tree/form controls as real consumers require them. Avoid treating every preview as navigation.
 2. Broaden actual display validation: GUI child frames, macOS terminal emulators,
    multiplexers, narrow screens, multiple clients/terminals and visual behavior.

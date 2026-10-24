@@ -17,7 +17,7 @@ use the package. Add controls and abstractions through concrete use cases.
 
 ## Separate primitives from policies
 
-Shared capabilities include list/text/table views and later trees and forms;
+Shared capabilities include list/text/table/tree views and editable inputs;
 layout and resize; focus and input routing; selection and marks; updates and
 async lifecycle management; and discoverable application-defined actions.
 
@@ -70,10 +70,17 @@ Application and per-view keymaps compose with native defaults, while ephemeral
 query input retains ordinary editing. Editable text views now use native editing and undo in persistent and embedded
 interfaces, with application-owned change callbacks and explicit actions.
 The composer demonstrates two fields and a preview without a query provider
-or origin-buffer commit. Richer form controls and trees remain future work. No stable API claim is made.
+or origin-buffer commit. Richer form controls remain future work. No stable API claim is made.
 
 Table columns project existing items for display and sorting; they do not
 introduce a separate row identity or action model. The buffer/process dashboard
 exercises numeric sort, string metadata and stable updates. Columns use fixed
 display widths with horizontal scrolling; editing and adaptive widths remain
 future work.
+
+Tree views index a finite forest and reuse original objects, identities, marks,
+actions and async source replacement. Expansion changes display state only.
+Local queries reveal matching paths without committing expansion changes.
+The mode-grouped buffer browser exercises refresh, preview and explicit buffer
+display. Child projection is eager per snapshot; lazy loading and graph
+occurrence identity remain future work rather than implicit assumptions.

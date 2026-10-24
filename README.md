@@ -100,6 +100,47 @@ Text previews retain their cursor, scroll and narrowing when focus changes or
 updates repeat identical text and properties. Changed text or properties render
 from the beginning. Unchanged previews do not trigger buffer-change hooks.
 
+## Trees
+
+```elisp
+(emacs-tui-mount
+ :views
+ (list (emacs-tui-tree
+        :id 'objects :title "Objects" :multi-select t
+        :items '((:id project :label "Project"
+                  :children ((:id readme :label "README" :value "README.md")
+                             (:id sources :label "Sources"))))
+        :on-select (lambda (_app item) (message "%S" (plist-get item :value))))))
+```
+
+`emacs-tui-tree` uses the same original item objects, selection, marks and
+explicit actions as lists. In tree buffers, `SPC` toggles a branch, right opens
+it or enters its first child, and left closes it or selects its parent. These
+commands do not invoke selection actions. `+`/`-` cues and indentation work
+without color. `RET` invokes the application's action as usual.
+
+`:children` defaults to the plist keyword `:children`; it can also be a pure
+function returning child items. The toolkit indexes the entire finite forest
+once on construction or `emacs-tui-update :items ROOTS`, including collapsed
+nodes. Children functions must return promptly; applications can load data
+asynchronously and publish snapshots through the existing provider API.
+Plist nodes require explicit non-nil `:id` values; strings identify themselves.
+IDs must be globally unique. Cycles and repeated nodes are rejected before
+source replacement. Lazy loading and shared graph occurrences are future work.
+
+Roots start collapsed. Updates retain expansion, visible selection and marks
+by surviving ID, and marked items include collapsed descendants in depth-first
+source order. Local query matching temporarily reveals matches and their
+ancestor paths. Clear the local query before changing expansion; clearing it
+restores the prior expansion state. Application/provider-owned search retains
+control over filtering. Tree buffers have no table sorting or text-preview
+transition: update their root items and use a separate preview view.
+
+Run `make tree` for the mode-grouped buffer browser with a preview. `g` refreshes
+its snapshot, `RET` previews, and `o` explicitly displays a selected buffer
+elsewhere. It supports persistent mounting and the shared lifecycle; tree views
+also work in embedded panels and the ephemeral query workflow.
+
 ## Editable inputs
 
 Use native Emacs editing in persistent applications and embedded panels:
@@ -230,6 +271,9 @@ and continue exploration; commitment is a separate command.
 | Function | Purpose |
 | --- | --- |
 | `emacs-tui-view` | Describe a list, table or text preview |
+| `emacs-tui-tree` | Describe a finite hierarchy of original item objects |
+| `emacs-tui-tree-toggle` | Toggle the selected branch |
+| `emacs-tui-tree-expand` / `emacs-tui-tree-collapse` | Open/enter or close/visit parent |
 | `emacs-tui-input` | Describe an editable input view |
 | `emacs-tui-input-value` | Read the full input string |
 | `emacs-tui-open` | Open an ephemeral query workspace |
@@ -407,7 +451,8 @@ the terminal using real resize signals, and requires the
 native child-frame backend when its capability is present. A second PTY smoke
 checks queryless view navigation, actions, resize and launcher-buffer disposal.
 Additional scripts check embedded host restoration, table sorting and marks,
-and multiline editable views with undo across focus changes and resizes.
+multiline editable views with undo, and tree expansion/marks/source updates
+across focus changes and resizes.
 These checks are not a visual
 quality or performance benchmark.
 
