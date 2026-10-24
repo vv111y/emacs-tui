@@ -4,12 +4,15 @@ Updated 2026-10-24 (America/Toronto).
 
 ## Active implementation
 
-PR #22 merged at `336b446a1a06f5e0e89a42ff57cb10c10ae9aa0a` after independent
-implementation/evidence review and all eight final-head CI jobs in
-[40070611245](https://github.com/vv111y/emacs-tui/actions/runs/40070611245).
-Runtime jobs passed 229 ERT, strict compilation/checkdoc, six PTY scripts,
+PR #23 merged at `135aea3b22343c8496d2ece99e2ab5acdb262984` after independent
+review and all eight final-head CI jobs in
+[40071844167](https://github.com/vv111y/emacs-tui/actions/runs/40071844167).
+Runtime jobs passed 241 ERT, strict compilation/checkdoc, six PTY scripts,
 three Python regressions and all five benchmark workloads in both source and
 fresh-bytecode modes. Package build/clean-install passed on 31.1/28.1.
+Named current-view/focus-view, identity-based set-selection and named current-item
+reads preserve query/mark/sort state and avoid implicit actions. The dashboard
+uses them to inspect a process's associated buffer explicitly.
 
 Source-mode paired profiles and the full fresh-bytecode profile retain all raw
 records, environment, source/artifact hashes and percentiles under bench/results.
@@ -20,25 +23,27 @@ This is one configuration with interpreted fixture callbacks and native JIT off;
 GUI/emulator paint and native compilation remain unmeasured. Full table rebuilds
 and nonempty matching remain candidates for later measured work.
 
-Current work adds named application navigation: current-view/focus-view,
-identity-based set-selection, and named current-item reads including hidden
-panels. Selection reuses the existing cached-row path, preserves queries/marks/
-sort and does not invoke exploration/commit/context actions. Missing, filtered,
-collapsed and text/input targets fail explicitly. Focus follows existing layout,
-maximize and ephemeral query-focus policies. Repurposed surfaces are rejected.
-The dashboard uses these APIs to inspect a process's associated named live
-buffer through its actions menu, keeping application buffers/processes intact.
+Current work adds repeated lifecycle/resource stress: 75 batch lifetimes and
+45 additional real-PTY lifetimes across 120x40, 90x30 and 140x45. Each rotates
+ephemeral, persistent and embedded presentations, with a separate live embedded
+anchor throughout each batch. Real debounce dispatch, application-owned pipe
+processes and producer timers exercise cancellation. Some sessions close before
+debounce, others via explicit repeated close or killing an owned buffer;
+ephemeral query changes supersede running generations. Obsolete publish/error
+closures are rejected during replacement and after disposal. Assertions cover
+owned buffers/processes/timers, request invalidation, detached origin/host
+markers, removed source hooks/window claims, restored frame/window sets,
+application host edits/point, anchor selection/marks and final global hooks.
 
-Local 241 ERT tests, strict compilation/checkdoc, six PTY scripts, three Python
-regressions and both-mode benchmark smoke passed. Persistent PTY coverage now
-explicitly exercises named focus/selection and verifies no exploration callback
-until the original keyboard action. Twelve new tests cover named
-navigation, hidden/maximized panels, native input/preview/query positions,
-identity/sort/marks, tree collapse, invalid/closed/foreign surfaces and dashboard
-routing/unavailable buffers. Independent review and all current-head CI remain
-required. Next: repeated lifecycle/resource stress and further consumer-driven
-capabilities. No stable/MELPA acceptance claim is made; public maintenance and
-human-review gates remain.
+This is repeated bounded stress, not evidence for every OS, terminal emulator,
+GUI or multi-terminal topology. Existing fault-injection tests cover callback
+errors and exceptional cleanup. Next: more concrete consumer capabilities and
+broader display validation. The package remains experimental; public maintenance
+and human-review gates remain. Independent review and current-head CI are still
+required for this stress addition. Local 242 ERT, seven PTY scripts, strict
+package/example compilation/checkdoc, strict compilation of both new test
+fixtures, three Python regressions and both benchmark modes passed on Emacs
+29.3/Linux. No local child-frame capability or GUI/macOS validation is claimed.
 
 ## Implementation and handoff
 
@@ -99,6 +104,8 @@ dashboard. PR #7 added borrowed-window embedding over the same primitives.
   fast path and reviewed native query-clear latency/allocation evidence.
 - [PR #22](https://github.com/vv111y/emacs-tui/pull/22): isolated source/bytecode
   benchmark modes and a reviewed full compiled-library workload profile.
+- [PR #23](https://github.com/vv111y/emacs-tui/pull/23): named view focus and
+  projected selection APIs, with dashboard process-buffer inspection.
 
 API and runnable examples are in README.md. `make demo` explores an in-memory
 sample graph; `make async-demo` searches buffer snapshots. Marks are per view
@@ -111,7 +118,7 @@ navigable. Query edits there may prune marks as its source results change.
 
 Current evidence is recorded above. Runtime CI covers Linux Emacs 28.1,
 28.2, 29.4, 30.2 and 31.1, plus ARM64 macOS 30.2 and 31.1. Each job runs ERT,
-strict compilation, checkdoc and six real terminal scripts. Emacs 31.1 uses
+strict compilation, checkdoc and seven real terminal scripts. Emacs 31.1 uses
 native TTY child frames for ephemeral/persistent/input/tree interfaces on both
 platforms; earlier versions use windows. Embedded/table scripts borrow a
 window. Resize coverage is 120x40 -> 90x30 -> 140x45, including maximize/restore

@@ -575,7 +575,11 @@ native child-frame backend when its capability is present. A second PTY smoke
 checks queryless view navigation, actions, resize and launcher-buffer disposal.
 Additional scripts check embedded host restoration, table sorting and marks,
 multiline editable views with undo, and tree expansion/marks/source updates
-across focus changes and resizes.
+across focus changes and resizes. A shared ownership stress test runs 75
+batch lifetimes and 45 additional lifetimes in a real TTY at three sizes. It
+rotates ephemeral, persistent and embedded interfaces, keeps another session
+live, dispatches actual provider timers, and checks cancellation, stale replies,
+owned buffers/processes/timers/markers, display resources and host edits.
 These checks are not a visual
 quality or performance benchmark.
 
