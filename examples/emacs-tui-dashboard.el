@@ -21,14 +21,15 @@
            for name = (buffer-name buffer)
            unless (string-prefix-p " " name)
            collect (list :id buffer :label name :value buffer
-                         :annotation (with-current-buffer buffer
-                                       (format "%d chars | %s" (buffer-size) major-mode)))))
+                         :size (with-current-buffer buffer (buffer-size))
+                         :mode (with-current-buffer buffer (symbol-name major-mode)))))
 
 (defun emacs-tui-dashboard--processes ()
   "Return items for current processes."
   (mapcar (lambda (process)
             (list :id process :label (process-name process) :value process
-                  :annotation (format "%s" (process-status process))))
+                  :status (symbol-name (process-status process))
+                  :command (mapconcat #'identity (process-command process) " ")))
           (process-list)))
 
 (defun emacs-tui-dashboard--inspect-buffer (session item)
@@ -61,6 +62,7 @@
 \\[emacs-tui-select] inspects an object or invokes the selected action.
 The Actions view refreshes or pauses/resumes updates without closing.
 The g key refreshes and P pauses/resumes updates from any view.
+In a table, s selects a sort column; a prefix argument sorts descending.
 \\[emacs-tui-close] closes the interface and cancels its update timer."
   (interactive)
   (let ((keymap (make-sparse-keymap)) session timer paused initialized)
@@ -91,8 +93,22 @@ The g key refreshes and P pauses/resumes updates from any view.
                    :views
                    (list
                     (emacs-tui-view :id 'buffers :title "Buffers"
+                                    :columns
+                                    (list (emacs-tui-column :id 'name :title "Buffer"
+                                                            :width 24 :value :label)
+                                          (emacs-tui-column :id 'size :title "Chars"
+                                                            :width 9 :value :size :align 'right)
+                                          (emacs-tui-column :id 'mode :title "Mode"
+                                                            :width 20 :value :mode))
                                     :on-select #'emacs-tui-dashboard--inspect-buffer)
                     (emacs-tui-view :id 'processes :title "Processes"
+                                    :columns
+                                    (list (emacs-tui-column :id 'name :title "Process"
+                                                            :width 20 :value :label)
+                                          (emacs-tui-column :id 'status :title "Status"
+                                                            :width 8 :value :status)
+                                          (emacs-tui-column :id 'command :title "Command"
+                                                            :width 30 :value :command))
                                     :on-select #'emacs-tui-dashboard--inspect-process)
                     (emacs-tui-view :id 'preview :title "Preview"
                                     :text "Select a buffer or process to inspect it.")

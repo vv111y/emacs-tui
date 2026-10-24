@@ -35,6 +35,7 @@
 (require 'cl-lib)
 (require 'subr-x)
 (require 'emacs-tui-layout)
+(require 'emacs-tui-table)
 
 (defgroup emacs-tui nil
   "Composable text interfaces."
@@ -53,7 +54,7 @@
 
 (cl-defstruct (emacs-tui--view (:constructor emacs-tui--make-view))
   id title items visible-items (selected 0) text on-select buffer window
-  multi-select marks keymap)
+  multi-select marks keymap columns sort-column sort-descending)
 
 (cl-defstruct (emacs-tui--workspace (:constructor emacs-tui--make-workspace))
   views (focus 0) layout backend on-query on-commit origin origin-window
@@ -103,6 +104,7 @@
     (define-key map (kbd "n") #'emacs-tui-next-item)
     (define-key map (kbd "p") #'emacs-tui-previous-item)
     (define-key map (kbd "q") #'emacs-tui-close)
+    (define-key map (kbd "s") #'emacs-tui-sort)
     map)
   "Keymap for list and text views, including queryless applications.")
 
@@ -138,11 +140,14 @@
           (puthash id t identities)))))
   items)
 
-(cl-defun emacs-tui-view (&key id title items text on-select multi-select keymap)
-  "Describe a list or text view.
+(cl-defun emacs-tui-view (&key id title items text on-select multi-select keymap columns)
+  "Describe a list, table or text view.
 ID is a unique symbol or string.  TITLE defaults to ID.  ITEMS is a list
 of strings or plists with :label, optional :id, :value and :annotation.
 TEXT is a preview string and takes precedence over ITEMS when non-nil.
+COLUMNS is an optional list of `emacs-tui-column' descriptions; it displays
+the same source items as table rows.  Local queries search all column values
+as well as the item label.  Use `emacs-tui-sort' to order visible rows.
 Non-nil MULTI-SELECT enables independent marks.  Item identities must
 then be unique under `equal': strings identify themselves, plists use
 their non-nil :id or otherwise the entire plist.  Use stable :id values
@@ -159,10 +164,11 @@ View descriptions are copied when opened."
     (error "ON-SELECT must be a function"))
   (unless (or (null keymap) (keymapp keymap))
     (error "KEYMAP must be a keymap or nil"))
+  (emacs-tui--validate-columns columns)
   (emacs-tui--make-view :id id :title (or title (format "%s" id))
                         :items (emacs-tui--validate-items items multi-select)
                         :visible-items items :text text :on-select on-select
-                        :multi-select multi-select :keymap keymap))
+                        :multi-select multi-select :keymap keymap :columns columns))
 
 (defun emacs-tui--require-session (session)
   "Return live SESSION, defaulting to the current buffer's workspace."
@@ -282,19 +288,66 @@ its focused view.  Ordinary views are unchanged.  Return nil."
              (lambda (item)
                (cl-every
                 (lambda (term)
-                  (string-match-p (regexp-quote term)
-                                  (emacs-tui--item-label item)))
+                  (string-match-p
+                   (regexp-quote term)
+                   (concat (emacs-tui--item-label item)
+                           (when (emacs-tui--view-columns view)
+                             (concat " "
+                                     (mapconcat
+                                      (lambda (column)
+                                        (emacs-tui--cell-text
+                                         (emacs-tui--table-value column item)))
+                                      (emacs-tui--view-columns view) " "))))))
                 terms))
              (emacs-tui--view-items view)))))
+    (when (emacs-tui--view-sort-column view)
+      (setq items (emacs-tui--table-sort
+                   items (emacs-tui--view-sort-column view)
+                   (emacs-tui--view-sort-descending view))))
     (setf (emacs-tui--view-visible-items view) items
           (emacs-tui--view-selected view)
           (or (and old (cl-position (emacs-tui--item-id old) items
                                     :key #'emacs-tui--item-id :test #'equal))
               0))))
 
+(defun emacs-tui-sort (&optional session id column descending)
+  "Sort SESSION's table view ID by COLUMN's ID, optionally DESCENDING.
+Nil ID selects the focused view; nil COLUMN restores source order.
+Keep selection and marks by identity, never reorder source items or invoke
+actions.  Updates retain this sort.  Interactively prompt for the column;
+an empty answer restores source order, and a prefix requests descending order."
+  (interactive
+   (let* ((session (emacs-tui-current-session))
+          (view (emacs-tui--focused-view session))
+          (columns (emacs-tui--view-columns view)))
+     (unless columns (user-error "This view is not a table"))
+     (let* ((choices (mapcar (lambda (col)
+                              (cons (format "%S" (emacs-tui--column-id col))
+                                    (emacs-tui--column-id col))) columns))
+            (answer (completing-read "Sort column (empty for source order): " choices nil t)))
+       (list session nil (cdr (assoc answer choices)) current-prefix-arg))))
+  (setq session (emacs-tui--require-session session))
+  (let* ((view (emacs-tui--resolve-view session id))
+         (columns (emacs-tui--view-columns view))
+         (target (when column (cl-find column columns :key #'emacs-tui--column-id :test #'equal))))
+    (unless (and columns (not (emacs-tui--view-text view)))
+      (user-error "This view is not a table"))
+    (when (and column (not target)) (user-error "Unknown table column: %S" column))
+    (let ((candidate (copy-emacs-tui--view view)))
+      (setf (emacs-tui--view-sort-column candidate) target
+            (emacs-tui--view-sort-descending candidate) descending)
+      (emacs-tui--filter session candidate)
+      (emacs-tui--render-view session candidate)
+      (setf (emacs-tui--view-sort-column view) target
+            (emacs-tui--view-sort-descending view) descending
+            (emacs-tui--view-visible-items view) (emacs-tui--view-visible-items candidate)
+            (emacs-tui--view-selected view) (emacs-tui--view-selected candidate))))
+  session)
+
 (defun emacs-tui--view-header (session view)
   "Return VIEW's focus and mark header within SESSION."
-  (concat (if (eq view (emacs-tui--focused-view session)) "* " "  ")
+  (concat (if (equal (emacs-tui--view-id view)
+                         (emacs-tui--view-id (emacs-tui--focused-view session))) "* " "  ")
           (emacs-tui--view-title view)
           (when (and (emacs-tui--view-multi-select view)
                      (not (emacs-tui--view-text view)))
@@ -318,35 +371,57 @@ its focused view.  Ordinary views are unchanged.  Return nil."
               (with-current-buffer (emacs-tui--view-buffer view)
                 (setq header-line-format (emacs-tui--view-header session view))))))))))
 
+(defun emacs-tui--view-content (view)
+  "Prepare VIEW's complete content and selected position without display edits.
+Return (CONTENT . POSITION).  Projection errors leave the live buffer intact."
+  (if (emacs-tui--view-text view)
+      (cons (emacs-tui--view-text view) 1)
+    (let ((columns (emacs-tui--view-columns view))
+          (position 1) (selected-position 1) chunks)
+      (when columns
+        (let ((header
+               (concat (when (emacs-tui--view-multi-select view) "    ")
+                       (propertize
+                        (emacs-tui--table-line
+                         columns nil t
+                         (when (emacs-tui--view-sort-column view)
+                           (emacs-tui--column-id (emacs-tui--view-sort-column view)))
+                         (emacs-tui--view-sort-descending view)) 'face 'bold)
+                       "\n")))
+          (push header chunks)
+          (cl-incf position (length header))))
+      (cl-loop for item in (emacs-tui--view-visible-items view)
+               for index from 0 do
+               (let* ((annotation (and (not columns) (listp item)
+                                       (plist-get item :annotation)))
+                      (line
+                       (concat (when (emacs-tui--view-multi-select view)
+                                 (if (emacs-tui--marked-p view item) "[x] " "[ ] "))
+                               (if columns (emacs-tui--table-line columns item)
+                                 (emacs-tui--item-label item))
+                               (when annotation
+                                 (concat "  " (propertize (format "%s" annotation)
+                                                           'face 'emacs-tui-annotation))))))
+                 (when (= index (emacs-tui--view-selected view))
+                   (setq selected-position position)
+                   (add-face-text-property 0 (length line) 'emacs-tui-selection t line))
+                 (push (concat line "\n") chunks)
+                 (cl-incf position (1+ (length line)))))
+      (cons (apply #'concat (nreverse chunks)) selected-position))))
+
 (defun emacs-tui--render-view (session view)
-  "Render VIEW in SESSION without replacing its buffer or window."
+  "Render VIEW in SESSION without replacing its buffer or window.
+Prepare application projections before changing any displayed content."
   (let ((buffer (emacs-tui--view-buffer view)))
     (when (buffer-live-p buffer)
       (with-current-buffer buffer
         (let ((inhibit-read-only t)
-              (selected-position 1))
-          (erase-buffer)
+              (content (emacs-tui--view-content view)))
+          (atomic-change-group
+            (erase-buffer)
+            (insert (car content))
+            (goto-char (cdr content)))
           (setq header-line-format (emacs-tui--view-header session view))
-          (if (emacs-tui--view-text view)
-              (insert (emacs-tui--view-text view))
-            (cl-loop for item in (emacs-tui--view-visible-items view)
-                     for index from 0 do
-                     (let ((start (point))
-                           (annotation (and (listp item)
-                                            (plist-get item :annotation))))
-                       (when (emacs-tui--view-multi-select view)
-                         (insert (if (emacs-tui--marked-p view item)
-                                     "[x] " "[ ] ")))
-                       (insert (emacs-tui--item-label item))
-                       (when annotation
-                         (insert "  " (propertize (format "%s" annotation)
-                                                  'face 'emacs-tui-annotation)))
-                       (insert "\n")
-                       (when (= index (emacs-tui--view-selected view))
-                         (setq selected-position start)
-                         (add-face-text-property start (1- (point))
-                                                 'emacs-tui-selection t)))))
-          (goto-char selected-position)
           (set-buffer-modified-p nil)
           (when (window-live-p (emacs-tui--view-window view))
             (set-window-point (emacs-tui--view-window view) (point))))))))
@@ -389,19 +464,25 @@ be unique.  Return SESSION."
       (emacs-tui--validate-items items (emacs-tui--view-multi-select view)))
     (when (and text-p (not (or (null text) (stringp text))))
       (error "TEXT must be a string or nil"))
-    (when items-p (setf (emacs-tui--view-items view) items))
-    (when text-p (setf (emacs-tui--view-text view) text))
-    (when (emacs-tui--view-marks view)
-      (if (emacs-tui--view-text view)
-          (setf (emacs-tui--view-marks view) nil)
-        (when items-p
-          (let ((marks (make-hash-table :test #'equal)))
-            (dolist (item items)
-              (when (emacs-tui--marked-p view item)
-                (puthash (emacs-tui--item-id item) t marks)))
-            (setf (emacs-tui--view-marks view) marks)))))
-    (emacs-tui--filter session view)
-    (emacs-tui--render-view session view))
+    (let ((candidate (copy-emacs-tui--view view)))
+      (when items-p (setf (emacs-tui--view-items candidate) items))
+      (when text-p (setf (emacs-tui--view-text candidate) text))
+      (when (emacs-tui--view-marks candidate)
+	(if (emacs-tui--view-text candidate)
+            (setf (emacs-tui--view-marks candidate) nil)
+          (when items-p
+            (let ((marks (make-hash-table :test #'equal)))
+              (dolist (item items)
+		(when (emacs-tui--marked-p view item)
+                  (puthash (emacs-tui--item-id item) t marks)))
+              (setf (emacs-tui--view-marks candidate) marks)))))
+      (emacs-tui--filter session candidate)
+      (emacs-tui--render-view session candidate)
+      (setf (emacs-tui--view-items view) (emacs-tui--view-items candidate)
+            (emacs-tui--view-text view) (emacs-tui--view-text candidate)
+            (emacs-tui--view-marks view) (emacs-tui--view-marks candidate)
+            (emacs-tui--view-visible-items view) (emacs-tui--view-visible-items candidate)
+            (emacs-tui--view-selected view) (emacs-tui--view-selected candidate))))
   session)
 
 (defun emacs-tui--request-current-p (request)

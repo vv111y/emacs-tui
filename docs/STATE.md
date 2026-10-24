@@ -2,40 +2,44 @@
 
 Updated 2026-10-23 (America/Toronto).
 
-## Reviewed implementation and next work
+## Active implementation
 
-PR #6 merged the persistent lifecycle/dashboard at
-`0d181ea9c48af1a5df3bfd4e0404a130e326001f` after independent agent review,
-106 ERT tests and all four CI jobs. PR #7 merged embedded panels at
-`e1ce030e968e666640ad8284a64e9afdecb319c4` after independent agent review,
-118 ERT tests, strict compilation/checkdoc and three real TTY scripts on Emacs
-28.2, 29.4, 30.2 and 31.1 in
-[CI run 40049114090](https://github.com/vv111y/emacs-tui/actions/runs/40049114090).
-Reviewers additionally exercised 50 persistent and 50 dual-panel lifecycle
-cycles without retained sessions or owned buffers. These were agent reviews,
-not human/MELPA review.
+PR #8 merged at `132a397dc3d443d97f98da7aaf874302bfa51a20` after separate
+agent review and final-head CI
+[40049670216](https://github.com/vv111y/emacs-tui/actions/runs/40049670216):
+125 ERT tests, strict compilation, checkdoc and three real TTY scripts on
+Emacs 28.2, 29.4, 30.2 and 31.1. PRs #6 and #7 previously merged persistent
+interfaces and borrowed-window embedding after independent agent review.
 
-[PR #8](https://github.com/vv111y/emacs-tui/pull/8) adds native application/per-view `:keymap` composition and
-`emacs-tui-current-session` for interactive application commands. View bindings
-override application bindings, then toolkit defaults; ephemeral query editing
-is untouched. Maps remain live references and are not mutated by the toolkit.
-The dashboard demonstrates g refresh and P pause/resume from any view.
+[PR #9](https://github.com/vv111y/emacs-tui/pull/9) adds table columns over the existing item model, stable
+numeric/custom sorting, full-cell query matching and identity-preserving
+selection/marks across updates. Dashboard buffers/processes now use real tables.
+A fourth real TTY script invokes the interactive sort prompt and verifies marks,
+actions, two terminal resizes and host restoration. Tables use fixed display
+widths; sticky headers, editing and automatic width allocation remain future.
 
-Implementation head `2aacb9d80de7da72685922a711737f3e2f62350f` passes all
-125 ERT tests, strict compilation, checkdoc and all three real TTY scripts
-on Emacs 28.2, 29.4, 30.2 and 31.1 in
-[CI run 40049542128](https://github.com/vv111y/emacs-tui/actions/runs/40049542128).
-The separate reviewer approved that exact head, reran the complete suite on
-Emacs 29.3, and probed symbol-backed maps, live edits and concurrent-session
-isolation. No blockers remained. Initial CI failed a test-only string/vector
-comparison in help lookup; the corrected current implementation passes.
-Package-lint still reports only the two known package-name warnings.
+Implementation claim released after separate review; inspect the remote head
+before editing or integrating. Independent review and current-head CI are
+required before integration. Local checks passed 143 ERT tests, strict compile,
+checkdoc and all four real Emacs 29.3 PTY scripts, including the dashboard
+numeric-sort regression. Package-lint's new module check is clean; the
+main/layout files retain the two known package-name warnings. No clean overall
+lint or maturity claim is made.
 
-The implementation claim is released. This final documentation checkpoint
-records review and test evidence without code changes. Check PR #8's live merge
-state and latest CI before editing: integrate if still open and reviewed/passing,
-otherwise continue with application input widgets or table/tree views driven by
-a concrete example. No owner review is needed for routine integration.
+Separate review found that failing table projections/comparators could partially
+apply an update. The fix stages candidate state and complete rendered content
+before changing either. New direct-update, preview-transition and invalid async
+publication regressions preserve the last valid source, selection, marks and
+display. Separate review approved implementation head
+`bba9b189bd8d6c7d4c4af0cf2554eaa400676094`, independently repeating all
+143 tests, compilation, checkdoc and four TTY scripts. The reviewer also verified
+a nonlocal exit during sort rendering preserves the previous sort and content.
+That implementation also passes all four Emacs versions in
+[CI run 40051399759](https://github.com/vv111y/emacs-tui/actions/runs/40051399759).
+This final checkpoint changes documentation only; verify current-head CI before
+integration.
+A separate existing preview focus/scroll reset bug has been reproduced and is
+the next focused fix after tables are integrated.
 
 ## Implementation and handoff
 
@@ -93,10 +97,9 @@ trampoline generation because it has no configured native compiler toolchain.
 
 ## Remaining work
 
-1. Finish PR #8 integration if still open, then extend
-   application input/action composition. Preserve ephemeral behavior. Extend
-   layouts, history, per-view input, maximize/restore and tables as real consumers
-   require them. Avoid treating every preview as navigation.
+1. Review and integrate table views, then extend application input/action
+   composition. Preserve ephemeral behavior. Extend layouts, history, per-view
+   input, maximize/restore and tree/form controls as real consumers require them. Avoid treating every preview as navigation.
 2. Broaden actual display validation: GUI child frames, macOS terminal emulators,
    multiplexers, narrow screens, multiple clients/terminals and visual behavior.
    Linux PTY smoke is not complete UI QA.
