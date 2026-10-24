@@ -4,6 +4,33 @@ Updated 2026-10-24 (America/Toronto).
 
 ## Active implementation
 
+PR #36 merged at `59795f276f61a866f8104459b5f354fb6f5c82f7` after independent
+exact-head review and all eight jobs in
+[40088634179](https://github.com/vv111y/emacs-tui/actions/runs/40088634179).
+Runtime validation passed 286 ERT, strict compilation/checkdoc, eight terminal
+scenarios, four reflow fault checks, three Python regressions and original plus
+multi-term source/bytecode benchmark smokes. The expanded installed-client
+checks passed against the same real recipe archive on 31.1 and 28.1.
+
+Two-terminal validation now starts a private server in an interactive Emacs on
+one PTY and attaches a second actual PTY with emacsclient. Both clients mount
+independent input/list interfaces, selecting native child frames when supported.
+The driver sends real terminal keys, updates A while B owns native focus, resizes
+each terminal independently, deletes B's parent frame, then continues editing A.
+Assertions cover terminal/surface identity, input, selection, marks, background
+focus preservation, automatic reflow, cancellation, stale publication, buffers,
+close callbacks, host edits and final hook/frame cleanup. The driver has one
+45-second deadline and always reaps its dedicated process groups and PTYs.
+This is an additional required tty-smoke scenario; EMACSCLIENT selects the
+client executable when it is not on PATH.
+
+Local strict compilation passed for the fixture on Emacs 29.3/Linux. Its real
+local execution could not start the private server: this host rejects the Unix
+socket with make-network-process "Operation not permitted". This is not a
+passing two-client test. Positive runtime coverage, independent exact-head
+review and all eight fresh CI jobs are required before integration. No new
+performance, physical emulator, GUI or long-term maturity claim is made.
+
 PR #35 merged at `e4be92a9a941526ab1e4081e0a1f8f106de8ae68` after independent
 exact-head review and all eight jobs in
 [40088239840](https://github.com/vv111y/emacs-tui/actions/runs/40088239840).
