@@ -7,10 +7,10 @@ Updated 2026-10-23 (America/Toronto).
 The foundation [PR #1](https://github.com/vv111y/emacs-tui/pull/1) is merged.
 Automatic viewport reflow and real terminal resize tests shipped in merged
 [PR #2](https://github.com/vv111y/emacs-tui/pull/2), commit `80e552d`.
-The active next scope is bounded asynchronous query providers: debounce,
-cancellation, generation-checked streaming updates and lifecycle regression
-tests. The current worker owns core, provider tests, examples and README;
-inspect open drafts before starting overlapping work.
+Cancellable asynchronous query providers are implemented in
+[PR #3](https://github.com/vv111y/emacs-tui/pull/3). Inspect its live review/check
+and merge status before starting overlapping work. The current worker owns
+core, provider tests, examples, terminal smoke and README until integration.
 The repository started empty; this is still an experimental development release.
 
 Implemented: pure columns/rows/grid geometry, editable temporary queries,
@@ -29,13 +29,20 @@ passed all 44 tests, strict compilation, checkdoc and PTY smoke on Emacs 28.2,
 passed both actual resize transitions. Initial GUI fitting remains unverified
 on an actual graphical display.
 
-Foundation independent review found lifecycle/provider/compact-view
-defects; all have fixes and regression coverage, independently retested with no
-remaining foundation blockers. CI run
-[40040890417](https://github.com/vv111y/emacs-tui/actions/runs/40040890417) passed
-on Emacs 28.2, 29.4, 30.2 and 31.1 for commit `7959f59`. Its 31.1 log confirms
-`PASS Emacs 31.1; real TTY; backend=child-frame`. The final additional nonlocal
-startup-exit regression is test 33; the PR's latest checks govern integration.
+PR #3 adds mutually exclusive `:provider` / `:on-query`, configurable debounce,
+per-session request identities, replacement streaming publications, failure
+callbacks and cancellation. Old provider-owned results clear on query changes;
+static views remain. Reflow does not restart providers. Async work is still
+cooperative: providers must return promptly, and application cancellation must
+actually stop its own processes/timers.
+
+Local PR #3 validation: 68 ERT tests pass on Emacs 29.3, including real `cat`
+process streaming/disposal and lifecycle races. Strict compilation and checkdoc
+include both examples and pass. The interactive TTY smoke now waits for async
+results before selection/resize/commit and verifies cancellation. Final-head CI
+and independent review must pass before integration. The buffer-search example
+is available with `make async-demo`; its snapshots are collected synchronously,
+then searched in bounded batches. No performance claims are established.
 
 Latest package-lint was inspected and executed from upstream commit
 `1865be780a16098f972fef50a52b21ca6ee04df9`: both source files produce only its
@@ -46,14 +53,15 @@ the extracted test runtime has no configured native compiler toolchain.
 
 ## Next work
 
-1. Implement bounded async query providers with debounce, cancellation and
-   stale-result suppression. Publish only after independent review and CI.
+1. Finish PR #3 independent review and final-head CI if still open, then
+   integrate the reviewed head. Do not reimplement shipped provider lifecycle.
 2. Broaden TTY coverage beyond Linux pseudo-terminals, including macOS terminals,
    multiple clients and visual behavior; CI smoke alone is not complete UI QA.
 3. Expand narrow-terminal and multiple-client coverage. Automatic reflow and
    owned-subtree invalidation are now implemented; verify actual GUI behavior.
-4. Develop around-point layouts, traversal history and per-view state through
-   the graph demo; add bounded async provider lifecycle and stale-result tests.
+4. Develop around-point layouts, explicit traversal history and per-view query
+   state through real examples. Avoid treating every preview as navigation.
+   Add measured large-result rendering work once these interactions settle.
 5. Follow ROADMAP.md through performance, installation and release readiness.
 
 ## Completion gates

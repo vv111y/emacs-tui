@@ -45,9 +45,12 @@
 ;;;###autoload
 (defun emacs-tui-demo ()
   "Explore a sample graph, optionally committing an Org-style link.
-Type to search nodes.  RET previews the selected node; TAB changes the
-focused view, M-n/M-p navigate, C-c C-l changes layout and C-g cancels.
-C-c C-c inserts a demo link at the original point."
+Type to search nodes.
+\\<emacs-tui-input-mode-map>\\[emacs-tui-select] previews the selected node;
+\\[emacs-tui-next-view] changes the focused view, and
+\\[emacs-tui-next-item]/\\[emacs-tui-previous-item] navigate items.
+\\[emacs-tui-cycle-layout] changes layout; \\[emacs-tui-close] cancels.
+\\[emacs-tui-commit] inserts a demo link at the original point."
   (interactive)
   (emacs-tui-open
    :layout 'grid

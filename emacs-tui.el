@@ -55,7 +55,11 @@
 
 (cl-defstruct (emacs-tui--workspace (:constructor emacs-tui--make-workspace))
   views (focus 0) layout backend on-query on-commit origin origin-window
-  origin-frame frame query-buffer root windows active origin-kill-hook geometry)
+  origin-frame frame query-buffer root windows active origin-kill-hook geometry
+  provider debounce request provider-views)
+
+(cl-defstruct (emacs-tui--request (:constructor emacs-tui--make-request))
+  session query timer cancel (active t))
 
 (defvar-local emacs-tui--session nil
   "Workspace associated with the current ephemeral buffer.")
@@ -164,7 +168,8 @@ close the workspace.  View descriptions are copied when opened."
          (terms (split-string (emacs-tui-query session) nil t))
          (case-fold-search t)
          (items
-          (if (emacs-tui--workspace-on-query session)
+          (if (or (emacs-tui--workspace-on-query session)
+                  (emacs-tui--workspace-provider session))
               (emacs-tui--view-items view)
             (cl-remove-if-not
              (lambda (item)
@@ -177,7 +182,7 @@ close the workspace.  View descriptions are copied when opened."
     (setf (emacs-tui--view-visible-items view) items
           (emacs-tui--view-selected view)
           (or (and old (cl-position (emacs-tui--item-id old) items
-                                   :key #'emacs-tui--item-id :test #'equal))
+                                    :key #'emacs-tui--item-id :test #'equal))
               0))))
 
 (defun emacs-tui--render-view (session view)
@@ -202,7 +207,7 @@ close the workspace.  View descriptions are copied when opened."
                        (insert (emacs-tui--item-label item))
                        (when annotation
                          (insert "  " (propertize (format "%s" annotation)
-                                                 'face 'emacs-tui-annotation)))
+                                                  'face 'emacs-tui-annotation)))
                        (insert "\n")
                        (when (= index (emacs-tui--view-selected view))
                          (setq selected-position start)
@@ -219,6 +224,8 @@ ARGUMENTS come from `after-change-functions', or start with `initial'
 to propagate initialization failures to the workspace opener."
   (let ((session emacs-tui--session))
     (when (and session (emacs-tui--workspace-active session))
+      (when (emacs-tui--workspace-provider session)
+        (emacs-tui--schedule-provider session (emacs-tui-query session)))
       (when (emacs-tui--workspace-on-query session)
         (let ((query (emacs-tui-query session)))
           (if (eq (car arguments) 'initial)
@@ -234,7 +241,7 @@ to propagate initialization failures to the workspace opener."
           (emacs-tui--render-view session view))))))
 
 (cl-defun emacs-tui-update (session id &key (items nil items-p)
-                                  (text nil text-p))
+                                    (text nil text-p))
   "Update SESSION's view ID, reusing its display resources.
 Supplying ITEMS, including nil, replaces its source items.  Supplying
 TEXT, including nil, replaces or clears the preview.  Omitted fields
@@ -251,6 +258,106 @@ are unchanged.  Return SESSION."
     (emacs-tui--filter session view)
     (emacs-tui--render-view session view))
   session)
+
+(defun emacs-tui--request-current-p (request)
+  "Return non-nil if REQUEST may still publish into its live session."
+  (let ((session (emacs-tui--request-session request)))
+    (and (emacs-tui--request-active request)
+         (emacs-tui--workspace-active session)
+         (eq request (emacs-tui--workspace-request session)))))
+
+(defun emacs-tui--call-cancel (cancel)
+  "Invoke non-nil CANCEL, containing cancellation errors and quits."
+  (when cancel
+    (condition-case err
+        (funcall cancel)
+      ((error quit)
+       (message "emacs-tui provider cancellation: %s" (error-message-string err))))))
+
+(defun emacs-tui--stop-request (request)
+  "Invalidate REQUEST and dispose its timer and cancellation handle once."
+  (when request
+    (let ((session (emacs-tui--request-session request))
+          (timer (emacs-tui--request-timer request))
+          (cancel (emacs-tui--request-cancel request)))
+      (setf (emacs-tui--request-active request) nil
+            (emacs-tui--request-timer request) nil
+            (emacs-tui--request-cancel request) nil)
+      (when (eq request (emacs-tui--workspace-request session))
+        (setf (emacs-tui--workspace-request session) nil))
+      (when timer (cancel-timer timer))
+      (emacs-tui--call-cancel cancel))))
+
+(defun emacs-tui--provider-fail (request error)
+  "Terminate current REQUEST with ERROR, an error condition or string.
+Return t if accepted, or nil for an obsolete request."
+  (when (emacs-tui--request-current-p request)
+    (emacs-tui--stop-request request)
+    (message "emacs-tui provider: %s"
+             (if (stringp error) error
+               (condition-case nil (error-message-string error)
+                 (error (format "%S" error)))))
+    t))
+
+(defun emacs-tui--provider-publish (request id &rest keywords)
+  "Update view ID only while REQUEST is current.
+KEYWORDS are the property replacements for `emacs-tui-update'.
+Return t if accepted, or nil if obsolete or invalid.  Invalid data
+terminates the request without partially applying update arguments."
+  (when (emacs-tui--request-current-p request)
+    (let ((session (emacs-tui--request-session request)))
+      (condition-case err
+          (progn
+            (apply #'emacs-tui-update session id keywords)
+            (cl-pushnew id (emacs-tui--workspace-provider-views session) :test #'equal)
+            t)
+        ((error quit) (emacs-tui--provider-fail request err) nil)))))
+
+(defun emacs-tui--start-provider (request)
+  "Start REQUEST after debounce, with generation-bound publishing callbacks."
+  (setf (emacs-tui--request-timer request) nil)
+  (when (emacs-tui--request-current-p request)
+    (let ((session (emacs-tui--request-session request)) returned)
+      (unwind-protect
+          (condition-case err
+              (let ((cancel
+                     (funcall
+                      (emacs-tui--workspace-provider session)
+                      session (emacs-tui--request-query request)
+                      (lambda (id &rest updates)
+                        (apply #'emacs-tui--provider-publish request id updates))
+                      (lambda (error) (emacs-tui--provider-fail request error)))))
+                (setq returned t)
+                (unless (or (null cancel) (functionp cancel))
+                  (error "A provider must return nil or a cancellation function"))
+                (if (emacs-tui--request-current-p request)
+                    (setf (emacs-tui--request-cancel request) cancel)
+                  (emacs-tui--call-cancel cancel)))
+            ((error quit) (emacs-tui--provider-fail request err)))
+        (unless returned (emacs-tui--stop-request request))))))
+
+(defun emacs-tui--schedule-provider (session query)
+  "Schedule SESSION's provider for QUERY, superseding previous work.
+Invalidate the previous generation before calling its cancellation
+function.  Already published views are cleared to prevent committing
+results belonging to the previous query.  Untouched views are retained."
+  (let ((previous (emacs-tui--workspace-request session))
+        (request (emacs-tui--make-request :session session :query query))
+        scheduled)
+    (setf (emacs-tui--workspace-request session) request)
+    (unwind-protect
+        (progn
+          (dolist (id (emacs-tui--workspace-provider-views session))
+            (emacs-tui-update session id :items nil :text nil))
+          (emacs-tui--stop-request previous)
+          (when (emacs-tui--request-current-p request)
+            (setf (emacs-tui--request-query request) (emacs-tui-query session)
+                  (emacs-tui--request-timer request)
+                  (run-at-time (emacs-tui--workspace-debounce session) nil
+                               #'emacs-tui--start-provider request))
+            (setq scheduled t)))
+      (unless scheduled (emacs-tui--stop-request request))
+      (emacs-tui--stop-request previous))))
 
 (defun emacs-tui--child-frames-supported-p ()
   "Whether this display advertises native child-frame support."
@@ -546,7 +653,7 @@ No application provider or commit callback is invoked."
            (emacs-tui-close session)))))))
 
 (cl-defun emacs-tui-open (&key views (layout 'columns) (backend 'auto)
-                              on-query on-commit)
+                               on-query on-commit provider (debounce 0.08))
   "Open an ephemeral workspace and return its session handle.
 VIEWS is a nonempty list of `emacs-tui-view' descriptions.  LAYOUT is
 `columns', `rows' or `grid'.  BACKEND is `auto', `windows' or
@@ -559,13 +666,30 @@ It can publish results with `emacs-tui-update'.  ON-COMMIT receives
  (SESSION ITEM ORIGIN-MARKER) in the live origin buffer in an atomic
 change group.  Only a successful commit closes the workspace.
 
+PROVIDER is an asynchronous alternative to ON-QUERY; supplying both
+is an error.  It receives (SESSION QUERY PUBLISH FAIL) after DEBOUNCE
+seconds without a query change.  DEBOUNCE must be nonnegative and
+finite; even zero starts via a timer.  The provider must return promptly
+with nil or a zero-argument cancellation function.  Call PUBLISH with
+a view ID and `emacs-tui-update' keywords, repeatedly for streaming
+replacements.  Call FAIL with an error condition or string to terminate
+the request.  Obsolete callbacks are ignored after query changes or
+session close.  Views previously published by the provider are cleared
+on a new query; untouched static views remain available.
+
 The query is editable scratch text; the source buffer and its point
 are not modified by opening, filtering, selecting or cancelling."
   (unless (and (proper-list-p views) views
                (cl-every #'emacs-tui--view-p views))
     (error "VIEWS must be a nonempty list of emacs-tui-view descriptions"))
   (unless (memq layout '(columns rows grid)) (error "Unknown layout: %S" layout))
-  (dolist (callback (list on-query on-commit))
+  (when (and on-query provider)
+    (error "PROVIDER and ON-QUERY are mutually exclusive"))
+  (unless (condition-case nil
+              (and (numberp debounce) (>= debounce 0) (< debounce 1.0e+INF))
+            (arith-error nil))
+    (error "DEBOUNCE must be a nonnegative finite number"))
+  (dolist (callback (list on-query on-commit provider))
     (unless (or (null callback) (functionp callback))
       (error "Callbacks must be functions or nil")))
   (let ((ids (mapcar #'emacs-tui--view-id views)))
@@ -575,6 +699,7 @@ are not modified by opening, filtering, selecting or cancelling."
           (emacs-tui--make-workspace
            :views (mapcar #'copy-emacs-tui--view views) :layout layout
            :on-query on-query :on-commit on-commit
+           :provider provider :debounce debounce
            :origin (copy-marker (point)) :origin-window (selected-window)
            :origin-frame (selected-frame) :active t))
          (query (generate-new-buffer " *emacs-tui query*"))
@@ -636,43 +761,45 @@ windows are preserved."
              (emacs-tui--workspace-active session))
     (setf (emacs-tui--workspace-active session) nil)
     (setq emacs-tui--sessions (delq session emacs-tui--sessions))
-    (let* ((origin (emacs-tui--workspace-origin session))
-           (origin-window (emacs-tui--workspace-origin-window session))
-           (frame (emacs-tui--workspace-frame session))
-           (owned-selection (emacs-tui--owned-window-p session (selected-window))))
-      (when (buffer-live-p (marker-buffer origin))
-        (with-current-buffer (marker-buffer origin)
-          (remove-hook 'kill-buffer-hook
-                       (emacs-tui--workspace-origin-kill-hook session) t)))
-      (when (and owned-selection (window-live-p origin-window))
-        (select-window origin-window))
-      (if (and (frame-live-p frame)
-               (or (null (emacs-tui--workspace-windows session))
-                   (cl-every (lambda (window)
-                               (emacs-tui--owned-window-p session window))
-                             (window-list frame 'no-minibuffer))))
-          (delete-frame frame t)
-        (dolist (window (emacs-tui--workspace-windows session))
-          (when (and (window-live-p window)
-                     (eq (window-parameter window 'emacs-tui-session) session))
-            (let ((owned (emacs-tui--owned-window-p session window)))
-              (set-window-parameter window 'emacs-tui-session nil)
-              (when owned
-                (if (not (one-window-p t (window-frame window)))
-                    (delete-window window)
-                  (when (buffer-live-p (marker-buffer origin))
-                    (set-window-buffer window (marker-buffer origin))
-                    (set-window-point window origin))))))))
-      (dolist (buffer (cons (emacs-tui--workspace-query-buffer session)
-                           (mapcar #'emacs-tui--view-buffer
-                                   (emacs-tui--workspace-views session))))
-        (when (buffer-live-p buffer)
-          (with-current-buffer buffer (set-buffer-modified-p nil))
-          (kill-buffer buffer)))
-      (set-marker origin nil))
-    (unless emacs-tui--sessions
-      (remove-hook 'delete-frame-functions #'emacs-tui--frame-deleted)
-      (remove-hook 'window-state-change-hook #'emacs-tui--window-state-changed)))
+    (unwind-protect
+        (let* ((origin (emacs-tui--workspace-origin session))
+               (origin-window (emacs-tui--workspace-origin-window session))
+               (frame (emacs-tui--workspace-frame session))
+               (owned-selection (emacs-tui--owned-window-p session (selected-window))))
+	  (when (buffer-live-p (marker-buffer origin))
+            (with-current-buffer (marker-buffer origin)
+              (remove-hook 'kill-buffer-hook
+			   (emacs-tui--workspace-origin-kill-hook session) t)))
+	  (when (and owned-selection (window-live-p origin-window))
+            (select-window origin-window))
+	  (if (and (frame-live-p frame)
+		   (or (null (emacs-tui--workspace-windows session))
+                       (cl-every (lambda (window)
+				   (emacs-tui--owned-window-p session window))
+				 (window-list frame 'no-minibuffer))))
+              (delete-frame frame t)
+            (dolist (window (emacs-tui--workspace-windows session))
+              (when (and (window-live-p window)
+			 (eq (window-parameter window 'emacs-tui-session) session))
+		(let ((owned (emacs-tui--owned-window-p session window)))
+		  (set-window-parameter window 'emacs-tui-session nil)
+		  (when owned
+                    (if (not (one-window-p t (window-frame window)))
+			(delete-window window)
+                      (when (buffer-live-p (marker-buffer origin))
+			(set-window-buffer window (marker-buffer origin))
+			(set-window-point window origin))))))))
+	  (dolist (buffer (cons (emacs-tui--workspace-query-buffer session)
+				(mapcar #'emacs-tui--view-buffer
+					(emacs-tui--workspace-views session))))
+            (when (buffer-live-p buffer)
+              (with-current-buffer buffer (set-buffer-modified-p nil))
+              (kill-buffer buffer)))
+	  (set-marker origin nil))
+      (unless emacs-tui--sessions
+	(remove-hook 'delete-frame-functions #'emacs-tui--frame-deleted)
+	(remove-hook 'window-state-change-hook #'emacs-tui--window-state-changed))
+      (emacs-tui--stop-request (emacs-tui--workspace-request session))))
   nil)
 
 (defun emacs-tui-next-view (&optional session delta)
