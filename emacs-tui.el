@@ -505,7 +505,7 @@ can filter another view without replacing its source items."
                        (emacs-tui--tree-project (emacs-tui--view-tree view) tree-terms)))
          (items
           (if projection (car projection)
-            (if application-query
+            (if (or application-query (null terms))
 		(emacs-tui--view-items view)
               (cl-remove-if-not
                (lambda (item)

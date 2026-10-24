@@ -1,0 +1,520 @@
+{
+  "emacs": "29.3",
+  "system_configuration": "x86_64-pc-linux-gnu",
+  "features": "ACL DBUS GMP GNUTLS GPM JSON LCMS2 LIBSELINUX LIBSYSTEMD LIBXML2 MODULES NATIVE_COMP NOTIFY INOTIFY PDUMPER SECCOMP SOUND SQLITE3 THREADS TREE_SITTER XIM ZLIB",
+  "backend": "windows",
+  "terminal": "xterm-256color",
+  "frame_columns": 120,
+  "frame_rows": 39,
+  "gc_cons_threshold": 800000,
+  "gc_cons_percentage": 0.1,
+  "deferred_native_compilation": false,
+  "library": "/workspace/scratch/5a976ed71eb6/selection-performance/emacs-tui.el",
+  "schema": 1,
+  "label": "filter-before",
+  "source": {
+    "git_revision": null,
+    "source_dirty": null,
+    "sha256": {
+      "emacs-tui-action.el": "dc42fb41436195b228017b2fab2a823a1080c81645549fa9df4902af7e9672c0",
+      "emacs-tui-layout.el": "42ab03007a3850a55873e3fc16bff9cc7eca0ecbe3dc171c881e77d70b872f75",
+      "emacs-tui-table.el": "91326b993e7a8c99a2564dfd20bcfc0108c10c229aea40ce6f638ce66f0e7324",
+      "emacs-tui-tree.el": "e246f7ad6a0f41fbbf9fa3dbaf5ff5cf2284dce8c6743652459321602084bcf6",
+      "emacs-tui.el": "9a3751c16d3c1c1d2a1ed1a9e0e730bd0ab5cacae931891b737f1a29d6b21463",
+      "bench/run.py": "f3fc1d0a712aab90f88c6633a89b20ba33a6f861891e86d3053913680b439152",
+      "bench/interactive.el": "1866190cdad459c1cebf46bff38d0e1a294d195025ed24ae8aa97568a61bad14"
+    }
+  },
+  "cases": [
+    {
+      "kind": "filter-list",
+      "size": 1000
+    },
+    {
+      "kind": "filter-table",
+      "size": 1000
+    },
+    {
+      "kind": "filter-list",
+      "size": 10000
+    },
+    {
+      "kind": "filter-table",
+      "size": 10000
+    }
+  ],
+  "command": [
+    "/workspace/scratch/fdd5e90d3b55/emacs-runtime/emacs",
+    "-Q",
+    "-nw",
+    "-L",
+    "/workspace/scratch/5a976ed71eb6/selection-performance",
+    "-l",
+    "/workspace/scratch/5a976ed71eb6/selection-performance/bench/interactive.el"
+  ],
+  "samples": 100,
+  "warmup": 10,
+  "recorded_at_utc": "2026-10-24T05:29:20Z",
+  "host": {
+    "system": "Linux-6.18.55-x86_64-with-glibc2.39",
+    "machine": "x86_64",
+    "processor": "AMD EPYC 9V74 80-Core Processor",
+    "logical_cpus": 9,
+    "python": "3.12.14"
+  },
+  "pty": {
+    "columns": 120,
+    "rows": 40
+  },
+  "provider_fixture": {
+    "debounce_ms": 10,
+    "timer_delay_ms": 20
+  },
+  "quantile_method": "nearest-rank",
+  "summaries": [
+    {
+      "kind": "filter-list",
+      "size": 1000,
+      "metrics": {
+        "command_redisplay_ms": {
+          "p50": 59.656178,
+          "p95": 79.08382999999999,
+          "p99": 85.29753
+        },
+        "cons_cells": {
+          "p50": 239788,
+          "p95": 242888,
+          "p99": 242888
+        },
+        "string_chars": {
+          "p50": 64176,
+          "p95": 87707,
+          "p99": 87707
+        },
+        "gc_count": {
+          "p50": 5,
+          "p95": 6,
+          "p99": 6
+        },
+        "gc_ms": {
+          "p50": 44.16917399999987,
+          "p95": 62.74231100000005,
+          "p99": 66.54452899999997
+        },
+        "pty_output_ms": {
+          "p50": 59.786464,
+          "p95": 79.248893,
+          "p99": 85.461051
+        }
+      },
+      "by_command": [
+        {
+          "command": "delete-backward-char",
+          "samples": 50,
+          "metrics": {
+            "command_redisplay_ms": {
+              "p50": 61.147392,
+              "p95": 76.380834,
+              "p99": 88.454104
+            },
+            "cons_cells": {
+              "p50": 242887,
+              "p95": 242888,
+              "p99": 242888
+            },
+            "string_chars": {
+              "p50": 87707,
+              "p95": 87707,
+              "p99": 87707
+            },
+            "gc_count": {
+              "p50": 5,
+              "p95": 6,
+              "p99": 6
+            },
+            "gc_ms": {
+              "p50": 44.88647300000004,
+              "p95": 56.10144100000003,
+              "p99": 67.80546599999981
+            },
+            "pty_output_ms": {
+              "p50": 61.310617,
+              "p95": 76.553394,
+              "p99": 88.649778
+            }
+          }
+        },
+        {
+          "command": "self-insert-command",
+          "samples": 50,
+          "metrics": {
+            "command_redisplay_ms": {
+              "p50": 57.298032,
+              "p95": 82.477023,
+              "p99": 85.29753
+            },
+            "cons_cells": {
+              "p50": 239787,
+              "p95": 239788,
+              "p99": 239788
+            },
+            "string_chars": {
+              "p50": 64176,
+              "p95": 64176,
+              "p99": 64176
+            },
+            "gc_count": {
+              "p50": 5,
+              "p95": 6,
+              "p99": 6
+            },
+            "gc_ms": {
+              "p50": 42.64248999999953,
+              "p95": 64.67488700000001,
+              "p99": 66.54452899999997
+            },
+            "pty_output_ms": {
+              "p50": 57.447927,
+              "p95": 82.639128,
+              "p99": 85.461051
+            }
+          }
+        }
+      ]
+    },
+    {
+      "kind": "filter-table",
+      "size": 1000,
+      "metrics": {
+        "command_redisplay_ms": {
+          "p50": 171.065299,
+          "p95": 232.705198,
+          "p99": 299.653974
+        },
+        "cons_cells": {
+          "p50": 384881,
+          "p95": 719365,
+          "p99": 719368
+        },
+        "string_chars": {
+          "p50": 294156,
+          "p95": 428365,
+          "p99": 428365
+        },
+        "gc_count": {
+          "p50": 10,
+          "p95": 17,
+          "p99": 17
+        },
+        "gc_ms": {
+          "p50": 123.3099640000006,
+          "p95": 175.69535399999836,
+          "p99": 238.68979000000047
+        },
+        "pty_output_ms": {
+          "p50": 171.194022,
+          "p95": 232.861539,
+          "p99": 299.819888
+        }
+      },
+      "by_command": [
+        {
+          "command": "delete-backward-char",
+          "samples": 50,
+          "metrics": {
+            "command_redisplay_ms": {
+              "p50": 189.859817,
+              "p95": 253.017539,
+              "p99": 304.51089399999995
+            },
+            "cons_cells": {
+              "p50": 719364,
+              "p95": 719365,
+              "p99": 719372
+            },
+            "string_chars": {
+              "p50": 428365,
+              "p95": 428365,
+              "p99": 428365
+            },
+            "gc_count": {
+              "p50": 16,
+              "p95": 17,
+              "p99": 17
+            },
+            "gc_ms": {
+              "p50": 139.87343600000025,
+              "p95": 201.79938600000114,
+              "p99": 241.99219499999992
+            },
+            "pty_output_ms": {
+              "p50": 190.012517,
+              "p95": 253.196158,
+              "p99": 304.921601
+            }
+          }
+        },
+        {
+          "command": "self-insert-command",
+          "samples": 50,
+          "metrics": {
+            "command_redisplay_ms": {
+              "p50": 103.781181,
+              "p95": 128.077384,
+              "p99": 171.202449
+            },
+            "cons_cells": {
+              "p50": 384873,
+              "p95": 384874,
+              "p99": 384881
+            },
+            "string_chars": {
+              "p50": 294156,
+              "p95": 294156,
+              "p99": 294156
+            },
+            "gc_count": {
+              "p50": 9,
+              "p95": 10,
+              "p99": 10
+            },
+            "gc_ms": {
+              "p50": 78.12291099999946,
+              "p95": 101.42939599999856,
+              "p99": 131.76644300000007
+            },
+            "pty_output_ms": {
+              "p50": 103.996935,
+              "p95": 128.243344,
+              "p99": 171.476286
+            }
+          }
+        }
+      ]
+    },
+    {
+      "kind": "filter-list",
+      "size": 10000,
+      "metrics": {
+        "command_redisplay_ms": {
+          "p50": 646.9563440000001,
+          "p95": 735.6830279999999,
+          "p99": 868.666478
+        },
+        "cons_cells": {
+          "p50": 2389939,
+          "p95": 2420935,
+          "p99": 2420940
+        },
+        "string_chars": {
+          "p50": 641076,
+          "p95": 877007,
+          "p99": 877007
+        },
+        "gc_count": {
+          "p50": 51,
+          "p95": 52,
+          "p99": 52
+        },
+        "gc_ms": {
+          "p50": 498.93847799999946,
+          "p95": 574.7080470000014,
+          "p99": 705.3101349999977
+        },
+        "pty_output_ms": {
+          "p50": 647.15554,
+          "p95": 735.909088,
+          "p99": 868.852723
+        }
+      },
+      "by_command": [
+        {
+          "command": "delete-backward-char",
+          "samples": 50,
+          "metrics": {
+            "command_redisplay_ms": {
+              "p50": 653.869127,
+              "p95": 739.705462,
+              "p99": 753.307331
+            },
+            "cons_cells": {
+              "p50": 2420932,
+              "p95": 2420940,
+              "p99": 2420940
+            },
+            "string_chars": {
+              "p50": 877007,
+              "p95": 877007,
+              "p99": 877007
+            },
+            "gc_count": {
+              "p50": 52,
+              "p95": 52,
+              "p99": 52
+            },
+            "gc_ms": {
+              "p50": 500.2664249999995,
+              "p95": 574.7080470000014,
+              "p99": 592.5832699999916
+            },
+            "pty_output_ms": {
+              "p50": 654.34033,
+              "p95": 740.078863,
+              "p99": 753.66555
+            }
+          }
+        },
+        {
+          "command": "self-insert-command",
+          "samples": 50,
+          "metrics": {
+            "command_redisplay_ms": {
+              "p50": 640.431256,
+              "p95": 735.6830279999999,
+              "p99": 928.758159
+            },
+            "cons_cells": {
+              "p50": 2389931,
+              "p95": 2389934,
+              "p99": 2389939
+            },
+            "string_chars": {
+              "p50": 641076,
+              "p95": 641076,
+              "p99": 641076
+            },
+            "gc_count": {
+              "p50": 51,
+              "p95": 51,
+              "p99": 51
+            },
+            "gc_ms": {
+              "p50": 498.40530400000205,
+              "p95": 575.3084729999927,
+              "p99": 755.9836610000019
+            },
+            "pty_output_ms": {
+              "p50": 640.631067,
+              "p95": 735.909088,
+              "p99": 928.979682
+            }
+          }
+        }
+      ]
+    },
+    {
+      "kind": "filter-table",
+      "size": 10000,
+      "metrics": {
+        "command_redisplay_ms": {
+          "p50": 1632.496982,
+          "p95": 2547.9679260000003,
+          "p99": 2712.774203
+        },
+        "cons_cells": {
+          "p50": 3836463,
+          "p95": 7181518,
+          "p99": 7181518
+        },
+        "string_chars": {
+          "p50": 3001602,
+          "p95": 4320233,
+          "p99": 4320233
+        },
+        "gc_count": {
+          "p50": 91,
+          "p95": 162,
+          "p99": 162
+        },
+        "gc_ms": {
+          "p50": 1342.925020999985,
+          "p95": 2006.7053740000063,
+          "p99": 2133.948481999994
+        },
+        "pty_output_ms": {
+          "p50": 1632.786373,
+          "p95": 2549.186038,
+          "p99": 2713.219347
+        }
+      },
+      "by_command": [
+        {
+          "command": "delete-backward-char",
+          "samples": 50,
+          "metrics": {
+            "command_redisplay_ms": {
+              "p50": 2223.374032,
+              "p95": 2606.86705,
+              "p99": 2737.734696
+            },
+            "cons_cells": {
+              "p50": 7181510,
+              "p95": 7181518,
+              "p99": 7181518
+            },
+            "string_chars": {
+              "p50": 4320233,
+              "p95": 4320233,
+              "p99": 4320233
+            },
+            "gc_count": {
+              "p50": 162,
+              "p95": 162,
+              "p99": 162
+            },
+            "gc_ms": {
+              "p50": 1724.0743609999925,
+              "p95": 2075.98613799999,
+              "p99": 2210.138086000001
+            },
+            "pty_output_ms": {
+              "p50": 2223.730774,
+              "p95": 2607.575727,
+              "p99": 2738.148424
+            }
+          }
+        },
+        {
+          "command": "self-insert-command",
+          "samples": 50,
+          "metrics": {
+            "command_redisplay_ms": {
+              "p50": 1229.388454,
+              "p95": 1485.3621560000001,
+              "p99": 1632.496982
+            },
+            "cons_cells": {
+              "p50": 3836455,
+              "p95": 3836463,
+              "p99": 3836463
+            },
+            "string_chars": {
+              "p50": 3001602,
+              "p95": 3001602,
+              "p99": 3001602
+            },
+            "gc_count": {
+              "p50": 91,
+              "p95": 91,
+              "p99": 91
+            },
+            "gc_ms": {
+              "p50": 963.1365970000161,
+              "p95": 1216.3171760000182,
+              "p99": 1342.925020999985
+            },
+            "pty_output_ms": {
+              "p50": 1229.544243,
+              "p95": 1485.59058,
+              "p99": 1632.786373
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "artifact_format": "emacs-tui-benchmark-metadata-csv-v1",
+  "raw_samples_csv": "before.csv",
+  "raw_samples_sha256": "92a4af1428ff0f65e44240f03a29b7a976b931116cdf3634912a884fea0eb199",
+  "raw_record_count": 440
+}
