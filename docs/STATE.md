@@ -31,12 +31,6 @@ cannot create releases, and the release UI requires an authenticated browser
 session. Do not claim the tag or prerelease exists until that external step is
 complete.
 
-A post-beta candidate lets one table column use width `fill`. Rendering derives
-the remainder from the live window on each render/reflow, reserves mark-prefix
-and separator columns, clamps narrow layouts at one column and never mutates the
-application's column description. The persistent dashboard and real terminal
-table fixture exercise it across resize. Fresh review and CI are required.
-
 The 0.1.0-beta1 release candidate packages the reviewed public surface for
 community testing. The main package metadata uses the prerelease version,
 README installation instructions pin `release/0.1.0-beta1` with a file-filtered
