@@ -212,6 +212,7 @@
            (cl-assert (not (advice-member-p #'emacs-tui--tty-switch-frame #'handle-switch-frame)))
            (cl-assert (not (memq #'emacs-tui--tty-frame-deleting delete-frame-functions)))
            (cl-assert (not (memq #'emacs-tui--tty-frame-deleted after-delete-frame-functions)))
+           (cl-assert (not (memq #'emacs-tui--tty-terminal-deleting delete-terminal-functions)))
            (cl-assert (null emacs-tui--tty-deleting-frames))
            (cl-assert (= 1 (length (frame-list))))
            (emacs-tui-test--clients-write
@@ -290,6 +291,10 @@
                     (lambda (frame) (emacs-tui-test--clients-record 'deleting-before frame)))
         (advice-add #'emacs-tui--tty-frame-deleting :after
                     (lambda (frame) (emacs-tui-test--clients-record 'deleting-after frame)))
+        (advice-add #'emacs-tui--tty-terminal-deleting :before
+                    (lambda (terminal) (emacs-tui-test--clients-record 'terminal-before terminal)))
+        (advice-add #'emacs-tui--tty-terminal-deleting :after
+                    (lambda (terminal) (emacs-tui-test--clients-record 'terminal-after terminal)))
         (advice-add #'emacs-tui--tty-frame-deleted :before
                     (lambda (frame) (emacs-tui-test--clients-record 'deleted-before frame)))
         (advice-add #'emacs-tui--tty-frame-deleted :after

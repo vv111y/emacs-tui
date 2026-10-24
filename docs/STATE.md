@@ -61,8 +61,16 @@ recording now distinguishes an actual application selection change from an
 unchanged callback observing Emacs's implicit fallback. Bounded diagnostics now
 include routing/deletion-hook ordering and remembered focus flags. Native proof
 is still required; no unsuccessful iteration is treated as passing.
+The resulting native trace confirms server disposal defers frame hooks until
+frames are dead. A late synchronous delete-terminal hook now records live-frame
+selection before that server path. Completed records are consumed once before
+post-command focus tracking can classify Emacs's fallback parent as deliberate.
+Both observer-before-frame-hook and deferred-after-before orderings have modeled
+coverage; a handled deletion cannot recapture later explicit parent focus.
+Abrupt client hangup/force-noelisp terminal disconnection remains untested and is
+separate from this explicit native parent-frame deletion scenario.
 
-Local 296 ERT, strict compilation/checkdoc passed on Emacs 29.3/Linux. Ten new
+Local 298 ERT, strict compilation/checkdoc passed on Emacs 29.3/Linux. Twelve new
 modeled routing tests cover event identity, prefix preservation, explicit parent
 selection, background memory, dead/foreign/GUI roots, terminal mismatch, nested
 close, immediate application focus changes, implicit deletion fallback versus

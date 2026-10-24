@@ -173,7 +173,8 @@
 (ert-deftest emacs-tui-tty-focus-close-callback-parent-choice-is-remembered ()
   (emacs-tui-tty-focus-test--with
     (let ((post-command-hook nil) (delete-frame-functions nil)
-          (after-delete-frame-functions nil) (emacs-tui--tty-deleting-frames nil)
+          (after-delete-frame-functions nil) (delete-terminal-functions nil)
+          (emacs-tui--tty-deleting-frames nil)
           (closing (emacs-tui--make-workspace
                     :active t :on-close (lambda (_) (setq selected 'ar)))))
       (unwind-protect
@@ -192,11 +193,60 @@
             (should (emacs-tui--workspace-tty-focus a)))
         (advice-remove #'handle-switch-frame #'emacs-tui--tty-switch-frame)))))
 
+(ert-deftest emacs-tui-tty-focus-server-terminal-capture-survives-deferred-frame-hooks ()
+  (emacs-tui-tty-focus-test--with
+    (let ((emacs-tui--tty-deleting-frames nil) (selections 0))
+      (cl-letf (((symbol-function 'frame-list) (lambda () (copy-sequence frames)))
+                ((symbol-function 'frame-selected-window) (lambda (frame) frame))
+                ((symbol-function 'select-window)
+                 (lambda (window) (cl-incf selections) (setq selected window))))
+        (emacs-tui--tty-terminal-deleting 'B)
+        (should (nth 2 (assq 'br emacs-tui--tty-deleting-frames)))
+        (setq frames (cl-set-difference frames '(br bc)) selected 'ar)
+        ;; Post-command may arrive before either deferred frame hook.
+        (emacs-tui--remember-tty-focus)
+        (should (eq 'ac selected))
+        (should (= 1 selections))
+        (should-not emacs-tui--tty-deleting-frames)
+        ;; A deferred after hook can precede a deferred before hook.
+        (emacs-tui--tty-frame-deleted 'br)
+        (emacs-tui--tty-frame-deleting 'br)
+        (should-not emacs-tui--tty-deleting-frames)
+        ;; The completed deletion must not recapture a later parent choice.
+        (setq selected 'ar)
+        (emacs-tui--remember-tty-focus)
+        (should (eq 'ar selected))
+        (should-not (emacs-tui--workspace-tty-focus a))))))
+
+(ert-deftest emacs-tui-tty-focus-terminal-deletion-after-hook-first-and-background-focus ()
+  (emacs-tui-tty-focus-test--with
+    (let ((emacs-tui--tty-deleting-frames nil) (selections 0))
+      (cl-letf (((symbol-function 'frame-list) (lambda () (copy-sequence frames)))
+                ((symbol-function 'frame-selected-window) (lambda (frame) frame))
+                ((symbol-function 'select-window)
+                 (lambda (window) (cl-incf selections) (setq selected window))))
+        (emacs-tui--tty-terminal-deleting 'B)
+        (setq frames (cl-set-difference frames '(br bc)) selected 'ar)
+        (emacs-tui--tty-frame-deleted 'br)
+        (should (eq 'ac selected))
+        (should (= 1 selections))
+        (should-not emacs-tui--tty-deleting-frames)
+        ;; A late application terminal hook's focus change is explicit.
+        (setq frames (append frames '(br bc)) selected 'ar)
+        (setf (emacs-tui--workspace-tty-focus a) nil)
+        (emacs-tui--tty-terminal-deleting 'B)
+        (setq frames (cl-set-difference frames '(br bc)))
+        (emacs-tui--remember-tty-focus)
+        (should (eq 'ar selected))
+        (should (= 1 selections))
+        (should-not emacs-tui--tty-deleting-frames)))))
+
 (ert-deftest emacs-tui-tty-focus-hook-lifetime-preserves-other-advice-and-window-sessions ()
   (emacs-tui-tty-focus-test--with
     (let ((post-command-hook (list #'ignore))
           (delete-frame-functions (list #'ignore))
           (after-delete-frame-functions (list #'ignore))
+          (delete-terminal-functions (list #'ignore))
           (emacs-tui--tty-deleting-frames nil)
           (other-advice (lambda (&rest _) nil)))
       (unwind-protect
@@ -216,6 +266,7 @@
             (should (equal '(ignore) post-command-hook))
             (should (equal '(ignore) delete-frame-functions))
             (should (equal '(ignore) after-delete-frame-functions))
+            (should (equal '(ignore) delete-terminal-functions))
             ;; Emacs may still call a late hook from an earlier hook-list snapshot.
             (emacs-tui--tty-frame-deleting 'br)
             (should-not emacs-tui--tty-deleting-frames))
