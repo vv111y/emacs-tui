@@ -2,7 +2,7 @@
 
 Updated 2026-10-23 (America/Toronto).
 
-## Active implementation
+## Ready for review
 
 [PR #6](https://github.com/vv111y/emacs-tui/pull/6) adds shared construction and
 disposal, queryless `emacs-tui-mount`, native view navigation, `emacs-tui-live-p`,
@@ -12,15 +12,21 @@ open. Existing ephemeral behavior remains covered by its original regressions.
 
 The PR is stacked on scope clarification PR #5. Both await independent review;
 do not treat the author's checks as independent review. Review and integrate
-#5 first, then retarget #6 to main and recheck its head/base and CI. This worker
-owns core, lifecycle tests, dashboard, terminal smoke, README, Makefile and this
-handoff while implementation remains active.
+#5 first, then retarget #6 to main and recheck its head/base and CI. The implementation claim is released for independent review; inspect the latest
+remote head before resuming changes.
 
-Local evidence for #6: 105 ERT tests, strict package/example compilation,
+Local evidence for #6: 106 ERT tests, strict package/example compilation,
 checkdoc and both real Emacs 29.3 TTY smoke scripts pass. The new script tests
 native view focus, actions without closing, survival of launcher-buffer death,
-marks and resize, and explicit disposal. CI must verify all four Emacs versions,
-including native 31.1 child frames, before integration. Python harness compiles.
+marks and resize, and explicit disposal. The additional regression covers a
+queryless mount from a four-row launcher window. Python harness compiles.
+
+The preceding implementation at `d587865cdfb2062c984451fd4ec56d9b2645df07`
+passed 105 tests, compilation, checkdoc and both real TTY scripts on Emacs 28.2,
+29.4, 30.2 and 31.1 in
+[CI run 40046772234](https://github.com/vv111y/emacs-tui/actions/runs/40046772234).
+The small-window fix and its 106th test are locally verified; require final-head
+CI before integration. Neither PR has received independent review yet.
 
 ## Implementation and handoff
 
@@ -69,7 +75,7 @@ native TTY child frames; earlier versions use ordinary windows. A separate
 real `cat` subprocess test verifies streaming output and process disposal.
 
 Package-lint at upstream commit `1865be780a16098f972fef50a52b21ca6ee04df9`
-was rerun against the current sources. Its only findings are the two warnings
+was rerun against the PR #4 sources. Its only findings are the two warnings
 that `emacs` is redundant in package names. This remains a packaging question,
 not a clean lint pass. The extracted local runtime disables native compiler
 trampoline generation because it has no configured native compiler toolchain.

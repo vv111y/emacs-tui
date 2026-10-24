@@ -46,6 +46,20 @@
     (emacs-tui-update session 'a :items '("Updated"))
     (should (equal "Updated" (emacs-tui-current-item session)))))
 
+(ert-deftest emacs-tui-mount-fits-a-small-window-without-query-overhead ()
+  (save-window-excursion
+    (delete-other-windows)
+    (let ((window-min-height 2) session)
+      (split-window (selected-window) 4 'below)
+      (unwind-protect
+          (progn
+            (setq session (emacs-tui-mount
+                           :views (list (emacs-tui-view :id 'a :items '("A")))))
+            (should (emacs-tui-live-p session))
+            (should (= 2 (window-total-height (emacs-tui--workspace-root session))))
+            (should (equal "A" (emacs-tui-current-item session))))
+        (when session (emacs-tui-close session))))))
+
 (ert-deftest emacs-tui-mount-outlives-launching-window ()
   (emacs-tui-mount-test--application
       (:views (list (emacs-tui-view :id 'a :items '("Alpha"))))
