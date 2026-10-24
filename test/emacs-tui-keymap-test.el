@@ -99,7 +99,8 @@
       (execute-kbd-macro (kbd "C-c a C-c b n"))
       (should (equal '(remapped app) calls))
       (should (equal "A" (emacs-tui-current-item session)))
-      (should (member (kbd "C-c b") (where-is-internal #'ignore (current-local-map)))))))
+      (should (member (vconcat (kbd "C-c b"))
+                      (where-is-internal #'ignore (current-local-map)))))))
 
 (provide 'emacs-tui-keymap-test)
 ;;; emacs-tui-keymap-test.el ends here
