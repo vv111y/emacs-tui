@@ -380,12 +380,21 @@ can pass this handle to `emacs-tui-update' and other explicit session APIs."
   (nth (emacs-tui--workspace-focus session)
        (emacs-tui--workspace-views session)))
 
-(defun emacs-tui-current-item (&optional session)
-  "Return the selected item in SESSION's focused view, or nil."
-  (let ((view (emacs-tui--focused-view
-               (emacs-tui--require-session session))))
+(defun emacs-tui-current-view (&optional session)
+  "Return the logically focused view ID in SESSION.
+SESSION defaults to the current interface.  Return its configured ID,
+not an internal view structure."
+  (emacs-tui--view-id (emacs-tui--focused-view (emacs-tui--require-session session))))
+
+(defun emacs-tui-current-item (&optional session id)
+  "Return SESSION's selected item in view ID, or nil.
+Without ID, use the focused view when displayed, preserving normal action
+semantics.  With ID, read its projected selection even in a hidden panel.
+Text previews and editable inputs have no selected item.  The returned object
+is from the current source snapshot; no focus or application action changes."
+  (let ((view (emacs-tui--resolve-view (emacs-tui--require-session session) id)))
     (when (and (not (emacs-tui--view-text view))
-               (window-live-p (emacs-tui--view-window view)))
+               (or id (window-live-p (emacs-tui--view-window view))))
       (nth (emacs-tui--view-selected view)
            (emacs-tui--view-visible-items view)))))
 
@@ -1518,6 +1527,66 @@ windows are preserved."
   (interactive)
   (emacs-tui-next-view session -1))
 
+(defun emacs-tui-focus-view (session id)
+  "Focus SESSION's view ID and return SESSION.
+Nil ID means the current view.  Reveal hidden panels using the existing layout
+and maximize policy.  Persistent interfaces select the native view window;
+ephemeral interfaces retain separate query editing focus.  Do not change
+selection, queries or marks, or invoke exploration/commit/action callbacks."
+  (setq session (emacs-tui--require-session session))
+  (let* ((view (emacs-tui--resolve-view session id))
+         (index (cl-position view (emacs-tui--workspace-views session))))
+    (unless (emacs-tui--subtree session)
+      (user-error "Interface surface is no longer owned"))
+    (emacs-tui-next-view session (- index (emacs-tui--workspace-focus session))))
+  session)
+
+(defun emacs-tui--selection-cached-p (view)
+  "Whether the current buffer has valid rendered positions for VIEW."
+  (and (not (emacs-tui--view-text view))
+       (vectorp emacs-tui--row-ranges)
+       (eq emacs-tui--row-items (emacs-tui--view-visible-items view))
+       (eql emacs-tui--row-tick (buffer-chars-modified-tick))
+       (not emacs-tui--rendering)))
+
+(defun emacs-tui--select-index (session view index)
+  "Set VIEW's projected selection to INDEX in SESSION after display success."
+  (with-current-buffer (emacs-tui--view-buffer view)
+    (if (emacs-tui--selection-cached-p view)
+        (progn
+          ;; Match full list rendering, which widens via `erase-buffer'.
+          (widen)
+          (emacs-tui--highlight-row index)
+          (goto-char (car (aref emacs-tui--row-ranges index)))
+          (let ((window (emacs-tui--view-window view)))
+            (when (and (window-live-p window) (eq (window-buffer window) (current-buffer)))
+              (set-window-point window (point)))))
+      (let ((candidate (copy-emacs-tui--view view)))
+        (setf (emacs-tui--view-selected candidate) index)
+        (emacs-tui--render-view session candidate)))
+    (setf (emacs-tui--view-selected view) index)))
+
+(defun emacs-tui-set-selection (session id item-id)
+  "Select the first projected item with ITEM-ID in SESSION's view ID.
+Nil ID means the focused view.  ITEM-ID follows the identity rules of
+`emacs-tui-view'.  Signal a user error if the target is filtered out, collapsed,
+absent, or belongs to a text/input view.  Hidden panels can retain selection
+without taking focus; use `emacs-tui-focus-view' to reveal them explicitly.
+Do not clear queries, change marks or invoke exploration/commit/action
+callbacks.  Return SESSION.  Read the source object with
+`emacs-tui-current-item'."
+  (setq session (emacs-tui--require-session session))
+  (let ((view (emacs-tui--resolve-view session id)))
+    (when (emacs-tui--view-text view)
+      (user-error "Text and input views do not select items"))
+    (let ((index (cl-position item-id (emacs-tui--view-visible-items view)
+                              :key #'emacs-tui--item-id :test #'equal)))
+      (unless index (user-error "Item is not in the current projection: %S" item-id))
+      (unless (emacs-tui--subtree session)
+        (user-error "Interface surface is no longer owned"))
+      (emacs-tui--select-index session view index)))
+  session)
+
 (defun emacs-tui-next-item (&optional session delta)
   "Move SESSION's focused selection by DELTA, defaulting to one."
   (interactive)
@@ -1526,28 +1595,12 @@ windows are preserved."
          (buffer (emacs-tui--view-buffer view)))
     (when (buffer-live-p buffer)
       (with-current-buffer buffer
-        (let* ((cached (and (not (emacs-tui--view-text view))
-                            (vectorp emacs-tui--row-ranges)
-                            (eq emacs-tui--row-items (emacs-tui--view-visible-items view))
-                            (eql emacs-tui--row-tick (buffer-chars-modified-tick))
-                            (not emacs-tui--rendering)))
+        (let* ((cached (emacs-tui--selection-cached-p view))
                (count (if cached (length emacs-tui--row-ranges)
                         (length (emacs-tui--view-visible-items view)))))
           (when (> count 0)
             (let ((index (mod (+ (emacs-tui--view-selected view) (or delta 1)) count)))
-              (if cached
-                  (progn
-                    ;; Full list rendering widens via `erase-buffer'.  Cached
-                    ;; navigation must likewise expose the row being selected.
-                    (widen)
-                    (emacs-tui--highlight-row index)
-                    (goto-char (car (aref emacs-tui--row-ranges index)))
-                    (when (window-live-p (emacs-tui--view-window view))
-                      (set-window-point (emacs-tui--view-window view) (point))))
-                (let ((candidate (copy-emacs-tui--view view)))
-                  (setf (emacs-tui--view-selected candidate) index)
-                  (emacs-tui--render-view session candidate)))
-              (setf (emacs-tui--view-selected view) index))))))))
+              (emacs-tui--select-index session view index))))))))
 
 (defun emacs-tui-previous-item (&optional session)
   "Move SESSION's focused selection backward."

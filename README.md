@@ -264,12 +264,33 @@ its live handle for explicit update APIs; it signals a user error outside a
 live interface. Native prefix maps, command remapping and help lookup remain
 available. Existing n/p, TAB and q bindings remain unless overridden.
 
+Applications can navigate directly using configured view and item identities:
+
+```elisp
+(emacs-tui-set-selection app 'results 'item-id)
+(emacs-tui-focus-view app 'results)
+(emacs-tui-current-view app)             ; => results
+(emacs-tui-current-item app 'results)    ; => original source object
+```
+
+Selection updates UI state without invoking exploration, commit or context
+actions. It retains queries, sort and marks. The identity must be in the current
+projection; filtered, collapsed or absent items signal a user error. Ordinary
+views with duplicate identities select the first match. Text/input views have
+no item selection. Setting a hidden panel's row retains its state until explicit
+focus reveals it. A named item read also works for hidden panels; the existing
+focused read and action behavior is unchanged. Focus uses the current layout and
+maximize policy, including keeping ephemeral query editing in place.
+
 ## Persistent applications
 
 Run `make dashboard` for a live buffer/process dashboard. It updates once per
 second, previews selected objects, and offers Refresh and Pause/Resume actions.
 Use TAB to change views, n/p to move through items, RET to act, and q to close.
 The g key refreshes and P pauses/resumes updates from any dashboard view.
+The process table's actions menu (`a`) can inspect an associated named live
+buffer: it explicitly clears the buffer list's local filter, selects that row
+and previews it inside the dashboard.
 The dashboard does not edit buffers or start/terminate processes.
 
 Use `emacs-tui-mount` to build an application without query or origin-buffer
@@ -350,6 +371,9 @@ and continue exploration; commitment is a separate command.
 | `emacs-tui-action` | Describe a named application action and availability predicate |
 | `emacs-tui-act` | Choose or invoke an action on marks or the current item |
 | `emacs-tui-current-session` | Return the current live interface handle for application commands |
+| `emacs-tui-current-view` | Read the logically focused view ID |
+| `emacs-tui-focus-view` | Focus and reveal a named panel using the current presentation policy |
+| `emacs-tui-set-selection` | Choose a projected row by identity, retaining focus and application data |
 | `emacs-tui-mount` | Open a persistent interface without query or origin policy |
 | `emacs-tui-live-p` | Check whether an interface handle is active |
 | `emacs-tui-update` | Replace a view's items or preview, reusing its buffer |
@@ -357,7 +381,7 @@ and continue exploration; commitment is a separate command.
 | `emacs-tui-refresh` | Reflow the workspace while preserving its input and selection |
 | `emacs-tui-query` | Read the workspace query or a view’s effective query |
 | `emacs-tui-set-query` | Set or clear a local list/table/tree filter |
-| `emacs-tui-current-item` | Read the selected object |
+| `emacs-tui-current-item` | Read the focused or named view's selected source object |
 | `emacs-tui-toggle-mark` | Toggle the current item in a multi-select view |
 | `emacs-tui-marked-items` | Read marked objects in source order |
 | `emacs-tui-clear-marks` | Clear the focused or named view's marks |
