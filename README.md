@@ -666,6 +666,10 @@ A ninth scenario attaches two distinct PTYs to one private Emacs server using
 without taking the other client's focus, resizes the terminals independently,
 deletes one client frame and continues using the survivor before checking final
 resource cleanup. Set `EMACSCLIENT` if the matching executable is not on PATH.
+A tenth scenario kills the attached client's process group without asking Emacs
+to delete its frame. It requires asynchronous session disposal, provider
+cancellation, stale-publication rejection and continued native input on the
+surviving terminal before checking final hook and resource cleanup.
 These checks are not a visual quality or performance benchmark.
 
 To diagnose asynchronous resize ordering, run an opt-in fault probe:

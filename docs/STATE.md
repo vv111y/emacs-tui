@@ -4,6 +4,27 @@ Updated 2026-10-24 (America/Toronto).
 
 ## Active implementation
 
+PR #38 merged at `c6cd5755cfdfbd635a99180c5d87102d21a889ed` after independent
+exact-head review and all eight jobs in
+[40096001194](https://github.com/vv111y/emacs-tui/actions/runs/40096001194).
+Every runtime passed 307 ERT, strict compilation/checkdoc, nine terminal
+scenarios, four reflow fault checks, three Python regressions and original plus
+multi-term source/bytecode benchmark smokes. The actual recipe archive built and
+clean-installed on 31.1/28.1. Linux/macOS 31.1 each passed native direct layout
+selection in the persistent fixture; no failed or superseded run is counted.
+
+An additional native lifecycle candidate starts two real PTYs on one private
+Emacs server, kills the attached emacsclient process group with SIGKILL and
+waits for Emacs to discover the lost terminal without an explicit delete-frame
+command. It checks the disconnected session closes once, cancels its provider,
+rejects stale publication, releases owned buffers while preserving its host,
+keeps routing hooks active for the surviving interface, accepts further native
+input there, then releases all hooks and resources on final close. This remains
+a separate tenth terminal scenario so explicit client-frame deletion retains
+its existing proof. Local Python syntax and strict fixture compilation/checkdoc
+can establish harness quality, but this host rejects the required private Unix
+socket; fresh positive Linux/macOS CI evidence is required before integration.
+
 PR #37 merged at `0645f8f22b1b4d4e24dc04438f18a9c54932b15c` after independent
 exact-head review and all eight jobs in
 [40095526862](https://github.com/vv111y/emacs-tui/actions/runs/40095526862).
@@ -41,9 +62,7 @@ Synthetic commit: 425e4f4401078593e79df508c142ae1fd01ed811; artifact SHA256:
 Independent review reproduced the identical archive/install and verified its
 library/client identity. Additional probes cover embedded host restoration and
 failed-reflow disposal; no API effect or performance guarantee was added.
-Independent exact published-head review and all eight fresh CI jobs remain
-integration gates for this feature. The local server-socket restriction persists.
-Next: abrupt client loss, consumer controls/layouts and actual XOB adapter work,
+Next: consumer controls/layouts and actual XOB adapter work,
 broader display QA, substantive usage and release readiness. Stable/MELPA status
 has not been reached; external maintenance/history, human review and naming
 questions remain.
@@ -570,7 +589,7 @@ navigable. Query edits there may prune marks as its source results change.
 
 Current evidence is recorded above. Runtime CI covers Linux Emacs 28.1,
 28.2, 29.4, 30.2 and 31.1, plus ARM64 macOS 30.2 and 31.1. Each job runs ERT,
-strict compilation, checkdoc and eight real terminal scripts. Emacs 31.1 uses
+strict compilation, checkdoc and ten real terminal scenarios. Emacs 31.1 uses
 native TTY child frames for ephemeral/persistent/input/tree interfaces on both
 platforms; earlier versions use windows. Embedded/table scripts borrow a
 window. Resize coverage is 120x40 -> 90x30 -> 140x45, including maximize/restore, graph history
