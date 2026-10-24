@@ -462,7 +462,9 @@ marks visible without relying on color. `C-c C-u` clears the focused view.
 Marks belong to individual views. `emacs-tui-marked-items` accepts optional
 session and view ID arguments; by default it reads the focused view. It returns
 the latest source objects in source order, including marked items hidden by
-local filtering. `emacs-tui-clear-marks` accepts the same arguments.
+local filtering. `emacs-tui-clear-marks` accepts the same arguments. If an
+application projection or buffer hook fails during a toggle or clear, the prior
+marks and display remain available; fixing the cause allows a normal retry.
 
 Use stable `:id` values for structured items. Multi-select views require unique
 identities, including unique strings when using string items. Reordering or
