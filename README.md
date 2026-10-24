@@ -397,7 +397,7 @@ and continue exploration; commitment is a separate command.
 | `emacs-tui-set-selection` | Choose a projected row by identity, retaining focus and application data |
 | `emacs-tui-mount` | Open a persistent interface without query or origin policy |
 | `emacs-tui-live-p` | Check whether an interface handle is active |
-| `emacs-tui-update` | Replace a view's items or preview, reusing its buffer |
+| `emacs-tui-update` | Update items, preview or title, reusing its buffer |
 | `emacs-tui-toggle-maximize` | Enlarge the focused panel or restore the layout |
 | `emacs-tui-refresh` | Reflow the workspace while preserving its input and selection |
 | `emacs-tui-query` | Read the workspace query or a view’s effective query |
@@ -573,6 +573,21 @@ query editing.
 Publish through the supplied callback to get stale-result protection;
 `emacs-tui-update` itself is an immediate update API. `:provider` and `:on-query`
 are mutually exclusive.
+
+A live view title can be updated with the same API:
+
+```elisp
+(emacs-tui-update app 'jobs :title "Jobs (12)")
+(emacs-tui-update app 'jobs :title "Jobs ready" :items results)
+```
+
+`:title` must be a string; `""` clears it and omission keeps it unchanged.
+Title-only updates change the header without filtering, projecting cells or
+editing the view buffer. Selection, marks, query, native undo, narrowing and
+scroll remain intact, including hidden panels. Combined data/title updates
+commit the title only after successful rendering. The dashboard uses titles
+for current snapshot counts and running/paused status. Provider publications
+accept the same keyword and retain the existing provider-owned view lifecycle.
 
 ## Display backends
 

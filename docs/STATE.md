@@ -4,6 +4,37 @@ Updated 2026-10-24 (America/Toronto).
 
 ## Active implementation
 
+PR #33 merged at `190b5e62fd635baedc5877e95b988ef0c201eeff` after independent
+exact-head review and all eight jobs in
+[40082652440](https://github.com/vv111y/emacs-tui/actions/runs/40082652440).
+All runtime jobs passed 274 ERT, strict compilation/checkdoc, eight terminal
+scenarios, four reflow fault checks, three Python regressions and original plus
+multi-term source/fresh-bytecode benchmark smokes. Linux/macOS 31.1 logs confirm
+native child frames and delayed-success/specific-disabled-rejection input/tree
+checks. Archive build and identical-artifact installs passed on 31.1/28.1.
+
+Live view metadata adds string :title updates to emacs-tui-update. Title-only
+changes update the header without filtering, cell projection or content edits;
+native undo/narrowing/cursor/scroll, selection, marks, queries and hidden views
+are preserved. Combined data/title changes use existing staged rendering and
+commit the title only after success. Empty string clears a title; omitted title
+retains it and nonstrings are rejected. No new public function is needed.
+The dashboard displays snapshot buffer/process counts and paused/running status.
+
+Local 280 ERT, strict compilation/checkdoc passed on Emacs 29.3/Linux. The prior
+full eight-scenario/four-fault terminal suite passed, then the modified persistent
+scenario was rerun with a live title checked across both resize steps. Six new
+ERT cases cover nonprojecting table updates, editable undo/narrowing, combined
+failure/retry, hidden preview reveal/maximize, validation/clearing/omission and
+actual dashboard refresh/pause behavior. Independent exact-head review and all
+eight current-head CI jobs remain integration gates. Three Python regressions and
+all original/multi-term source/fresh-bytecode benchmark smokes also passed.
+MELPA policy hashes were rechecked on 2026-10-24 and are unchanged.
+No new performance claim.
+Remaining work includes concrete richer controls/layouts, broad actual display
+validation and long-term use; MELPA maintenance-history/human review and the
+main-name lint question remain unresolved external/readiness gates.
+
 PR #32 merged at `e2cb99115807bfce5cf63bea2bbf7d681077102e` after independent
 exact-head review and all eight jobs in
 [40082067979](https://github.com/vv111y/emacs-tui/actions/runs/40082067979).
