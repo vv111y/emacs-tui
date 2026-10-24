@@ -24,6 +24,12 @@ a separate tenth terminal scenario so explicit client-frame deletion retains
 its existing proof. Local Python syntax and strict fixture compilation/checkdoc
 can establish harness quality, but this host rejects the required private Unix
 socket; fresh positive Linux/macOS CI evidence is required before integration.
+Initial run 40097033208 passed the package job and all completed fallback
+runtimes, but native Linux 31.1 exposed a fixture assertion that read the current
+input buffer's local `post-command-hook` instead of the default/global routing
+hook. Its deletion trace showed the disconnected session disposed and the
+survivor child selected; the harness now checks the default hook. That run is
+not counted as passing and fresh exact-head evidence remains required.
 
 PR #37 merged at `0645f8f22b1b4d4e24dc04438f18a9c54932b15c` after independent
 exact-head review and all eight jobs in

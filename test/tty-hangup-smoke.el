@@ -166,7 +166,8 @@
                              (with-current-buffer (plist-get a :host)
                                (buffer-string))))
            (cl-assert (null emacs-tui--sessions))
-           (cl-assert (not (memq #'emacs-tui--track-tty-focus post-command-hook)))
+           (cl-assert (not (memq #'emacs-tui--track-tty-focus
+                                 (default-value 'post-command-hook))))
            (cl-assert (not (advice-member-p
                             #'emacs-tui--tty-switch-frame #'handle-switch-frame)))
            (cl-assert (not (memq #'emacs-tui--tty-frame-deleting
@@ -210,12 +211,12 @@
                   'child-frame)
               (progn
                 (cl-assert (memq #'emacs-tui--track-tty-focus
-                                 post-command-hook))
+                                 (default-value 'post-command-hook)))
                 (cl-assert (advice-member-p
                             #'emacs-tui--tty-switch-frame
                             #'handle-switch-frame)))
             (cl-assert (not (memq #'emacs-tui--track-tty-focus
-                                  post-command-hook)))
+                                  (default-value 'post-command-hook))))
             (cl-assert (not (advice-member-p
                              #'emacs-tui--tty-switch-frame
                              #'handle-switch-frame))))
