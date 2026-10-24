@@ -84,17 +84,66 @@ The editing cursor stays in the query buffer while logical focus and selection
 move between views. An asterisk marks the focused view; faces use theme-friendly
 inheritance. No global keys are installed.
 
-Without `:on-query`, whitespace-separated terms match labels literally,
+Without a query callback, whitespace-separated terms match labels literally,
 case-insensitively and in any order. Supply `:on-query (lambda (session query)
-...)` to own searching; publish results with `emacs-tui-update`. This initial
-callback is synchronous. Avoid blocking work; cancellable async providers are
-on the roadmap.
+...)` for synchronous searching; publish results with `emacs-tui-update`.
 
 `:on-commit` receives `(session item origin-marker)` in the origin buffer at the
 captured location. Successful callbacks close the workspace. An error rolls
 back edits to that buffer and leaves the workspace open. Applications remain
 responsible for transactions involving other buffers, files or external state.
 Selection/query callbacks should only browse and update ephemeral views.
+
+## Asynchronous providers
+
+Use `:provider` for asynchronous searches and streaming results. It receives
+`(session query publish fail)` and returns either nil or a zero-argument
+cancellation function. For example, this small provider defers a result using
+an Emacs timer:
+
+```elisp
+(emacs-tui-open
+ :views (list (emacs-tui-view :id 'results))
+ :debounce 0.08
+ :provider
+ (lambda (_session query publish fail)
+   (let ((timer
+          (run-at-time
+           0.2 nil
+           (lambda ()
+             (condition-case err
+                 (funcall publish 'results :items (list (concat "Result: " query)))
+               (error (funcall fail err)))))))
+     (lambda () (cancel-timer timer)))))
+```
+
+Put asynchronous callbacks in a file with `lexical-binding: t`, as the bundled
+examples do. `make async-demo` opens a buffer explorer that searches snapshots
+in bounded chunks, streams results and previews the selected excerpt.
+
+`publish` takes a view ID followed by the same `:items` and `:text` keywords as
+`emacs-tui-update`. Each call replaces those fields; accumulate items in your
+provider to stream a growing list. It returns t when accepted and nil when
+obsolete. Provider results are not filtered again by the workspace.
+
+The default debounce is 0.08 seconds. Even zero schedules startup through the
+event loop. Query changes invalidate previous callbacks immediately, cancel
+pending timers and invoke the previous cancellation function. Views previously
+published by the provider are cleared immediately so old results cannot be
+selected or committed for a new query; untouched static views remain. Closing
+the workspace also invalidates callbacks and cancels outstanding work.
+
+Call `fail` with a message string or an Emacs error condition to end the current
+request and report an error. The workspace remains editable and later queries
+can recover. Providers must start asynchronous work and return promptly: a
+timer does not make blocking computation or I/O concurrent. Return a
+cancellation function that stops your timers/processes and releases resources.
+It may be called after a search has completed, so completed work should be a
+safe no-op. Provider and cancellation errors are reported without disabling
+query editing.
+Publish through the supplied callback to get stale-result protection;
+`emacs-tui-update` itself is an immediate update API. `:provider` and `:on-query`
+are mutually exclusive.
 
 ## Display backends
 
@@ -111,7 +160,7 @@ workspace surface closes safely; unrelated windows and application buffers are
 preserved. `emacs-tui-refresh` is also available for an explicit reflow.
 
 The four-sided around-point layout, multiple floating surfaces,
-history, per-view queries, tables and async streaming are planned in
+history, per-view queries and tables are planned in
 [ROADMAP.md](ROADMAP.md). The initial implementation renders full view content;
 large-data performance is not yet characterized.
 
@@ -123,8 +172,11 @@ make tty-smoke
 ```
 
 ERT exercises real buffers/windows, filtering, selection, commit rollback,
-cleanup and layout invariants. The terminal smoke test starts an actual Emacs
-TTY in a pseudo-terminal, exercises typing/select/commit, shrinks and expands
+cleanup, layout invariants and provider lifecycle races. A real-process test
+also streams results through a pipe and checks process disposal (requires
+`cat`; skipped when unavailable). The terminal smoke test starts an actual Emacs
+TTY in a pseudo-terminal, waits for asynchronous results, exercises
+typing/select/commit, shrinks and expands
 the terminal using real resize signals, and requires the
 native child-frame backend when its capability is present. It is not a visual
 quality or performance benchmark.

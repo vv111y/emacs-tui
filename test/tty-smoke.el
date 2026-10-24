@@ -7,6 +7,8 @@
 (defvar emacs-tui-test--smoke-phase 0)
 (defvar emacs-tui-test--smoke-attempts 0)
 (defvar emacs-tui-test--smoke-small-width nil)
+(defvar emacs-tui-test--smoke-result-timer nil)
+(defvar emacs-tui-test--smoke-cancellations 0)
 
 (defun emacs-tui-test--smoke-failure (err)
   (with-temp-file (getenv "EMACS_TUI_SMOKE_REPORT")
@@ -57,10 +59,31 @@
             (execute-kbd-macro (kbd "C-c C-c"))
             (cl-assert (equal (with-current-buffer "*terminal smoke source*" (buffer-string)) "origin:beta"))
             (cl-assert (null emacs-tui--sessions))
+            (cl-assert (> emacs-tui-test--smoke-cancellations 0))
             (with-temp-file (getenv "EMACS_TUI_SMOKE_REPORT")
-              (insert (format "PASS Emacs %s; real TTY; backend=%s; resize=120x40->90x30->140x45\n"
+              (insert (format "PASS Emacs %s; real TTY; backend=%s; async=passed; resize=120x40->90x30->140x45\n"
                               emacs-version backend)))
             (kill-emacs 0))))
+    ((error quit) (emacs-tui-test--smoke-failure err))))
+
+(defun emacs-tui-test--smoke-check-results ()
+  (condition-case err
+      (let ((session emacs-tui-test--smoke-session))
+        (cl-incf emacs-tui-test--smoke-attempts)
+        (when (> emacs-tui-test--smoke-attempts 100)
+          (error "Asynchronous results did not arrive"))
+        (when (emacs-tui-current-item session)
+          (cancel-timer emacs-tui-test--smoke-result-timer)
+          (cl-assert (equal (emacs-tui-query session) "a"))
+          (cl-assert (equal (emacs-tui-current-item session) "alpha"))
+          (execute-kbd-macro (kbd "M-n RET C-a"))
+          (cl-assert (equal (emacs-tui-current-item session) "beta"))
+          (cl-assert (equal (emacs-tui--view-text (cadr (emacs-tui--workspace-views session))) "beta"))
+          (setq emacs-tui-test--smoke-phase 1
+                emacs-tui-test--smoke-attempts 0)
+          (redisplay t)
+          (with-temp-file (getenv "EMACS_TUI_SMOKE_READY") (insert "1"))
+          (run-at-time 0.05 0.05 #'emacs-tui-test--smoke-check-resize)))
     ((error quit) (emacs-tui-test--smoke-failure err))))
 
 (defun emacs-tui-test--terminal-smoke ()
@@ -74,23 +97,32 @@
         (setq session
               (emacs-tui-open
                :backend backend
-               :views (list (emacs-tui-view :id 'items :items '("alpha" "beta")
+               :views (list (emacs-tui-view :id 'items
                                            :on-select
                                            (lambda (workspace item)
                                              (emacs-tui-update workspace 'preview :text item)))
                             (emacs-tui-view :id 'preview :text "pending"))
+               :provider
+               (lambda (_ query publish fail)
+                 (let ((timer
+                        (run-at-time
+                         0.01 nil
+                         (lambda ()
+                           (condition-case provider-error
+                               (progn
+                                 (cl-assert (equal query "a"))
+                                 (funcall publish 'items :items '("alpha" "beta")))
+                             (error (funcall fail provider-error)))))))
+                   (lambda ()
+                     (cl-incf emacs-tui-test--smoke-cancellations)
+                     (cancel-timer timer))))
                :on-commit (lambda (_ item marker) (goto-char marker) (insert item))))
         (cl-assert (eq (emacs-tui--workspace-backend session) backend))
         (cl-assert (eq (current-buffer) (emacs-tui--workspace-query-buffer session)))
         (execute-kbd-macro "a")
-        (execute-kbd-macro (kbd "M-n RET C-a"))
-        (cl-assert (equal (emacs-tui-current-item session) "beta"))
-        (cl-assert (equal (emacs-tui--view-text (cadr (emacs-tui--workspace-views session))) "beta"))
         (setq emacs-tui-test--smoke-session session
-              emacs-tui-test--smoke-phase 1)
-        (redisplay t)
-        (with-temp-file (getenv "EMACS_TUI_SMOKE_READY") (insert "1"))
-        (run-at-time 0.05 0.05 #'emacs-tui-test--smoke-check-resize))
+              emacs-tui-test--smoke-result-timer
+              (run-at-time 0.05 0.05 #'emacs-tui-test--smoke-check-results)))
     ((error quit) (emacs-tui-test--smoke-failure err))))
 
 (add-hook 'emacs-startup-hook
