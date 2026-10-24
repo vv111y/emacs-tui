@@ -527,6 +527,8 @@ large-data performance is not yet characterized.
 ```sh
 make check
 make tty-smoke
+# With pinned build tools prepared as documented:
+make package-check
 ```
 
 ERT exercises real buffers/windows, filtering, selection, commit rollback,
@@ -544,10 +546,13 @@ across focus changes and resizes.
 These checks are not a visual
 quality or performance benchmark.
 
-CI targets Emacs 28.2, 29.4, 30.2 and 31.1 on Linux, plus 30.2 and 31.1
-on hosted macOS, with pinned actions. Every job runs the complete checks and
-real terminal scripts; runtime identity and backend results are logged. Read
+CI targets Emacs 28.1, 28.2, 29.4, 30.2 and 31.1 on Linux, plus 30.2 and 31.1
+on hosted macOS, with pinned actions. Every runtime-matrix job runs the complete checks and
+real terminal scripts; runtime identity and backend results are logged.
+A separate package job builds the candidate archive and tests clean installation
+on Emacs 31.1 and the declared 28.1 floor. Read
 [docs/STATE.md](docs/STATE.md) for what has actually passed and remaining gaps,
+[docs/PACKAGING.md](docs/PACKAGING.md) for archive/clean-install validation,
 and [docs/MELPA.md](docs/MELPA.md) for external release gates.
 
 GPL-3.0-or-later. AI assistance is disclosed in source headers. The public API

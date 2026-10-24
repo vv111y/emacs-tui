@@ -1,0 +1,2 @@
+(emacs-tui :fetcher github :repo "vv111y/emacs-tui"
+           :files ("emacs-tui*.el" "LICENSE"))

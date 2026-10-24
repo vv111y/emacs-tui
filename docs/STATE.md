@@ -4,52 +4,50 @@ Updated 2026-10-23 (America/Toronto).
 
 ## Active implementation
 
-PR #15 merged at `96a1603ce502766528118202489bdc3610e25154` after independent
-agent review and final-head CI
-[40057448458](https://github.com/vv111y/emacs-tui/actions/runs/40057448458).
-All six Linux/macOS jobs passed 201 ERT tests, strict compilation, checkdoc and
-six real PTY scripts. Per-view filters retain source identity, hidden marks,
-sort and provider lifetimes; `make filter-demo` demonstrates native composition.
+PR #16 merged at `5747c4a1505805bd92e8fe5597bc9221a3f88983` after independent
+review, resolution of native case-folded action completion and final-head CI
+[40059656569](https://github.com/vv111y/emacs-tui/actions/runs/40059656569).
+All six Linux/macOS jobs passed 218 ERT tests, strict compilation, checkdoc and
+six real PTY scripts, including native action menus on ARM64 macOS 31.1.
 
-Current work adds `emacs-tui-action` descriptions and `emacs-tui-act` dispatch.
-Views, trees and inputs accept optional named actions. Read-only a or C-c C-a
-opens a native completion menu. Targets are marked objects in source order,
-including hidden marks, otherwise the selected object, or nil for target-free
-operations. Availability accepts t, nil or a pure prompt function. Rendering
-and navigation never evaluate predicates or run callbacks. Only explicit RUN
-callbacks own data changes, persistence and any closing/transaction policy.
+Current work adds actual candidate-recipe/package-build and clean-install
+validation. The recipe includes all five library files and LICENSE. Pinned
+package-build/compat tools operate on an isolated clone of the tested checkout,
+with a test-only commit constraint and no-fetch mode. The source checkout is
+never reset. The tar is installed in a separate Emacs with a fresh package
+folder, empty working directory and no source/build-tool load path. Checks
+verify installed library/definition paths and exercise public APIs.
 
-Menu dispatch rechecks live session, focused view, current source objects and
-availability after the prompt. The buffer-tree demo offers Preview, Display,
-Copy names and Refresh, alongside existing shortcuts. Colliding printed labels
-are disambiguated, including valid distinct uninterned symbol IDs.
+Local Emacs 29.3 built/installed a committed fixture containing the current
+library files and LICENSE, using the pinned real upstream tools. Archive file
+coverage, actual installed definitions, table/query/hidden action targets,
+input undo, tree navigation, maximize and disposal all passed. Python syntax
+and strict compilation of the two build/install Lisp scripts passed. This is
+local fixture evidence, not yet a CI pass for the repository commit.
 
-Local Emacs 29.3 passes 218 ERT tests, strict compilation, checkdoc and six PTY
-scripts. New cases cover hidden batch marks, source refresh during menus,
-availability changes, menu cancellation/focus/close races, target-free input
-actions, explicit close/error behavior and original object identity. The tree
-PTY opens/completes a real action menu, copies an updated marked leaf, then
-retains state through maximize and resizes. Package-lint has only the two
-existing main/layout name warnings.
+The new CI job builds/installs using 31.1, then installs the identical tar
+in a fresh 28.1 process with explicit version assertions. Initial CI built and
+clean-installed the exact repository artifact on 31.1, but switching versions
+through the shared Nix profile failed with a package-file collision. The older
+install now uses a pinned profile-free Nix invocation, which passed independent
+review and CI as recorded below. The ordinary matrix
+also adds Linux 28.1, matching the declared API floor.
 
-Independent review found accepted case-insensitive menu input was looked up
-with exact `assoc`, causing a valid lowercase answer to fail dispatch. The
-fix canonicalizes accepted names, prefers exact spelling and rejects ambiguous
-case-folded choices. Three new regressions and actual lowercase full-name
-completion in the real TTY scenario pass.
+Corrected implementation `af195ba85a87e3f3ee0d9eee284811013ea9ab46` received
+independent agent approval. A repeat fixture build/install and negative probes
+verified rejection of wrong CI SHA/runtime, missing modules and checkout-path
+fallback. CI [40060507683](https://github.com/vv111y/emacs-tui/actions/runs/40060507683)
+passed all eight jobs: seven runtime jobs each with 218 ERT tests, compilation,
+checkdoc and six PTY scripts, plus real package-build and clean installation of
+the identical archive on 31.1 and 28.1. Package logs record source commit,
+artifact filename and SHA256. Final comments/documentation still require
+separate review and passing final-head CI before integration.
+This verifies recipe layout/build/install, not network fetching, a live MELPA
+archive, API stability or human review. See docs/PACKAGING.md.
 
-Corrected implementation `a9646693b38c506cdbac23fb60e9397dec9150ee` received
-independent approval after a repeat of all 218 ERT tests, strict compilation,
-checkdoc and six PTY scripts. Additional probes covered native lowercase and
-minibuffer-local case folding, exact preference, ambiguity and fresh objects.
-CI [40059462593](https://github.com/vv111y/emacs-tui/actions/runs/40059462593)
-passed all six Linux/macOS jobs, including native 31.1 terminal child-frame
-menu interaction on ARM64 macOS. This final handoff-only checkpoint still
-requires separate review and passing current-head CI before integration.
-
-No other scope is claimed in this action PR during final-head validation. Next: actual
-package-build recipe/clean-install validation and measured performance, plus
-richer controls through concrete applications. No stability or MELPA claim.
+No other scope is claimed in this packaging PR during final-head validation. Next: measured
+input/display latency and allocations, broader display validation and API
+stability through real use. Public-history and human-review MELPA gates remain.
 
 ## Implementation and handoff
 
@@ -96,6 +94,8 @@ dashboard. PR #7 added borrowed-window embedding over the same primitives.
   30.2/31.1 validation alongside the four-version Linux matrix.
 - [PR #15](https://github.com/vv111y/emacs-tui/pull/15): independent per-view
   queries and native persistent search composition without replacing sources.
+- [PR #16](https://github.com/vv111y/emacs-tui/pull/16): explicit named context
+  actions over marks/current objects with native-menu target revalidation.
 
 API and runnable examples are in README.md. `make demo` explores an in-memory
 sample graph; `make async-demo` searches buffer snapshots. Marks are per view
@@ -106,14 +106,15 @@ navigable. Query edits there may prune marks as its source results change.
 
 ## Validation
 
-Current evidence is recorded above. The suite covers persistent, embedded and
-ephemeral presentations, async cancellation/streaming, stable selection and
-marks, tables, editable inputs, callback failure rollback and preview position. The merged four-version CI suite runs strict package/example byte compilation,
-checkdoc and six real terminal smoke scripts, including maximize/restore
-through terminal resizes. ARM64 macOS 30.2 and 31.1 also passed that suite in the implementation CI above. Emacs 31.1 uses native TTY child frames in the ephemeral
-persistent and input scripts; earlier versions use ordinary windows. Embedded/table
-scripts use a borrowed window. Resize coverage is 120x40 -> 90x30 -> 140x45.
-A separate real `cat` subprocess test verifies streaming and process disposal.
+Current evidence is recorded above. Runtime CI covers Linux Emacs 28.1,
+28.2, 29.4, 30.2 and 31.1, plus ARM64 macOS 30.2 and 31.1. Each job runs ERT,
+strict compilation, checkdoc and six real terminal scripts. Emacs 31.1 uses
+native TTY child frames for ephemeral/persistent/input/tree interfaces on both
+platforms; earlier versions use windows. Embedded/table scripts borrow a
+window. Resize coverage is 120x40 -> 90x30 -> 140x45, including maximize/restore
+and explicit action-menu invocation. A real `cat` subprocess test covers
+streaming and disposal. The separate package job builds the candidate archive
+and clean-installs the same tar on 31.1 and the declared 28.1 floor.
 
 Package-lint at upstream commit `1865be780a16098f972fef50a52b21ca6ee04df9`
 was rerun against the current action implementation. Its only findings are the two warnings
@@ -124,7 +125,7 @@ because it has no configured native compiler toolchain.
 
 ## Remaining work
 
-1. Review and integrate named actions, then extend application controls
+1. Validate and integrate recipe/clean-install checks, then extend application controls
    through concrete consumers. Preserve ephemeral behavior. Extend layouts, history, per-view
    input, maximize/restore and tree/form controls as real consumers require them. Avoid treating every preview as navigation.
 2. Broaden actual display validation: GUI child frames, macOS terminal emulators,
@@ -135,7 +136,7 @@ because it has no configured native compiler toolchain.
    previews avoid replacement. Async providers remain
    cooperative and must return promptly; cancellation must stop their own
    processes/timers. Snapshot acquisition in the async demo is synchronous.
-4. Complete real package-build recipe and clean-install testing, resolve the
+4. Complete the pending recipe/clean-install CI and resolve the
    package-name lint question, document API/migration stability and accumulate
    real usage. Continue through ROADMAP.md; no performance or maturity claim
    has been established.

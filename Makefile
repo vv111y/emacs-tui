@@ -1,6 +1,6 @@
 EMACS ?= emacs
 
-.PHONY: test compile checkdoc check clean demo async-demo dashboard panel composer tree filter-demo tty-smoke
+.PHONY: test compile checkdoc check clean demo async-demo dashboard panel composer tree filter-demo package-check tty-smoke
 test:
 	$(EMACS) -Q --batch -L . -L test -l test/run-tests.el
 compile:
@@ -31,3 +31,5 @@ tree:
 	$(EMACS) -Q -nw -L . -l examples/emacs-tui-buffer-tree.el -f emacs-tui-buffer-tree
 filter-demo:
 	$(EMACS) -Q -nw -L . -l examples/emacs-tui-filter-demo.el -f emacs-tui-filter-demo
+package-check:
+	EMACS=$(EMACS) python3 test/run-package-check.py

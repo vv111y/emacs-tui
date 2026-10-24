@@ -16,7 +16,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest]
-        emacs: ['28.2', '29.4', '30.2', '31.1']
+        emacs: ['28.1', '28.2', '29.4', '30.2', '31.1']
         include:
           - os: macos-latest
             emacs: '30.2'
@@ -36,3 +36,40 @@ jobs:
           emacs -Q --batch --eval '(princ (format "Features: %s\n" system-configuration-features))'
       - run: make check
       - run: make tty-smoke
+  package:
+    name: package (build 31.1, install 31.1/28.1)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          repository: melpa/package-build
+          ref: a0f92f5685fb6855bf1f09a39bea9d2185230e1c
+          path: .build-tools/package-build
+          persist-credentials: false
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          repository: emacs-compat/compat
+          ref: 90880f81419577e1d3f68424d2a3adf31e6d663e
+          path: .build-tools/compat
+          persist-credentials: false
+      - uses: purcell/setup-emacs@34c6ded44899fd1bf74d2889558befd1750e61a7
+        with:
+          version: '31.1'
+      - name: Build recipe and install in clean Emacs 31.1
+        env:
+          EMACS_TUI_PACKAGE_OUTPUT: ${{ runner.temp }}/emacs-tui-package
+          EMACS_TUI_EXPECT_VERSION: '31.1'
+        run: make package-check
+      - name: Install identical archive in clean Emacs 28.1
+        env:
+          EMACS_TUI_PACKAGE_OUTPUT: ${{ runner.temp }}/emacs-tui-package
+          EMACS_TUI_INSTALL_ROOT: ${{ runner.temp }}/emacs-tui-install-28
+          EMACS_TUI_EXPECT_VERSION: '28.1'
+        run: |
+          export EMACS_TUI_PACKAGE_ARCHIVE="$(cat "$EMACS_TUI_PACKAGE_OUTPUT/artifact-path.txt")"
+          cd "$RUNNER_TEMP"
+          env -u EMACSLOADPATH nix run --accept-flake-config 'github:purcell/nix-emacs-ci/c271f180d41213f156267d987b306d01cfd086b4#emacs-28-1' -- -Q --batch -l "$GITHUB_WORKSPACE/test/package-install-smoke.el"

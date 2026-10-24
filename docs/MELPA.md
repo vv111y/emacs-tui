@@ -19,8 +19,12 @@ Candidate recipe, not yet submitted:
 
 ```elisp
 (emacs-tui :fetcher github :repo "vv111y/emacs-tui"
-           :files ("emacs-tui*.el"))
+           :files ("emacs-tui*.el" "LICENSE"))
 ```
+
+The executable candidate is in `test/recipes/emacs-tui`. See
+[PACKAGING.md](PACKAGING.md) for exact-checkout package-build and clean-install
+validation. This does not submit a recipe or test a live MELPA publication.
 
 Recheck recipe name availability. The existing
 [tui.el](https://github.com/ebpa/tui.el) uses `tui-*`; this package uses
