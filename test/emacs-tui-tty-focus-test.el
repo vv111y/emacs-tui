@@ -254,6 +254,47 @@
         (should (= 1 selections))
         (should-not emacs-tui--tty-deleting-frames)))))
 
+(ert-deftest emacs-tui-tty-focus-frame-deletion-releases-buffers-without-window-mutation ()
+  (dolist (kind '(persistent ephemeral))
+    (save-window-excursion
+      (delete-other-windows)
+      (let ((host (generate-new-buffer " *deletion-origin*"))
+            (cancelled 0) (closed 0) publish session)
+        (unwind-protect
+            (progn
+              (switch-to-buffer host) (insert "origin edited")
+              (setq session
+                    (funcall
+                     (if (eq kind 'persistent) #'emacs-tui-mount #'emacs-tui-open)
+                     :backend 'windows :debounce 60
+                     :views (list (if (eq kind 'persistent)
+                                      (emacs-tui-input :id 'body :value "draft")
+                                    (emacs-tui-view :id 'body :text "draft"))
+                                  (emacs-tui-view :id 'items))
+                     :provider (lambda (_app _query emit _fail)
+                                 (setq publish emit)
+                                 (funcall emit 'items :items '("one" "two"))
+                                 (lambda () (cl-incf cancelled)))
+                     :on-close (lambda (_) (cl-incf closed))))
+              (let* ((request (emacs-tui--workspace-request session))
+                     (origin (emacs-tui--workspace-origin session))
+                     (buffers (delq nil (cons (emacs-tui--workspace-query-buffer session)
+                                             (mapcar #'emacs-tui--view-buffer
+                                                     (emacs-tui--workspace-views session))))))
+                (cancel-timer (emacs-tui--request-timer request))
+                (emacs-tui--start-provider request)
+                (cl-letf (((symbol-function 'delete-window)
+                           (lambda (&rest _) (error "Native frame is already being deleted"))))
+                  (emacs-tui--frame-deleted (emacs-tui--workspace-origin-frame session)))
+                (should-not (emacs-tui-live-p session))
+                (should (= 1 cancelled)) (should (= 1 closed))
+                (dolist (buffer buffers) (should-not (buffer-live-p buffer)))
+                (when origin (should-not (marker-buffer origin)))
+                (should-not (funcall publish 'items :items '("stale")))
+                (should (equal "origin edited" (with-current-buffer host (buffer-string))))))
+          (when session (emacs-tui-close session))
+          (when (buffer-live-p host) (kill-buffer host)))))))
+
 (ert-deftest emacs-tui-tty-focus-hook-lifetime-preserves-other-advice-and-window-sessions ()
   (emacs-tui-tty-focus-test--with
     (let ((post-command-hook (list #'ignore))

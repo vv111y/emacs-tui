@@ -75,8 +75,16 @@ cleanup assertion. It is not a passing run. Diagnostics report the specific live
 buffer and kill result. Explicit focus recording is now separate from automatic
 post-command deletion consumption so pending cleanup cannot override an actual
 application selection; the reviewed pending-callback regression is covered.
+Run 40095035338 identified a B input buffer with no kill attempt: native frame
+hook disposal aborted in window cleanup before reaching buffer release. The
+frame-deletion hook now drops its window/frame claims before closing, leaving
+physical subtree destruction to Emacs while releasing buffers and providers.
+A new persistent/ephemeral regression injects a dying-window error: the old hook
+fails, the revised hook avoids the invalid window mutation and releases buffers,
+origin markers, requests and callbacks. The terminal assertion remains intact.
+No buffer query is bypassed and no failed run is counted as passing.
 
-Local 298 ERT, strict compilation/checkdoc passed on Emacs 29.3/Linux. Twelve new
+Local 299 ERT, strict compilation/checkdoc passed on Emacs 29.3/Linux. Thirteen new
 modeled routing tests cover event identity, prefix preservation, explicit parent
 selection, background memory, dead/foreign/GUI roots, terminal mismatch, nested
 close, immediate application focus changes, implicit deletion fallback versus

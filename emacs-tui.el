@@ -1670,7 +1670,10 @@ KEYMAP supplies application commands for view buffers."
   (dolist (session (copy-sequence emacs-tui--sessions))
     (when (or (eq frame (emacs-tui--workspace-frame session))
               (eq frame (emacs-tui--workspace-origin-frame session)))
-      (setf (emacs-tui--workspace-frame session) nil)
+      ;; Emacs owns deletion of this frame and all descendant windows.  Do
+      ;; not mutate a dying subtree, including when hooks were deferred.
+      (setf (emacs-tui--workspace-frame session) nil
+            (emacs-tui--workspace-windows session) nil)
       (emacs-tui-close session))))
 
 (defun emacs-tui--restore-host (session)

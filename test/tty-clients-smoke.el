@@ -290,6 +290,13 @@
         (server-start)
         (add-hook 'pre-command-hook #'emacs-tui-test--clients-command)
         (advice-add
+         #'emacs-tui-close :around
+         (lambda (original &rest args)
+           (condition-case err (apply original args)
+             ((error quit)
+              (emacs-tui-test--clients-record 'close-error err)
+              (signal (car err) (cdr err))))))
+        (advice-add
          #'kill-buffer :around
          (lambda (original &rest args)
            (let* ((buffer (get-buffer (or (car args) (current-buffer))))
