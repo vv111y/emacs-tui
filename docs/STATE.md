@@ -2,6 +2,13 @@
 
 Updated 2026-10-23 (America/Toronto).
 
+## Active implementation
+
+A persistent-application lifecycle is in progress on `codex/persistent-applications`,
+stacked on the scope clarification PR #5. Claimed files: core, lifecycle tests,
+dashboard example, terminal smoke, Makefile, README and this handoff. Other
+workers should review or choose disjoint work while this branch is active.
+
 ## Implementation and handoff
 
 This is an experimental development release, not a stable or MELPA package.
