@@ -4,6 +4,38 @@ Updated 2026-10-24 (America/Toronto).
 
 ## Active implementation
 
+PR #35 merged at `e4be92a9a941526ab1e4081e0a1f8f106de8ae68` after independent
+exact-head review and all eight jobs in
+[40088239840](https://github.com/vv111y/emacs-tui/actions/runs/40088239840).
+Runtime jobs passed 286 ERT, strict compilation/checkdoc, eight terminal
+scenarios, four reflow fault checks, three Python regressions and original plus
+multi-term source/bytecode benchmark smokes. Linux/macOS 31.1 explicitly passed
+the updated tree fixture with native child frames. The archive built and
+clean-installed on 31.1/28.1.
+
+API readiness now documents the supported application surface, opaque handles,
+experimental 0.x migration/versioning rules and future stable 1.x requirements
+in docs/API-STABILITY.md. This is a policy, not a compatibility freeze or a
+stable/MELPA claim. Effects remain application-owned, projection callbacks pure,
+and cross-view updates are not declared transactional. The naming warning,
+public maintenance, substantive usage and human-review gates remain unresolved.
+
+The clean installed-client script now exercises named selection, first/last,
+bulk marking/inversion, live input titles with native undo, whole-tree controls
+and hidden-view focus using public APIs. Local real recipe build and fresh
+installation passed on Emacs 29.3 using the pinned build tools and a minimal
+committed packaging snapshot (five libraries, LICENSE and packaging fixtures),
+not a complete checkout or public PR commit. Its local synthetic commit was
+1718d277de94f82c973e951b0d1cdfd17900e338; artifact SHA256 was
+25c8d1cd22d7328385da1ceb0004010ef76f3c3011aad8f543f81855717222cb.
+Independent review verified snapshot/file identity and reproduced the same
+archive hash and clean install. The edited client also passed strict compilation
+with the library loaded for compiler declarations, and checkdoc. No production
+Lisp changed in this unit; full exact-head recipe/install coverage on 31.1/28.1
+and all eight current-head CI jobs remain integration gates.
+Next: concrete consumer controls/layouts, broader actual display validation,
+substantive usage and release readiness. No new latency or maturity claim.
+
 PR #34 merged at `ef0c0043204c91a6cedcb4c534dbf0bd3928b76f` after exact-head
 independent review and all eight jobs in
 [40084992407](https://github.com/vv111y/emacs-tui/actions/runs/40084992407).

@@ -683,4 +683,6 @@ on Emacs 31.1 and the declared 28.1 floor. Read
 and [docs/MELPA.md](docs/MELPA.md) for external release gates.
 
 GPL-3.0-or-later. AI assistance is disclosed in source headers. The public API
-is experimental until documented release criteria are met.
+is experimental until documented release criteria are met. See
+[API stability and migration policy](docs/API-STABILITY.md) for the supported
+application surface, experimental changes and the future stable-release gate.
