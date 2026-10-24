@@ -635,7 +635,8 @@ an empty answer restores source order, and a prefix requests descending order."
   "Return VIEW's focus and mark header within SESSION."
   (concat (if (equal (emacs-tui--view-id view)
                          (emacs-tui--view-id (emacs-tui--focused-view session))) "* " "  ")
-          (emacs-tui--view-title view)
+          (replace-regexp-in-string "%" (lambda (match) (concat match match))
+                                    (emacs-tui--view-title view) t t)
           (when (emacs-tui--workspace-maximized session) " | maximized")
           (when (emacs-tui--view-actions view)
             (if (emacs-tui--view-editable view) " | C-c C-a actions" " | a actions"))

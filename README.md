@@ -582,6 +582,7 @@ A live view title can be updated with the same API:
 ```
 
 `:title` must be a string; `""` clears it and omission keeps it unchanged.
+Percent signs are literal title text, not Emacs mode-line format constructs.
 Title-only updates change the header without filtering, projecting cells or
 editing the view buffer. Selection, marks, query, native undo, narrowing and
 scroll remain intact, including hidden panels. Combined data/title updates

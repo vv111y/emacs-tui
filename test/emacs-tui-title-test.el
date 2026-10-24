@@ -38,6 +38,21 @@
         (should (equal "a" (emacs-tui-query session 'rows)))
         (should (equal "日本語 results" (emacs-tui--view-title view)))))))
 
+(ert-deftest emacs-tui-title-percent-text-stays-literal-in-headers ()
+  (emacs-tui-title-test--with
+      (list (emacs-tui-view :id 'rows :title "50%busy %n %%" :items '("a")))
+    (should (equal "* 50%%busy %%n %%%%" header-line-format))
+    (emacs-tui-update session 'rows :title "100%done %b")
+    (should (equal "100%done %b" (emacs-tui--view-title
+                                   (emacs-tui--focused-view session))))
+    (should (equal "* 100%%done %%b" header-line-format))
+    (let ((title (propertize "50%busy" 'face 'bold 'help-echo "Progress")))
+      (emacs-tui-update session 'rows :title title)
+      (should (eq title (emacs-tui--view-title (emacs-tui--focused-view session))))
+      (dotimes (i (- (length header-line-format) 2))
+        (should (eq 'bold (get-text-property (+ 2 i) 'face header-line-format)))
+        (should (equal "Progress" (get-text-property (+ 2 i) 'help-echo header-line-format)))))))
+
 (ert-deftest emacs-tui-title-only-preserves-field-undo-and-narrowing ()
   (let ((changes 0))
     (emacs-tui-title-test--with

@@ -21,12 +21,16 @@ commit the title only after success. Empty string clears a title; omitted title
 retains it and nonstrings are rejected. No new public function is needed.
 The dashboard displays snapshot buffer/process counts and paused/running status.
 
-Local 280 ERT, strict compilation/checkdoc passed on Emacs 29.3/Linux. The prior
+Local 281 ERT, strict compilation/checkdoc passed on Emacs 29.3/Linux. The prior
 full eight-scenario/four-fault terminal suite passed, then the modified persistent
-scenario was rerun with a live title checked across both resize steps. Six new
+scenario was rerun with a live title checked across both resize steps. Seven new
 ERT cases cover nonprojecting table updates, editable undo/narrowing, combined
 failure/retry, hidden preview reveal/maximize, validation/clearing/omission and
-actual dashboard refresh/pause behavior. Independent exact-head review and all
+actual dashboard refresh/pause behavior. A native terminal probe also caught
+existing percent-format expansion in view titles. Headers now escape percent
+constructs while retaining face/help properties and stored literal text; the persistent fixture checks
+actual formatted header output for Live 50%busy across both resizes. The old
+probe failed before this fix. Independent exact-head review and all
 eight current-head CI jobs remain integration gates. Three Python regressions and
 all original/multi-term source/fresh-bytecode benchmark smokes also passed.
 MELPA policy hashes were rechecked on 2026-10-24 and are unchanged.
