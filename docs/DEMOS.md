@@ -3,7 +3,8 @@
 Start with `make gallery` from a checkout of current main. The gallery itself is
 a persistent TUI: RET shows the selected tour, C-c C-o launches the selected
 example, and C-c C-q closes. Launching closes the gallery first. After closing
-an example, M-x emacs-tui-gallery opens the chooser again.
+an example, M-x emacs-tui-gallery opens the chooser again. Tour text wraps to
+its pane; TAB to it and use ordinary Emacs scrolling, or C-c C-f to maximize.
 
 Every example also has a direct Make target, which starts a clean terminal
 Emacs. No extra packages, sample files, network services or XOB setup are needed.

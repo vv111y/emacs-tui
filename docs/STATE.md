@@ -20,8 +20,11 @@ independent collections, preserved undo/marks and timer cancellation. The first
 local PTY run failed because this extracted runtime's unavailable native compiler
 opened *Warnings* inside a demo pane, correctly causing ownership disposal.
 Rerunning with native JIT disabled in the local runtime wrapper passed; the
-fixture does not hide warnings or weaken ownership checks. Independent review
-and the full exact-head CI matrix remain integration gates for this candidate.
+fixture does not hide warnings or weaken ownership checks. Real terminal screen
+inspection and independent review caught clipped gallery tour lines; native
+word wrapping now keeps instructions readable across pane sizes, with a reflow
+regression. Fresh local checks and the terminal tour still pass. Independent
+review and the full exact-head CI matrix remain integration gates for this candidate.
 
 PR #42 merged at `fd976f725c2bbb111d9fe6700bcabccfab1f3774` after independent
 review and all eight jobs in run 40105488355. The public fixed branch

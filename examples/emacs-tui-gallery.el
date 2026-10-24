@@ -92,8 +92,12 @@ Use `emacs-tui-close' to exit without launching."
                         :id 'demos :title "Demo gallery | RET tour | C-c C-o launch"
                         :items emacs-tui-gallery--entries
                         :on-select #'emacs-tui-gallery--describe)
-                       (emacs-tui-view :id 'tour :title "Try it | C-c C-o launch selected demo"
+                       (emacs-tui-view :id 'tour :title "Tour | TAB to read | C-c C-o launch"
                                        :text ""))))
+          ;; Native buffer-local wrapping keeps tours readable after resize.
+          (emacs-tui-focus-view app 'tour)
+          (setq-local truncate-lines nil word-wrap t)
+          (emacs-tui-focus-view app 'demos)
           (emacs-tui-gallery--describe app (car emacs-tui-gallery--entries))
           (setq ready t)
           app)
