@@ -24,7 +24,8 @@ All four versions passed 149 ERT tests and four PTY scripts. Unchanged text
 previews now retain point, scroll, narrowing and buffer-change state across
 focus and repeated updates. Changed content still starts at the beginning.
 
-The current implementation adds native editable views through `emacs-tui-input`
+PR #11 implementation `aad86cff25f8e98f1dda23d492834d50b99fef1d` adds editable views
+through `emacs-tui-input`
 and `emacs-tui-input-value`, with application-owned change callbacks. Inputs
 share mount/embed lifecycle, focus, layout and keymap composition. The persistent
 composer demonstrates two fields, a preview and explicit copying to the kill
@@ -37,11 +38,18 @@ PTY scripts. New regressions cover native Unicode/multiline editing, undo,
 callback errors/closure/self-normalization, narrowing, focus/reflow, embedding
 and the explicit copy action. The new input PTY script types multiline text,
 undoes an edit, updates a preview, switches focus and verifies state over real
-terminal resizes. Independent review and the four-version CI matrix are pending.
+terminal resizes. Separate agent review approved this exact implementation,
+repeated the full local suite and probed sibling-field updates, callback quits,
+undo and continued editing. A local Latin-prefix input-method probe produced
+`ä` through native key translation with the interface remaining live.
+
+Implementation CI [40052594921](https://github.com/vv111y/emacs-tui/actions/runs/40052594921)
+passed 165 ERT tests, compilation, checkdoc and all five PTY scripts on Emacs
+28.2, 29.4, 30.2 and 31.1. Native child frames passed the input script on 31.1.
 Package-lint was rerun: only the two known main/layout package-name warnings.
 
-Active worker owns core input support, composer example, input ERT/PTY tests,
-Makefile and documentation through review and CI. Next: trees or richer form
+This documentation-only checkpoint still requires final-head review and CI
+before integration. No other scope is claimed. Next: trees or richer form
 controls through a concrete consumer; preserve existing ephemeral behavior.
 No stability or MELPA-readiness claim is made.
 
@@ -70,6 +78,16 @@ dashboard. PR #7 added borrowed-window embedding over the same primitives.
   batch commits. Final-head CI also passed on all four supported test versions.
 - [PR #5](https://github.com/vv111y/emacs-tui/pull/5): merged by the owner;
   general-purpose toolkit scope and lifecycle priorities are now on main.
+- [PR #6](https://github.com/vv111y/emacs-tui/pull/6): persistent lifecycle,
+  dashboard, explicit actions and application cleanup.
+- [PR #7](https://github.com/vv111y/emacs-tui/pull/7): borrowed-window embedding
+  and host restoration without changing host buffer contents.
+- [PR #8](https://github.com/vv111y/emacs-tui/pull/8): composed application/view
+  keymaps and a public current-session accessor.
+- [PR #9](https://github.com/vv111y/emacs-tui/pull/9): sortable table columns,
+  structured dashboard rows and failure-safe updates.
+- [PR #10](https://github.com/vv111y/emacs-tui/pull/10): preview reading position
+  survives focus changes and unchanged updates.
 
 API and runnable examples are in README.md. `make demo` explores an in-memory
 sample graph; `make async-demo` searches buffer snapshots. Marks are per view
@@ -98,7 +116,7 @@ because it has no configured native compiler toolchain.
 
 ## Remaining work
 
-1. Finish editable-view review and integration, then extend application controls
+1. After PR #11 final-head review/CI and integration, extend application controls
    with a concrete tree or form consumer. Preserve ephemeral behavior. Extend layouts, history, per-view
    input, maximize/restore and tree/form controls as real consumers require them. Avoid treating every preview as navigation.
 2. Broaden actual display validation: GUI child frames, macOS terminal emulators,
