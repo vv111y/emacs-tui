@@ -340,7 +340,8 @@ maximized chooses the layout used on restore.
 
 Inputs retain edits, undo and narrowing. Text views retain their individual
 cursor and scroll when hidden, and lists/trees retain selection, marks and
-expansion. Changed preview content still starts at the beginning. Maximizing
+expansion. Native edits made to hidden inputs retain their updated buffer point
+and undo history. Changed preview content still starts at the beginning. Maximizing
 does not invoke application actions or restart providers. A single-view panel
 already fills its surface, so toggling it has no effect.
 

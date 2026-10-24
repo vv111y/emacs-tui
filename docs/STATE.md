@@ -22,13 +22,21 @@ hiding/reflow; edits, undo, narrowing, selection, marks and tree expansion
 remain intact. Changed text invalidates stale reading positions. Single-view
 panels are unchanged. Maximization invokes no application actions/providers.
 
-Local Emacs 29.3 passes 189 ERT tests, strict compilation, checkdoc and all six
+Local Emacs 29.3 passes 190 ERT tests, strict compilation, checkdoc and all six
 PTY scripts. New tests cover every-view access, layout restoration, hidden
 preview updates, input undo/narrowing, ephemeral query editing, quiet callbacks,
 single embedded views, unrelated-window geometry and cleanup. The tree PTY
 script now focuses both maximized views, resizes with only one visible panel,
-restores both panels, and explicitly previews again. Independent review and
-four-version CI are pending.
+restores both panels, and explicitly previews again.
+
+Independent review found one stale-position bug: native edits to a hidden input
+moved its native point but an old cached integer overrode it on return. Native
+input changes now invalidate that cache without clearing undo. A regression
+reproduced point 500 instead of 506 before the fix and now passes, including
+undo recovery. Both reviewers also verified a 30-view compact-layout round trip
+retains point and horizontal scroll. The corrected implementation still needs
+independent re-review and current-head CI; initial 189-test CI passed but is not
+sufficient evidence for this changed head.
 
 Active worker owns maximize/hidden-view position support, its regressions and
 the tree PTY extension, README and this handoff through review and CI. Next:

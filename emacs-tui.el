@@ -321,7 +321,8 @@ Ignore narrowing and strip text properties.  Signal an error for other views."
            (view (cl-find (current-buffer) (emacs-tui--workspace-views session)
                           :key #'emacs-tui--view-buffer :test #'eq)))
       (when (and view (emacs-tui--view-editable view))
-        (setf (emacs-tui--view-text view)
+        (setf (emacs-tui--view-display-state view) nil
+              (emacs-tui--view-text view)
               (save-restriction (widen) (buffer-string)))
         (when (emacs-tui--view-on-change view)
           (condition-case err

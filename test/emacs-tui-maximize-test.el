@@ -173,5 +173,24 @@
       (should (eq buffer (window-buffer outside)))
       (should (equal edges (window-edges outside))))))
 
+(ert-deftest emacs-tui-maximize-hidden-native-input-edit-tracks-point-and-keeps-undo ()
+  (emacs-tui-maximize-test--with
+    (goto-char 500)
+    (let ((input (current-buffer)))
+      (emacs-tui-toggle-maximize session)
+      (emacs-tui-next-view session)
+      (with-current-buffer input
+        (save-excursion
+          (goto-char (point-min))
+          (insert "PREFIX")
+          (undo-boundary)))
+      (should (= 506 (with-current-buffer input (point))))
+      (let ((undo (with-current-buffer input (copy-tree buffer-undo-list))))
+        (emacs-tui-previous-view session)
+        (should (= 506 (point)))
+        (should (equal undo buffer-undo-list))
+        (undo-only 1)
+        (should (equal text (emacs-tui-input-value session 'input)))))))
+
 (provide 'emacs-tui-maximize-test)
 ;;; emacs-tui-maximize-test.el ends here
