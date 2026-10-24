@@ -16,7 +16,8 @@ make demo
 
 The demo explores a small in-memory graph, showing nodes, content, forward links
 and backlinks. It does not access your knowledge base. Explicit commitment
-inserts a `demo:` link into the originating buffer.
+inserts a `demo:` link into the originating buffer, or one link per marked item
+in the focused view.
 
 Requires Emacs 28.1 or later. Native terminal child frames require an Emacs build
 advertising `tty-child-frames` (introduced in 31.1). Older terminal builds use
@@ -60,6 +61,9 @@ and continue exploration; commitment is a separate command.
 | `emacs-tui-refresh` | Reflow the workspace while preserving its input and selection |
 | `emacs-tui-query` | Read the temporary query |
 | `emacs-tui-current-item` | Read the selected object |
+| `emacs-tui-toggle-mark` | Toggle the current item in a multi-select view |
+| `emacs-tui-marked-items` | Read marked objects in source order |
+| `emacs-tui-clear-marks` | Clear the focused or named view's marks |
 | `emacs-tui-select` | Invoke the selected view's exploration action |
 | `emacs-tui-commit` | Invoke the application's explicit commit callback |
 | `emacs-tui-close` | Dispose the session without committing |
@@ -78,6 +82,8 @@ functions; interactive commands infer it from the workspace buffer. Internal
 | `RET` | Invoke selection action without closing |
 | `C-c C-c` | Commit selected item and close after success |
 | `C-c C-l` | Cycle columns, rows and grid |
+| `C-c C-m` | Toggle the current item's mark in a multi-select view |
+| `C-c C-u` | Clear marks in the focused view |
 | `C-g` / `C-c C-q` | Close without committing |
 
 The editing cursor stays in the query buffer while logical focus and selection
@@ -93,6 +99,42 @@ captured location. Successful callbacks close the workspace. An error rolls
 back edits to that buffer and leaves the workspace open. Applications remain
 responsible for transactions involving other buffers, files or external state.
 Selection/query callbacks should only browse and update ephemeral views.
+
+## Multi-selection and batch actions
+
+Add `:multi-select t` to a list view to enable independent marks:
+
+```elisp
+(emacs-tui-open
+ :views (list (emacs-tui-view :id 'results :multi-select t
+                             :items '("Alpha" "Beta" "Gamma")))
+ :on-commit
+ (lambda (session item origin)
+   (let ((items (or (emacs-tui-marked-items session) (list item))))
+     (goto-char origin)
+     (insert (mapconcat #'identity items "\n")))))
+```
+
+`C-c C-m` toggles a mark without changing the query or invoking selection or
+commit callbacks. `[x]` / `[ ]` indicators and a count in the view title make
+marks visible without relying on color. `C-c C-u` clears the focused view.
+
+Marks belong to individual views. `emacs-tui-marked-items` accepts optional
+session and view ID arguments; by default it reads the focused view. It returns
+the latest source objects in source order, including marked items hidden by
+local filtering. `emacs-tui-clear-marks` accepts the same arguments.
+
+Use stable `:id` values for structured items. Multi-select views require unique
+identities, including unique strings when using string items. Reordering or
+updating an item's payload retains its mark; removing it from source items
+removes the mark. A text preview replaces the list and clears its marks.
+Async query changes clear provider-owned results and their marks immediately.
+
+The commit callback still receives `(session item origin-marker)`. In a
+multi-select view, `item` can be nil when all marked items are hidden by local
+filtering; read `emacs-tui-marked-items` to perform the batch action. Unmarked
+ordinary views retain single-item behavior. Commit errors roll back edits to
+the origin buffer and leave the workspace and marks available for retry.
 
 ## Asynchronous providers
 

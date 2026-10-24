@@ -44,24 +44,29 @@
 
 ;;;###autoload
 (defun emacs-tui-demo ()
-  "Explore a sample graph, optionally committing an Org-style link.
-Type to search nodes.
+  "Explore a sample graph, optionally committing Org-style links.
+Type to search nodes.  Search changes can remove marks for nodes no longer
+in the results.  Traversing a node can similarly replace its link lists.
 \\<emacs-tui-input-mode-map>\\[emacs-tui-select] previews the selected node;
 \\[emacs-tui-next-view] changes the focused view, and
 \\[emacs-tui-next-item]/\\[emacs-tui-previous-item] navigate items.
+\\[emacs-tui-toggle-mark] toggles a mark; \\[emacs-tui-clear-marks] clears marks
+in the focused view.  Marks are independent in each list.
 \\[emacs-tui-cycle-layout] changes layout; \\[emacs-tui-close] cancels.
-\\[emacs-tui-commit] inserts a demo link at the original point."
+\\[emacs-tui-commit] inserts the focused view's marked demo links at the original
+point, one per line in source order.
+With no marks, it inserts only the selected node's link."
   (interactive)
   (emacs-tui-open
    :layout 'grid
    :views (list
-           (emacs-tui-view :id 'nodes :title "Nodes"
+           (emacs-tui-view :id 'nodes :title "Nodes" :multi-select t
                            :items (mapcar #'emacs-tui-demo--item emacs-tui-demo--nodes)
                            :on-select #'emacs-tui-demo--inspect)
            (emacs-tui-view :id 'preview :title "Preview" :text "RET to inspect a node")
-           (emacs-tui-view :id 'links :title "Forward links"
+           (emacs-tui-view :id 'links :title "Forward links" :multi-select t
                            :on-select #'emacs-tui-demo--inspect)
-           (emacs-tui-view :id 'backlinks :title "Backlinks"
+           (emacs-tui-view :id 'backlinks :title "Backlinks" :multi-select t
                            :on-select #'emacs-tui-demo--inspect))
    :on-query
    (lambda (session query)
@@ -74,10 +79,14 @@ Type to search nodes.
                           (string-match-p (regexp-quote query) (nth 1 node)))
                         emacs-tui-demo--nodes)))))
    :on-commit
-   (lambda (_ item marker)
+   (lambda (session item marker)
      (goto-char marker)
-     (insert (format "[[demo:%s][%s]]" (plist-get item :value)
-                     (plist-get item :label))))))
+     (insert
+      (mapconcat (lambda (node)
+                   (format "[[demo:%s][%s]]" (plist-get node :value)
+                           (plist-get node :label)))
+                 (or (emacs-tui-marked-items session) (list item))
+                 "\n")))))
 
 (provide 'emacs-tui-demo)
 ;;; emacs-tui-demo.el ends here
