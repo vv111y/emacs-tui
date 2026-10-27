@@ -64,19 +64,27 @@
 (defun emacs-tui-gui--form ()
   "Exercise native form editing, validation and explicit saved state."
   (let ((frames (frame-list)) (source (current-buffer))
-        (text (buffer-string)) (position (point)) app child buffers)
+        (text (buffer-string)) (position (point))
+        (source-window (selected-window)) app windows buffers)
     (unwind-protect
         (progn
           (setq app (emacs-tui-form-demo)
-                child (emacs-tui--workspace-frame app)
+                windows (mapcar #'emacs-tui--view-window
+                                (emacs-tui--workspace-views app))
                 buffers (mapcar #'emacs-tui--view-buffer
                                 (emacs-tui--workspace-views app)))
           (redisplay t)
           (cl-assert (= 4 (length buffers)))
           (cl-assert (cl-every #'buffer-live-p buffers))
-          (cl-assert (frame-live-p child))
-          (cl-assert (frame-visible-p child))
-          (cl-assert (eq (frame-parent child) emacs-tui-gui--parent))
+          ;; The public form deliberately uses mount's ordinary-window default.
+          ;; Exercise that real presentation on the graphical parent.
+          (cl-assert (eq 'windows (emacs-tui--workspace-backend app)))
+          (cl-assert (= 4 (length (delete-dups (copy-sequence windows)))))
+          (cl-assert (cl-every #'window-live-p windows))
+          (cl-assert (cl-every (lambda (window)
+                                 (eq (window-frame window) emacs-tui-gui--parent))
+                               windows))
+          (cl-assert (equal frames (frame-list)))
           (execute-kbd-macro (kbd "C-a C-k O p s"))
           (emacs-tui-focus-view app 'retries)
           (execute-kbd-macro (kbd "C-a C-k 1 1"))
@@ -108,7 +116,8 @@
           (cl-assert (not (plist-get (emacs-tui-current-item app 'options) :checked)))
           (execute-kbd-macro (kbd "C-c C-q"))
           (cl-assert (not (emacs-tui-live-p app)))
-          (cl-assert (not (frame-live-p child)))
+          (cl-assert (not (cl-some #'window-live-p windows)))
+          (cl-assert (eq source-window (selected-window)))
           (cl-assert (not (cl-some #'buffer-live-p buffers)))
           (cl-assert (equal frames (frame-list)))
           (cl-assert (eq source (window-buffer (selected-window))))
