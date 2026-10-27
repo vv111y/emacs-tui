@@ -1,5 +1,39 @@
 # Project state
 
+## Integrated handoff — 2026-10-27
+
+The implementation baseline is 6871005fca7bc7a825e40ea01fb111da2b9ccdbf,
+the merge of PR #70.
+The floating inspector now follows related equipment and navigates Back/Forward
+in the same popup, preserving source point/text/window. Run make inspector-demo
+from a current main checkout; C-c C-l follows, C-c C-b goes Back, C-c C-f goes
+Forward. The fixed beta2 does not contain this development feature.
+
+Exact-head review 5670550003 covered head
+250dc9aa8a04987f2c7a9ae581928ec568b90e95; local e9626a8, tested merge
+0aca7aa532ca6d4bf785a2155705e08b517c406b and integrated main share tree
+9bd9724e665ee8a12a819351db0c11c9f3410dc7. All eleven jobs passed: CI
+40539516125 (eight), GTK/Xvfb 40539516406 (one), tmux 40539516354 (two).
+GUI job122313780796 and tmux jobs122313791876/122313791400 explicitly confirm
+related/history keyboard traversal, source preservation and twenty lifecycle
+cycles. Local Emacs29.3 passes 391 ERT, strict compilation/checkdoc and the
+unsupported-popup PTY branch. The real before-change-hook regression proves
+reentrant publication rollback without replacing the runtime update function.
+Integration comment6447396311 preserves the exact evidence and head lease.
+
+This run also merged PR #68 (graphical CAPF coverage) at44ce8da and PR #69
+(command-loop lifetime coverage) at8c4d4bc, each after separate review and all
+eleven required checks. Their detailed evidence is retained below. Earlier
+pending-check paragraphs are chronological checkpoints, not current blockers.
+
+CHANGELOG now separates the integrated development work from the fixed beta2.
+No release ref, tag or package version was changed. No MELPA submission or
+acceptance is claimed; its maintenance-history/human-review requirements still
+apply. Next useful release unit: assess and prepare a separately reviewed beta3
+snapshot with matching install instructions and exact-checkout package tests,
+without moving beta1/beta2. Continue concrete application/API feedback and
+physical-display coverage; passing automated tests alone do not establish maturity.
+
 ## Related-object browsing in the floating inspector — 2026-10-27
 
 The inspector now demonstrates application-owned navigation inside one popup:
