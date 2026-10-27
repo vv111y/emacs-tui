@@ -289,3 +289,10 @@ The graphical display is mandatory and the report distinguishes native GUI
 state from terminal paint checks; this does not claim pixel-level inspection.
 This verifies native graphical state and interaction; it does not inspect rendered
 pixels, fonts, desktop window managers, macOS GUI Emacs or physical displays.
+
+The graphical and native terminal popup checks also run twenty shared lifetime
+cycles. Real keyboard commands close a popup, leave its source window, replace
+its source buffer, or kill that buffer. Each cycle checks disposal callbacks,
+frames, view buffers, anchor markers and routing-hook cleanup, and preserves
+ordinary navigation choices. The native terminal cases also run through tmux;
+unsupported terminals do not claim this native lifetime coverage.

@@ -1,5 +1,36 @@
 # Project state
 
+## Command-loop popup lifetime validation — 2026-10-27
+
+PR #68 merged at 44ce8da73c63b7f1676e2464d6494f23d5a53f66 after exact-head
+review 5670039315 and all eleven jobs passed: CI 40534187372 (eight),
+graphical 40534187377 (one), tmux 40534187594 (two). Reviewed head
+18937c56f9ad2c11a9359f5010e2b7dfae59fc48 and tested merge
+08c8de37deb7cc2490d25f038713f8319eab780c share tree
+d9afd86aa07b38d846172e9ff221ca81f53be78d. Native graphical completion is now
+verified alongside terminal and multiplexer completion behavior.
+
+The next focused change adds a shared native popup lifetime fixture to the
+existing graphical and terminal smoke scenarios. Twenty cycles exercise normal
+close, other-window, host buffer replacement and source buffer death through
+keyboard commands, without calling the private post-command hook. Each cycle
+checks exact-once disposal callbacks, dead child/view resources, detached source
+markers and removal of popup routing hooks. Navigation must retain its chosen
+window/buffer; source text, point and undo remain intact when the source survives.
+The same terminal fixture runs directly and through tmux on Linux/macOS.
+
+Local Emacs 29.3 passes 383 ERT, strict package/example and changed-fixture
+compilation, checkdoc, and the unchanged unsupported-popup PTY branch. Native
+lifetime execution requires the hosted GUI/31.1 checks; the local extracted
+runtime cannot provide either display. Independent review and hosted checks
+remain integration gates. No runtime or public API change is claimed here.
+
+MELPA's official PR template and CONTRIBUTING.org were reread on 2026-10-27:
+the one-month maintenance and substantive human-review gates still apply.
+No submission or acceptance is claimed; fixed beta refs remain unchanged.
+Next: resolve any native lifetime failures, then continue concrete application
+interaction improvements with reviewed, passing changes.
+
 ## Shared graphical completion validation — 2026-10-27
 
 The real CAPF integration fixture now supports a graphical transport selected

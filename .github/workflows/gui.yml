@@ -26,12 +26,12 @@ jobs:
           sudo apt-get install --yes emacs-gtk xvfb xauth
           emacs --version
       - name: Compile graphical fixture strictly
-        run: emacs -Q --batch -L . -L examples --eval '(setq byte-compile-error-on-warn t)' -f batch-byte-compile test/gui-smoke.el test/tty-completion-smoke.el
+        run: emacs -Q --batch -L . -L examples -L test --eval '(setq byte-compile-error-on-warn t)' -f batch-byte-compile test/gui-smoke.el test/tty-completion-smoke.el test/emacs-tui-popup-lifecycle-smoke.el
       - name: Exercise native graphical frames
         env:
           EMACS_TUI_GUI_REPORT: gui-result.txt
         run: |
-          xvfb-run -a -s '-screen 0 1600x1200x24' timeout 60s emacs -Q -L . -L examples -l test/gui-smoke.el
+          xvfb-run -a -s '-screen 0 1600x1200x24' timeout 60s emacs -Q -L . -L examples -L test -l test/gui-smoke.el
           cat gui-result.txt
           grep -q '^PASS ' gui-result.txt
       - name: Exercise native graphical completion
