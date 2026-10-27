@@ -2,6 +2,7 @@
 
 ;; Copyright (C) 2026 Willy Rempel
 ;; Assisted-by: Codex:gpt-6-astra-wm
+;; Assisted-by: Codex:gpt-6.1-sol-wm
 ;; SPDX-License-Identifier: GPL-3.0-or-later
 (setq load-prefer-newer t)
 (require 'cl-lib)
@@ -82,7 +83,7 @@
           (cl-assert (equal emacs-tui-showcase--frames (frame-list)))
           (cl-assert (equal "Origin:" (with-current-buffer "*Showcase origin*" (buffer-string))))
           (with-temp-file (getenv "EMACS_TUI_SMOKE_REPORT")
-            (insert (format "PASS Emacs %s; real TTY; backend=%s; gallery launch; catalog hidden marks/action; native editor; layout/resize=120->90->140; stream failure/recovery; cleanup\n"
+            (insert (format "PASS Emacs %s; real TTY; backend=%s; gallery dispatch; board batch moves; reader chapter search; snippet insert/undo; catalog hidden marks/action; native editor; layout/resize=120->90->140; stream failure/recovery; cleanup\n"
                             emacs-version emacs-tui-showcase--backend)))
           (kill-emacs 0))))
     ((error quit) (emacs-tui-showcase--fail err))))
@@ -93,7 +94,37 @@
         (switch-to-buffer (get-buffer-create "*Showcase origin*"))
         (insert "Origin:")
         (setq emacs-tui-showcase--frames (frame-list))
+        ;; Launch dissimilar applications using the same chooser and native keys.
         (let ((gallery (emacs-tui-gallery)))
+          (execute-kbd-macro (kbd "C-c C-o"))
+          (cl-assert (not (emacs-tui-live-p gallery)))
+          (let ((board (emacs-tui-current-session)))
+            (cl-assert (eq 'todo (emacs-tui-current-view board)))
+            (execute-kbd-macro (kbd "C-c * >"))
+            (cl-assert (eq 'doing (emacs-tui-current-view board)))
+            (cl-assert (null (emacs-tui-current-item board 'todo)))
+            (execute-kbd-macro (kbd "< C-c C-q"))))
+        (let ((gallery (emacs-tui-gallery)))
+          (emacs-tui-set-selection gallery 'demos 'reader)
+          (execute-kbd-macro (kbd "C-c C-o"))
+          (let ((reader (emacs-tui-current-session)))
+            (execute-kbd-macro (kbd "/ C o m p a s s RET"))
+            (emacs-tui-set-selection reader 'contents 'compass)
+            (execute-kbd-macro (kbd "RET TAB"))
+            (cl-assert (eq 'page (emacs-tui-current-view reader)))
+            (cl-assert (string-prefix-p "Compass" (buffer-string)))
+            (cl-assert word-wrap)
+            (execute-kbd-macro (kbd "C-c C-q"))))
+        (buffer-enable-undo)
+        (undo-boundary)
+        (let ((gallery (emacs-tui-gallery)))
+          (emacs-tui-set-selection gallery 'demos 'snippet)
+          (execute-kbd-macro (kbd "C-c C-o RET"))
+          (cl-assert (string-match-p "First task" (buffer-string)))
+          (execute-kbd-macro (kbd "C-/"))
+          (cl-assert (equal "Origin:" (buffer-string))))
+        (let ((gallery (emacs-tui-gallery)))
+          (emacs-tui-set-selection gallery 'demos 'catalog)
           (execute-kbd-macro (kbd "RET C-c C-o"))
           (cl-assert (not (emacs-tui-live-p gallery))))
         (setq emacs-tui-showcase--app (emacs-tui-current-session))

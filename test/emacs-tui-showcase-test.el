@@ -2,6 +2,7 @@
 
 ;; Copyright (C) 2026 Willy Rempel
 ;; Assisted-by: Codex:gpt-6-astra-wm
+;; Assisted-by: Codex:gpt-6.1-sol-wm
 ;; SPDX-License-Identifier: GPL-3.0-or-later
 
 ;;; Commentary:
@@ -14,6 +15,9 @@
 (require 'emacs-tui-catalog-demo (expand-file-name "examples/emacs-tui-catalog-demo.el"))
 (require 'emacs-tui-layout-demo (expand-file-name "examples/emacs-tui-layout-demo.el"))
 (require 'emacs-tui-stream-demo (expand-file-name "examples/emacs-tui-stream-demo.el"))
+(require 'emacs-tui-board-demo (expand-file-name "examples/emacs-tui-board-demo.el"))
+(require 'emacs-tui-reader-demo (expand-file-name "examples/emacs-tui-reader-demo.el"))
+(require 'emacs-tui-snippet-demo (expand-file-name "examples/emacs-tui-snippet-demo.el"))
 
 ;; Keep ownership cleanup explicit even when an assertion fails.
 (defmacro emacs-tui-showcase-test--with-host (&rest body)
@@ -59,11 +63,108 @@
         (setq example (emacs-tui-gallery-launch))
         (should-not (emacs-tui-live-p gallery))
         (should (emacs-tui-live-p example))
+        ;; Catch accidental dispatch to the same application for different rows.
+        (should (eq (emacs-tui-current-view example)
+                    (alist-get (plist-get entry :id)
+                               '((board . todo) (catalog . search) (layout . controls)
+                                 (stream . jobs) (graph . nodes) (composer . prefix)
+                                 (reader . contents) (snippet . snippets)))))
         (should (= 1 (length emacs-tui--sessions)))
         (emacs-tui-close example)
         (should-not emacs-tui--sessions)
         (should (equal before timer-list))
         (should (equal "Origin:" (with-current-buffer source (buffer-string))))))))
+
+(ert-deftest emacs-tui-showcase-board-moves-batches-and-isolates-sessions ()
+  (emacs-tui-showcase-test--with-host
+    (let ((app (emacs-tui-board-demo)))
+      (emacs-tui-focus-view app 'done)
+      (emacs-tui-toggle-mark app)
+      (should-error (emacs-tui-act app 'advance) :type 'user-error)
+      (emacs-tui-focus-view app 'todo)
+      (emacs-tui-mark-all app)
+      (execute-kbd-macro ">")
+      (should (eq 'doing (emacs-tui-current-view app)))
+      (should (eq 'keyboard (plist-get (emacs-tui-current-item app) :id)))
+      (should-not (emacs-tui-current-item app 'todo))
+      (should-not (emacs-tui-marked-items app 'todo))
+      (should (eq 'prototype (plist-get (car (emacs-tui-marked-items app 'done)) :id)))
+      (execute-kbd-macro "<")
+      (should (eq 'todo (emacs-tui-current-view app)))
+      (should (eq 'keyboard (plist-get (emacs-tui-current-item app) :id)))
+      (should-error (emacs-tui-act app 'retreat) :type 'user-error)
+      (select-window (get-buffer-window source))
+      (let ((other (emacs-tui-board-demo)))
+        (should (= 3 (length (emacs-tui--view-items (emacs-tui--resolve-view other 'todo)))))
+        (should (= 1 (length (emacs-tui--view-items (emacs-tui--resolve-view app 'todo)))))
+        (should-not (emacs-tui-marked-items other 'done)))
+      (should (equal "Origin:" (with-current-buffer source (buffer-string)))))))
+
+(ert-deftest emacs-tui-showcase-reader-search-restores-tree-and-keeps-page ()
+  (emacs-tui-showcase-test--with-host
+    (let ((app (emacs-tui-reader-demo)))
+      (should (string-match-p "Welcome" (emacs-tui-showcase-test--text app 'page)))
+      (cl-letf (((symbol-function 'read-string) (lambda (&rest _) "Compass")))
+        (execute-kbd-macro "/"))
+      (emacs-tui-set-selection app 'contents 'compass)
+      ;; Filtering alone must not replace the document the user is reading.
+      (should (string-match-p "Welcome" (emacs-tui-showcase-test--text app 'page)))
+      (execute-kbd-macro (kbd "RET"))
+      (should (string-prefix-p "Compass" (emacs-tui-showcase-test--text app 'page)))
+      (cl-letf (((symbol-function 'read-string) (lambda (&rest _) "")))
+        (execute-kbd-macro "/"))
+      ;; Search had revealed a collapsed path; clearing restores collapsed chapters.
+      (should-error (emacs-tui-set-selection app 'contents 'compass) :type 'user-error)
+      (emacs-tui-tree-expand-all app 'contents)
+      (emacs-tui-set-selection app 'contents 'journal)
+      (emacs-tui-select app)
+      (emacs-tui-focus-view app 'page)
+      (should word-wrap)
+      (should-not truncate-lines)
+      (let ((text (buffer-string)))
+        (emacs-tui-toggle-maximize app)
+        (emacs-tui-set-layout app 'rows)
+        (emacs-tui-toggle-maximize app)
+        (should (equal text (buffer-string))))
+      (should (equal "Origin:" (with-current-buffer source (buffer-string)))))))
+
+(ert-deftest emacs-tui-showcase-snippet-restores-host-and-native-undo ()
+  (emacs-tui-showcase-test--with-host
+    (buffer-enable-undo)
+    (undo-boundary)
+    (let ((window (selected-window))
+          (kills kill-ring)
+          (app (emacs-tui-snippet-demo)))
+      (should (eq window (selected-window)))
+      (should (equal "Origin:" (with-current-buffer source (buffer-string))))
+      (emacs-tui-set-selection app 'snippets 'json)
+      (execute-kbd-macro (kbd "RET"))
+      (should-not (emacs-tui-live-p app))
+      (should (eq window (selected-window)))
+      (should (eq source (window-buffer window)))
+      (should (string-prefix-p "Origin:{\n" (buffer-string)))
+      (should (equal kills kill-ring))
+      (execute-kbd-macro (kbd "C-/"))
+      (should (equal "Origin:" (buffer-string)))
+      (let ((cancelled (emacs-tui-snippet-demo)))
+        (execute-kbd-macro "q")
+        (should-not (emacs-tui-live-p cancelled))
+        (should (equal "Origin:" (buffer-string)))))))
+
+(ert-deftest emacs-tui-showcase-snippet-rejects-read-only-and-tracks-host-edits ()
+  (emacs-tui-showcase-test--with-host
+    (setq buffer-read-only t)
+    (let ((app (emacs-tui-snippet-demo)))
+      (should-error (emacs-tui-select app) :type 'buffer-read-only)
+      (should (emacs-tui-live-p app))
+      (should (equal "Origin:" (with-current-buffer source (buffer-string))))
+      (with-current-buffer source
+        (setq buffer-read-only nil)
+        (save-excursion (goto-char (point-min)) (insert "Prefix:")))
+      (execute-kbd-macro (kbd "RET"))
+      (should-not (emacs-tui-live-p app))
+      (should (eq source (window-buffer (selected-window))))
+      (should (string-prefix-p "Prefix:Origin:- [ ] First task" (buffer-string))))))
 
 (ert-deftest emacs-tui-showcase-gallery-graph-commits-to-original-host ()
   (emacs-tui-showcase-test--with-host

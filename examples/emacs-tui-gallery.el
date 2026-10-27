@@ -3,6 +3,7 @@
 ;; Copyright (C) 2026 Willy Rempel
 ;; Author: Willy Rempel <https://github.com/vv111y>
 ;; Assisted-by: Codex:gpt-6-astra-wm
+;; Assisted-by: Codex:gpt-6.1-sol-wm
 ;; SPDX-License-Identifier: GPL-3.0-or-later
 
 ;;; Commentary:
@@ -19,7 +20,10 @@
   "Directory containing the gallery and its sibling examples.")
 
 (defconst emacs-tui-gallery--entries
-  '((:id catalog :label "Object catalog" :kind "Persistent"
+  '((:id board :label "Task board" :kind "Persistent"
+     :feature emacs-tui-board-demo :command emacs-tui-board-demo
+     :tour "Three independent task lanes. No search field or preview pane.\n\n1. > moves the selected task forward and follows it to the next lane.\n2. < moves it back. TAB switches lanes without changing tasks.\n3. C-c C-m marks several tasks; > or a moves the marked batch.\n4. Inspect the counts in each lane; completed tasks stay visible.\n5. Close and reopen: each board has its own fresh task state.\n\nSession memory only. No project files or Emacs buffers are changed.")
+    (:id catalog :label "Object catalog" :kind "Persistent"
      :feature emacs-tui-catalog-demo :command emacs-tui-catalog-demo
      :tour "Search, responsive tables, numeric sort, marks and batch actions.\n\n1. Type Note, then TAB to the table.\n2. C-c * marks all matching notes. Search Map instead.\n3. In the table, a -> Collect acts on the hidden marked notes.\n4. C-c C-u clears marks; RET inspects a map without collecting it.\n5. s chooses a sort column; C-u s sorts descending.\n\nCollection data stays in this session. Nothing is saved.")
     (:id layout :label "Layout playground" :kind "Persistent"
@@ -31,24 +35,15 @@
     (:id graph :label "Graph explorer (original)" :kind "Ephemeral"
      :feature emacs-tui-demo :command emacs-tui-demo
      :tour "Forward/backlinks, exploration history and explicit origin commitment.\n\n1. RET inspects a node; TAB visits preview, links and backlinks.\n2. Follow a link with RET; a offers Back and Forward.\n3. Mark nodes with C-c C-m, or mark all with C-c *.\n4. C-c C-c inserts demo links into the original buffer and closes.\n5. C-c C-q cancels without changing the original buffer.\n\nLaunch from a writable scratch buffer if testing commit. No XOB data is read.")
-    (:id dashboard :label "Live buffer/process dashboard" :kind "Persistent"
-     :feature emacs-tui-dashboard :command emacs-tui-dashboard
-     :tour "Live snapshots, tables, preview, actions and application timer cleanup.\n\n1. RET previews a buffer or process.\n2. s sorts a table; P pauses/resumes updates; g refreshes.\n3. The Actions pane chooses layouts without restarting updates.\n4. A process action can inspect its associated buffer.\n\nUses your live Emacs objects. Does not start or kill processes or edit buffers.")
-    (:id tree :label "Buffer tree" :kind "Persistent"
-     :feature emacs-tui-buffer-tree :command emacs-tui-buffer-tree
-     :tour "Hierarchical objects, expansion, hidden marks and context actions.\n\n1. SPC or right expands a mode group; left collapses it.\n2. C-c + expands all; C-c - collapses all.\n3. Mark children, collapse the group and use a for batch actions.\n4. RET previews; o explicitly displays a buffer; g refreshes.\n\nCopy names writes to the kill ring only when explicitly requested.")
     (:id composer :label "Text composer" :kind "Persistent"
      :feature emacs-tui-composer :command emacs-tui-composer
      :tour "Two native editable fields, multiline text and a live composition.\n\n1. Edit the prefix, then TAB to edit the body.\n2. RET inserts newlines; ordinary undo remains available.\n3. Watch the preview update.\n4. C-c C-c explicitly copies the composition to the kill ring.\n5. C-c C-q closes without saving the scratch fields.")
-    (:id panel :label "Borrowed-window buffer panel" :kind "Embedded"
-     :feature emacs-tui-buffer-panel :command emacs-tui-buffer-panel
-     :tour "An embedded panel in an application-owned window.\n\n1. Observe the original buffer and cursor before launch.\n2. RET displays a selected buffer elsewhere.\n3. q closes the panel and restores its host buffer and position.\n\nThe host window survives. No source text is modified.")
-    (:id filter :label "Search your buffers" :kind "Persistent"
-     :feature emacs-tui-filter-demo :command emacs-tui-filter-demo
-     :tour "Per-view local filtering composed with an input and sortable table.\n\n1. Type buffer-name or mode terms in the input.\n2. TAB to results; mark with C-c C-m and inspect with RET.\n3. Change the query, then clear it: hidden marks survive.\n4. C-c C-r refreshes snapshots while retaining the filter.\n\nReads your live buffers; preview is bounded and read-only.")
-    (:id async :label "Chunked buffer search" :kind "Ephemeral"
-     :feature emacs-tui-async-demo :command emacs-tui-async-demo
-     :tour "A practical cancellable provider over captured buffer excerpts.\n\n1. Search a name or text from a buffer's first 1024 characters.\n2. RET previews the captured excerpt.\n3. Change the query to cancel and supersede the request.\n4. C-c C-q closes without modifying source buffers.\n\nSnapshots are captured synchronously; search processes 16 per timer tick.\nFor a visible stream in a fresh Emacs, try Streaming job search instead."))
+    (:id reader :label "Field guide reader" :kind "Persistent"
+     :feature emacs-tui-reader-demo :command emacs-tui-reader-demo
+     :tour "A book, with a chapter tree and a wrapped reading pane. No buffer inventory.\n\n1. SPC expands Navigation; select Compass and press RET to read.\n2. / searches section titles and reveals ancestor paths.\n3. / with an empty query restores the previous expansion.\n4. TAB reaches the page: scroll, maximize and resize while reading.\n5. C-c + and C-c - expand/collapse all chapters.\n\nSelf-contained sample text. Nothing is edited or saved.")
+    (:id snippet :label "Embedded snippet picker" :kind "Embedded"
+     :feature emacs-tui-snippet-demo :command emacs-tui-snippet-demo
+     :tour "A single borrowed-window palette with explicit text insertion.\n\n1. Launch from a writable scratch buffer at the insertion point.\n2. The palette replaces that window's display; the host buffer survives.\n3. RET inserts the chosen literal snippet and restores the host.\n4. Undo normally in the host to reverse insertion.\n5. Launch again and q cancels with no edit.\n\nNo clipboard or file writes. A read-only host rejects insertion."))
   "Demo metadata and short interactive tours.")
 
 (defun emacs-tui-gallery--describe (app item)
@@ -75,7 +70,7 @@
 
 ;;;###autoload
 (defun emacs-tui-gallery ()
-  "Browse all examples, read their tours, and explicitly launch one.
+  "Browse distinct showcase applications and explicitly launch one.
 Use `emacs-tui-select' to describe an example and `emacs-tui-gallery-launch'
 to launch it after closing the gallery.  Run this command again to return.
 Use `emacs-tui-close' to exit without launching."

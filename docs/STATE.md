@@ -1,30 +1,42 @@
 # Project state
 
-Updated 2026-10-24 (America/Toronto).
+Updated 2026-10-26 (America/Toronto).
 
 ## Active implementation
 
-Demo-gallery candidate adds three self-contained examples: searchable object
-catalog, deterministic streaming job search, and a layout/native-editor
-playground. The gallery exposes all ten examples with tours; `make demo` remains
-compatible and `make graph-demo` names the original graph explorer explicitly.
-`docs/DEMOS.md` maps implemented capabilities to demos, controls and effects.
-Examples remain checkout-only; the immutable beta1 ref is not moved.
+The owner reported that several gallery entries felt like duplicates. The
+redesign replaces five overlapping live-buffer browsers/searches with three
+self-contained applications: a three-lane task board with batch moves, a chapter
+reader with a wrapped page and tree path search, and a single borrowed-window
+snippet picker with explicit insertion and native undo. The gallery now has
+eight entries. The older buffer examples remain available through their direct
+commands and Make targets as development references; the original graph demo
+and fixed beta1 ref are preserved. No runtime API changes are needed.
 
-Local Emacs 29.3/Linux passed 316 ERT, warning-free byte compilation, checkdoc
-and the new actual-terminal showcase: gallery launch, filtered hidden-mark
-collection, native input, layout/maximize, 120->90->140-column resize, deliberate
-stream failure/recovery and final session/frame cleanup. Six new ERT journeys
-also launch every gallery entry and verify original-buffer graph commitment,
-independent collections, preserved undo/marks and timer cancellation. The first
-local PTY run failed because this extracted runtime's unavailable native compiler
-opened *Warnings* inside a demo pane, correctly causing ownership disposal.
-Rerunning with native JIT disabled in the local runtime wrapper passed; the
-fixture does not hide warnings or weaken ownership checks. Real terminal screen
-inspection and independent review caught clipped gallery tour lines; native
-word wrapping (including the partial-width-window override) now keeps tours
-readable at 80 columns, with independent screen inspection and a reflow regression. Fresh local checks and the terminal tour still pass. Independent
-review and the full exact-head CI matrix remain integration gates for this candidate.
+Local Emacs 29.3/Linux passed 320 ERT, strict byte compilation and checkdoc.
+Four new behavior tests cover batch moves and session isolation, reader search
+versus page selection and restored expansion, snippet insertion/cancel/undo,
+and read-only rejection followed by tracked host edits. Every gallery launch now asserts its distinct initial
+view, so an accidental common dispatcher is caught. The actual-terminal
+showcase launches the new applications from the gallery, moves a marked batch,
+searches/reads a chapter and inserts/undoes a snippet before its existing
+catalog/layout/resize/streaming journey. It passed locally with native JIT off
+for the extracted runtime's unavailable compiler, as before. Real PTY screen
+captures at 80 and 120 columns were inspected; board labels and reader headers
+were shortened for narrow panes. Independent review tightened snippet validation
+to send the actual native undo key after insertion without manufacturing a
+post-insertion undo boundary. Physical emulator/font and graphical display
+QA remain human-use gaps. Independent review and exact-head hosted matrix
+checks remain integration gates for this candidate.
+
+PR #43 merged at `625b1ebfdb5356d79cd613a7842fb5fcb9c121c0` after independent
+review and all eight jobs in
+[40121665128](https://github.com/vv111y/emacs-tui/actions/runs/40121665128).
+It added the catalog, streaming and layout examples plus the initial gallery.
+The final head passed 316 ERT and actual terminal scenarios, including
+Linux/macOS 31.1 child frames. The owner feedback now supersedes the original
+ten-entry gallery presentation; passing mechanics alone did not establish
+sufficient demonstration variety.
 
 PR #42 merged at `fd976f725c2bbb111d9fe6700bcabccfab1f3774` after independent
 review and all eight jobs in run 40105488355. The public fixed branch

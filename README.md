@@ -39,7 +39,7 @@ emulators and graphical display variants still need broader community use.
 
 ## Demo gallery
 
-Browse ten runnable examples with guided tours:
+Browse eight distinct applications and capability showcases with guided tours:
 
 ```sh
 git clone https://github.com/vv111y/emacs-tui.git
@@ -50,8 +50,9 @@ make gallery
 In the gallery, `RET` shows a tour and `C-c C-o` launches the selected demo.
 Close it with `C-c C-q`, then `M-x emacs-tui-gallery` to choose another.
 See [the demo guide](docs/DEMOS.md) for individual commands, feature coverage,
-and step-by-step tours. The catalog, streaming search and layout playground
-include their own sample data and work in a fresh Emacs.
+and step-by-step tours. Try the three-lane task board, chapter reader, embedded
+snippet picker, object catalog, text composer, streaming search, original graph
+explorer, or layout playground. Each works in a fresh Emacs.
 
 These new showcases are on `main`; the fixed `release/0.1.0-beta1` branch is
 unchanged. The straight.el runtime recipe excludes examples. Use this checkout
