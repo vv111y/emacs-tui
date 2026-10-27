@@ -73,8 +73,18 @@
                (emacs-tui--popup-anchor app) (frame-pixel-width child) (frame-pixel-height child)
                (list 0 0 (frame-inner-width emacs-tui-popup-smoke--parent)
                      (frame-inner-height emacs-tui-popup-smoke--parent))
-               emacs-tui-popup-demo--position '(1 . 1))))
-        (cl-assert (equal actual (cl-subseq expected 0 2)))
+               emacs-tui-popup-demo--position
+               (cons (frame-char-width emacs-tui-popup-smoke--parent)
+                     (frame-char-height emacs-tui-popup-smoke--parent)))))
+        (cl-assert (equal (frame-position child) (cons (car expected) (cadr expected))) nil
+                   "Native popup position=%S expected=%S" (frame-position child) expected)
+        (cl-assert (equal actual (cl-subseq expected 0 2)) nil
+                   "Popup %S actual=%S expected=%S anchor=%S child=%S parent-cell=%S"
+                   emacs-tui-popup-demo--position actual expected
+                   (emacs-tui--popup-anchor app)
+                   (list (frame-width child) (frame-height child))
+                   (cons (frame-char-width emacs-tui-popup-smoke--parent)
+                         (frame-char-height emacs-tui-popup-smoke--parent)))
         (push actual positions))
       (cl-assert (equal selected (emacs-tui-current-item app)))
       (cl-assert (equal text (buffer-string)))

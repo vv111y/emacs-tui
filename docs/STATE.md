@@ -40,8 +40,15 @@ same-child filtering, explicit acceptance and native undo, Unicode, automatic
 resize, modal/popup coexistence, read-only acceptance rejection and source/frame
 cleanup. Older runtimes exercise the honest unsupported path. Source validity,
 initialization failure, callback focus choices and terminal-identity cleanup have
-ERT coverage. Native 31.1 results, exact-head independent review and passing
-hosted CI remain integration gates; graphical window-manager/font variants and
+ERT coverage. Initial head cb20ad1/run 40445584819 passed Linux/macOS31's 331 ERT and prior
+PTYs, then failed the first west move because native coordinates and reported frame
+parameters diverged. Upstream frame.c shows the direct position setter updates
+TTY internal coordinates only; the parameter setter also stores left/top and
+invalidates root composition. Popup movement now uses that native parameter
+path, and the fixture checks both internal frame-position and reported values
+with detailed diagnostics. The failed head is not counted as passing.
+Native 31.1 results, exact-head independent review and passing hosted CI remain
+integration gates; graphical window-manager/font variants and
 real abrupt popup-client hangup remain broader validation gaps. Package build
 needs hosted pinned dependencies unavailable in this local worktree.
 

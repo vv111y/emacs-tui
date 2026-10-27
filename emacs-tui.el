@@ -1248,9 +1248,12 @@ partially hidden ranges use the glyph at the source window's point instead."
                  (frame-pixel-width child) (frame-pixel-height child)
                  (list 0 0 pw ph) (emacs-tui--popup-position popup)
                  (cons (frame-char-width parent) (frame-char-height parent)))))
-      (unless (and (equal (car rect) (frame-parameter child 'left))
+      (unless (and (equal (cons (car rect) (cadr rect)) (frame-position child))
+                   (equal (car rect) (frame-parameter child 'left))
                    (equal (cadr rect) (frame-parameter child 'top)))
-        (set-frame-position child (car rect) (cadr rect))))))
+        ;; The parameter setter also invalidates native TTY composition and
+        ;; keeps reported parameters in sync with the internal coordinates.
+        (modify-frame-parameters child `((left . ,(car rect)) (top . ,(cadr rect))))))))
 
 (defun emacs-tui--make-popup-surface (session)
   "Create SESSION's single popup child frame without touching the host layout."
@@ -1542,7 +1545,8 @@ A foreign window inside the subtree makes it unsuitable for reflow."
                                     (emacs-tui--workspace-windows session)))
           (when (emacs-tui--workspace-popup session)
             (list (window-edges (emacs-tui--workspace-origin-window session))
-                  (emacs-tui--popup-anchor session)))
+                  (emacs-tui--popup-anchor session)
+                  (frame-position (emacs-tui--workspace-frame session))))
           (when-let* ((child (emacs-tui--workspace-frame session)))
             (let ((parent (emacs-tui--workspace-origin-frame session)))
               (and (frame-live-p child)
