@@ -5,6 +5,19 @@ initial beta3 preparation are preserved byte-for-byte in
 [STATE-HISTORY.md](STATE-HISTORY.md). Their pending checks describe their own
 dates, not current blockers; later intermediate edits remain in Git history.
 
+## Native multi-popup gallery-launch candidate — 2026-10-27
+
+The shared native journey now selects the multi-popup entry, reads its tour
+through RET and launches with C-c C-o before testing all three real sibling
+frames. It asserts that the chooser is disposed, then retains every existing
+source/keyboard/lifecycle assertion. Both GTK and Linux/macOS terminal fixtures
+use this path. Unsupported displays retain their batch chooser-preservation
+checks. A real-chooser failure regression verifies that a failed tour command
+releases the chooser before any source is launched. Local Emacs29.3 passes415
+ERT, strict compile/checkdoc and strict
+shared/GUI/TTY fixture compilation. Exact-head review and positive hosted
+native checks gate integration.
+
 ## Integrated multi-popup demo — 2026-10-27
 
 PR #75 merged at47070b0b9ea1c975ab9aef28dab6cd1e38ead73b after independent
@@ -38,7 +51,7 @@ unsupported branch does not establish native composition. Physical display,
 Ghostty/iTerm2 and broader input-method coverage remain open. Fixed beta1/2/3
 refs are unchanged. Current main has twelve gallery entries; fixed beta3 has ten.
 
-Next: add native gallery-launch coverage for this new entry, then prioritize
+Next: finish the native gallery-launch candidate above, then prioritize
 concrete beta feedback and measured application costs. Keep one independently
 owned session per floating panel; no speculative group/window-manager API.
 

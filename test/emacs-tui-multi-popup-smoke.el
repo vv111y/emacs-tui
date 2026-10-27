@@ -15,6 +15,12 @@
                                                     (bound-and-true-p byte-compile-current-file)
                                                     buffer-file-name))))
 
+(require 'emacs-tui-gallery
+         (expand-file-name "../examples/emacs-tui-gallery.el"
+                           (file-name-directory (or load-file-name
+                                                    (bound-and-true-p byte-compile-current-file)
+                                                    buffer-file-name))))
+
 (defun emacs-tui-multi-popup-smoke--frames (parent)
   "Assert all three native panels belong to PARENT and return their frames."
   (let (frames)
@@ -32,10 +38,17 @@
   "Toggle and compose three real child frames without replacing their source."
   (cl-assert (not noninteractive))
   (save-window-excursion
-    (let ((before (frame-list)) (parent (selected-frame)) source)
+    (let ((before (frame-list)) (parent (selected-frame)) source gallery)
       (unwind-protect
           (progn
-            (emacs-tui-multi-popup-demo)
+            (setq gallery (emacs-tui-gallery))
+              (emacs-tui-set-selection gallery 'demos 'multi-popup)
+              (execute-kbd-macro (kbd "RET"))
+              (cl-assert (string-match-p
+                          "C-c 0"
+                          (emacs-tui--view-text (emacs-tui--resolve-view gallery 'tour))))
+              (execute-kbd-macro (kbd "C-c C-o"))
+              (cl-assert (not (emacs-tui-live-p gallery)))
             (setq source (current-buffer))
             (let ((host (selected-window)) (text (buffer-string)) (position (point))
                   (windows (window-state-get (frame-root-window parent))))
@@ -104,6 +117,7 @@
               (emacs-tui-multi-popup-demo-mode 1)
               (kill-buffer source)
               (cl-assert (null (cl-set-difference (frame-list) before)))))
+        (when gallery (emacs-tui-close gallery))
         (when (buffer-live-p source) (kill-buffer source))))))
 
 (provide 'emacs-tui-multi-popup-smoke)
