@@ -20,9 +20,25 @@
 (defvar emacs-tui-gui--point nil)
 (defvar emacs-tui-gui--phase 0)
 (defvar emacs-tui-gui--frames nil)
+(defvar emacs-tui-gui--close-trace nil)
+
+(defun emacs-tui-gui--trace-close (&optional session)
+  "Record unexpected disposal of SESSION before its resources disappear."
+  (when (and (eq session emacs-tui-gui--app)
+             (memq emacs-tui-gui--phase '(1 2))
+             (emacs-tui--workspace-active session)
+             (not emacs-tui-gui--close-trace))
+    (setq emacs-tui-gui--close-trace
+          (concat (format "Close context: selected=%S origin=%S command=%S\n"
+                          (selected-window) (emacs-tui--workspace-origin-window session)
+                          this-command)
+                  (with-temp-buffer
+                    (let ((standard-output (current-buffer))) (backtrace))
+                    (buffer-string))))))
 
 (defun emacs-tui-gui--finish (error)
   "Report ERROR or success, disposing test-owned resources."
+  (advice-remove 'emacs-tui-close #'emacs-tui-gui--trace-close)
   (when error
     (setq error (list :error error :phase emacs-tui-gui--phase
                       :current-buffer (buffer-name)
@@ -36,7 +52,9 @@
               (format "PASS Emacs %s; graphical %S; child input; inspector scroll/action; eight moves; resize; source preservation; cleanup\n"
                       emacs-version window-system)))
     (when (and error (get-buffer "*Messages*"))
-      (insert (with-current-buffer "*Messages*" (buffer-string)))))
+      (insert (with-current-buffer "*Messages*" (buffer-string))))
+    (when (and error emacs-tui-gui--close-trace)
+      (insert emacs-tui-gui--close-trace)))
   (kill-emacs (if error 1 0)))
 
 (defun emacs-tui-gui--step ()
@@ -71,6 +89,7 @@
            (switch-to-buffer emacs-tui-gui--source)
            (goto-char emacs-tui-gui--point)
            (setq emacs-tui-gui--app (emacs-tui-inspector-demo-at-point))
+            (advice-add 'emacs-tui-close :before #'emacs-tui-gui--trace-close)
            (setq emacs-tui-gui--phase 1)
            (run-at-time .3 nil #'emacs-tui-gui--step))
           ((or 1 2 3)
