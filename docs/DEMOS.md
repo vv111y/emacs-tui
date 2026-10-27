@@ -8,8 +8,7 @@ its pane; TAB to it and use ordinary Emacs scrolling, or C-c C-f to maximize.
 
 Every example also has a direct Make target, which starts a clean terminal
 Emacs. No extra packages, sample files, network services or XOB setup are needed.
-Examples using live buffers/processes are richer when loaded into your normal
-Emacs; the three new sample-data showcases work immediately under Emacs -Q.
+The gallery uses self-contained sample data and works immediately under Emacs -Q.
 
 These examples live in the checkout's examples directory, outside the installed
 runtime package. The fixed beta1 branch remains unchanged; use current main to
@@ -19,17 +18,33 @@ try this gallery. Do not mix new examples with an older installed toolkit.
 
 | Make target | What to explore | Explicit effects |
 | --- | --- | --- |
-| gallery | Ten examples, tours, launch and cleanup | Launches your choice |
+| gallery | Eight distinct showcases, tours, launch and cleanup | Launches your choice |
+| board-demo | Three task lanes, independent list state, batch moves and explicit application actions | Changes tasks in session memory |
+| reader-demo | Chapter tree, ancestor search paths, formatted pages, wrapping and reading position | Reads self-contained sample text |
+| snippet-demo | One borrowed-window palette, tracked origin point, explicit insertion and native undo | RET inserts a literal snippet in the launching buffer |
 | catalog-demo | Search input, numeric sort, fill-width table, formatted details, hidden marks, batch actions | Collect/clear in session memory |
-| layout-demo | Columns/rows/grid, maximize, hidden panels, tree, Unicode, editable text, live preview | Scratch edits only |
+| composer | Two native editable fields, multiline composition and live preview | C-c C-c copies to kill ring |
 | stream-demo | Visible batches, debounce, cancellation, partial failure and recovery | Synthetic data only |
 | graph-demo (also demo) | Original graph explorer, links/backlinks, Back/Forward, multi-selection, preview/commit split | C-c C-c inserts demo links into the original buffer |
-| dashboard | Live buffer/process tables, periodic refresh, pause/resume, context actions, layouts | Preview and refresh only |
-| tree | Buffer hierarchy, expand/collapse all, marks on hidden children, context actions | Display buffer or copy names when requested |
-| composer | Two native editable fields, multiline composition and live preview | C-c C-c copies to kill ring |
-| panel | Borrowed-window embedding and host restoration | RET displays another buffer elsewhere |
-| filter-demo | Independent local filtering over live buffer metadata | Refresh/preview only |
-| async-demo | Cancellable chunked search over captured buffer excerpts | Reads snapshots only |
+| layout-demo | Columns/rows/grid, maximize, hidden panels, tree, Unicode, editable text, live preview | Scratch edits only |
+
+The board has three working lists and no search or preview. The reader is a
+chapter outline beside a document. The snippet picker occupies a single borrowed
+window. The composer uses stacked editable fields, the catalog is a table
+application, and the graph explorer follows relationships. The streaming and
+layout entries are focused capability laboratories. Their different initial
+screens and actions are exercised through the actual gallery launcher.
+
+The earlier buffer-oriented examples remain runnable as development references,
+but are no longer repeated in the gallery:
+
+| Make target | Development example |
+| --- | --- |
+| dashboard | Live buffer/process tables, refresh timer and process-buffer actions |
+| tree | Buffer hierarchy, hidden marks and explicit buffer display |
+| panel | Minimal borrowed-window buffer browser |
+| filter-demo | Local filtering over live buffer metadata |
+| async-demo | Cancellable chunked search over captured buffer excerpts |
 
 To use the gallery in an existing Emacs, load matching source files from the
 checkout (start a fresh Emacs if another emacs-tui version is already loaded):
@@ -41,6 +56,34 @@ checkout (start a fresh Emacs if another emacs-tui version is already loaded):
 ```
 
 ## Five-minute tours
+
+### Task board
+
+Run `make board-demo`. Three lanes start with six sample tasks. > moves the
+selected task to the next lane and follows it; < moves it back. TAB switches
+lanes without changing task data. C-c C-m marks a task; C-c * marks all tasks
+in the focused lane. > moves that batch. The lane counts update immediately.
+The a menu exposes the same actions and disables moves beyond the end lanes.
+Close and reopen to get a fresh board. No text is inserted into other buffers.
+
+### Field guide reader
+
+Run `make reader-demo`. SPC expands Navigation; choose Compass and RET reads
+that section. TAB focuses the wrapped page. Scroll normally or use C-c C-f to
+maximize it. The page remains readable independently of the contents selection.
+In the contents, / searches section titles: Compass reveals its ancestor path.
+Repeat / with an empty query to restore the earlier expansion. C-c + and C-c -
+expand/collapse all. This is a book supplied by the application, not a live
+buffer browser. Its checklist page is ordinary text, not a checkbox widget.
+
+### Embedded snippet picker
+
+Run `make snippet-demo`, or load it in your Emacs and launch from a writable
+scratch buffer. The list borrows the selected window. RET inserts the chosen
+literal snippet at the tracked original point, then restores that window's
+original buffer. Normal undo reverses insertion. Launch again and q cancels
+without editing. A read-only host rejects insertion and leaves the picker open.
+The picker never evaluates snippet text, saves files or writes to the kill ring.
 
 ### Object catalog
 
@@ -123,10 +166,10 @@ tables, trees and editable inputs; selection/focus, marks, queries, numeric sort
 actions and application keymaps; layouts, maximize and resize; formatted text,
 Unicode and native undo; cancellable streaming providers and application timers.
 
-The layout, catalog and streaming showcases request automatic presentation:
-native child frames where supported, ordinary windows otherwise. Existing
-persistent examples generally choose ordinary windows. Embedded panels always
-borrow the selected host window. Native terminal child frames depend on the
+The board, reader, layout, catalog and streaming showcases request automatic
+presentation: native child frames where supported, ordinary windows otherwise.
+The composer and development buffer examples choose ordinary windows. Embedded
+panels always borrow the selected host window. Native terminal child frames depend on the
 tty-child-frames feature, not just the version number.
 
 Multiple simultaneous sessions are supported and covered by lifecycle tests;
@@ -136,9 +179,11 @@ application policies, rather than claiming the toolkit has built-in databases,
 network clients, lazy trees, inline text-region widgets or a full form system.
 See README.md and ROADMAP.md for the implemented API and future goals.
 
-Automated checks exercise every gallery entry, explicit origin commitment,
+Automated checks exercise every gallery entry and its distinct initial view,
+explicit origin commitment,
 session-local collection state, hidden-mark actions, native input/undo,
 streaming failure/recovery and timer disposal. The terminal showcase also
-launches from the gallery, edits the catalog and layout playground, resizes
+launches the board, reader and snippet picker, moves a batch, searches a chapter,
+inserts and undoes a snippet, edits the catalog and layout playground, resizes
 120→90→140 columns, and recovers the streaming provider. Physical emulator,
 font, multiplexer and graphical display coverage still needs human use.
