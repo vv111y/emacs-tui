@@ -57,7 +57,22 @@
                       (goto-char (point-min))
                       (string-width (buffer-substring
                                      (line-beginning-position) (line-end-position)))))))
-            (cl-assert (= line-width (window-body-width window)))
+            (cl-assert (= line-width (window-max-chars-per-line window)))
+            ;; Check a numeric payload at the right edge in actual redisplay,
+            ;; rather than only measuring the source string's allocated width.
+            (with-current-buffer (emacs-tui--view-buffer view)
+              (save-excursion
+                (goto-char (point-min))
+                (forward-line 1)
+                (let* ((end (line-end-position))
+                       (last (1- end))
+                       (coordinates (pos-visible-in-window-p last window t)))
+                  (cl-assert (= (char-before end) ?4))
+                  (cl-assert (= 0 (window-hscroll window)))
+                  (cl-assert coordinates)
+                  (cl-assert (< (car coordinates)
+                                (* (window-max-chars-per-line window)
+                                   (frame-char-width (window-frame window))))))))
             (when (= phase 2)
               (cl-assert (> line-width emacs-tui-test--table-small-line-width)))
             (when (= phase 1)
@@ -81,7 +96,7 @@
             (cl-assert (equal (with-current-buffer emacs-tui-test--table-host
                                 (buffer-string)) "unchanged"))
             (with-temp-file (getenv "EMACS_TUI_SMOKE_REPORT")
-              (insert (format "PASS Emacs %s; real TTY; backend=%s; lifecycle=table; actions=2; resize=120x40->90x30->140x45\n"
+              (insert (format "PASS Emacs %s; real TTY; backend=%s; lifecycle=table; rightmost numeric payload visible; actions=2; resize=120x40->90x30->140x45\n"
                               emacs-version backend)))
             (kill-emacs 0))))
     ((error quit) (emacs-tui-test--table-failure err))))

@@ -726,7 +726,9 @@ Return (CONTENT POSITION ROW-RANGES).  Projection errors leave display intact."
            (columns (emacs-tui--table-resolve-columns
                      (emacs-tui--view-columns view)
                      (when (window-live-p window)
-                       (- (window-body-width window) mark-width))))
+                       ;; Account for native continuation/truncation indicator
+                       ;; space and font width.
+                       (- (window-max-chars-per-line window) mark-width))))
           (position 1) (selected-position 1) chunks ranges)
       (when columns
         (let ((header

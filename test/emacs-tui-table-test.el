@@ -3,6 +3,7 @@
 ;; Copyright (C) 2026 Willy Rempel
 ;; Author: Willy Rempel <https://github.com/vv111y>
 ;; Assisted-by: Codex:GPT-6
+;; Assisted-by: Codex:gpt-6.1-sol-wm
 ;; SPDX-License-Identifier: GPL-3.0-or-later
 
 ;;; Commentary:
@@ -141,29 +142,37 @@
     (should (eq fixed (cadr wide)))
     (should (eq fixed-only (emacs-tui--table-resolve-columns fixed-only 20)))))
 
-(ert-deftest emacs-tui-table-fill-column-renders-to-live-window-width ()
-  (save-window-excursion
-    (delete-other-windows)
-    (let (session)
-      (unwind-protect
-          (progn
-            (setq session
-                  (emacs-tui-mount
-                   :views
-                   (list (emacs-tui-view
-                          :id 'rows :items emacs-tui-table-test--rows :multi-select t
-                          :columns
-                          (list (emacs-tui-column :id 'name :value :label :width 'fill)
-                                (emacs-tui-column :id 'size :value :size :width 6))))))
-            (let* ((view (car (emacs-tui--workspace-views session)))
-                   (window (emacs-tui--view-window view)))
-              (with-current-buffer (emacs-tui--view-buffer view)
-                (goto-char (point-min))
-                (should (= (window-body-width window)
-                           (string-width (buffer-substring
-                                          (line-beginning-position)
-                                          (line-end-position))))))))
-        (when session (emacs-tui-close session))))))
+(ert-deftest emacs-tui-table-fill-column-preserves-rightmost-payload-in-live-window ()
+  (dolist (marked '(nil t))
+    (save-window-excursion
+      (delete-other-windows)
+      (let (session)
+        (unwind-protect
+            (progn
+              (setq session
+                    (emacs-tui-mount
+                     :views
+                     (list (emacs-tui-view
+                            :id 'rows :items emacs-tui-table-test--rows :multi-select marked
+                            :columns
+                            (list (emacs-tui-column :id 'name :value :label :width 'fill)
+                                  (emacs-tui-column :id 'size :value :size :width 6))))))
+              (let* ((view (car (emacs-tui--workspace-views session)))
+                     (window (emacs-tui--view-window view)))
+                (with-current-buffer (emacs-tui--view-buffer view)
+                  (goto-char (point-min))
+                  (while (not (eobp))
+                    (should (<= (string-width (buffer-substring
+                                               (line-beginning-position)
+                                               (line-end-position)))
+                                (window-max-chars-per-line window)))
+                    (forward-line 1))
+                  (goto-char (point-min))
+                  (forward-line 1)
+                  (should (string-match-p "10 *$" (buffer-substring
+                                                  (line-beginning-position)
+                                                  (line-end-position)))))))
+          (when session (emacs-tui-close session)))))))
 
 (ert-deftest emacs-tui-table-comparison-failure-keeps-previous-order ()
   (emacs-tui-table-test--session ()

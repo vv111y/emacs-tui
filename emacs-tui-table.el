@@ -3,6 +3,7 @@
 ;; Copyright (C) 2026 Willy Rempel
 ;; Author: Willy Rempel <https://github.com/vv111y>
 ;; Assisted-by: Codex:GPT-6
+;; Assisted-by: Codex:gpt-6.1-sol-wm
 ;; SPDX-License-Identifier: GPL-3.0-or-later
 
 ;;; Commentary:
@@ -18,8 +19,8 @@
 (cl-defun emacs-tui-column (&key id title (width 16) value (align 'left) lessp)
   "Describe a table column with unique ID and optional TITLE.
 WIDTH is a positive number of display columns or `fill'.  One fill column per
-table uses the horizontal space left after fixed columns and separators, with a
-minimum width of one.  ALIGN is `left' or `right'.
+table uses the display space left after fixed columns, separators and native
+line-end indicators, with a minimum width of one.  ALIGN is `left' or `right'.
 VALUE is a plist keyword or a pure one-argument item projection function.
 LESSP optionally compares two projected values.  The default orders numbers
 numerically before other values, then compares displayed strings.  Line breaks
