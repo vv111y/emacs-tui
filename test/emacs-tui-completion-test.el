@@ -169,6 +169,59 @@
     (should-error (emacs-tui-completion--items context projection))
     (should (equal '("alpha" "alpine") raw))))
 
+(ert-deftest emacs-tui-completion-published-popup-releases-raw-snapshots ()
+  (dolist (sorter (list nil #'reverse))
+    (emacs-tui-completion-test--source
+      (let* ((emacs-tui-completion-limit 1)
+             (completion-extra-properties (list :display-sort-function sorter))
+             (snapshots (make-hash-table :test #'eq :weakness 'key))
+             (project (symbol-function 'emacs-tui-completion--projection)))
+        (insert "a")
+        (completion-in-region 1 (point) '("alpha" "alpine" "azure"))
+        ;; As in Emacs's weak-table tests, use a joined thread so conservative
+        ;; stack scanning cannot retain a dead projection from the test itself.
+        (should
+         (thread-join
+          (make-thread
+           (lambda ()
+             (with-current-buffer source
+               (let ((completion-styles '(basic))
+                     (completion-category-defaults nil)
+                     (completion-category-overrides nil)
+                     (emacs-tui-completion-limit 1))
+                 (cl-letf (((symbol-function 'emacs-tui-completion--projection)
+                            (lambda (context)
+                              (let ((projection (funcall project context)))
+                                ;; Undisplayed with either sorter.
+                                (puthash (nth 1 (plist-get projection :candidates))
+                                         t snapshots)
+                                projection))))
+                   (emacs-tui-completion--refresh emacs-tui-completion--context))))))))
+        (garbage-collect)
+        (should (= 0 (hash-table-count snapshots)))
+        (should (emacs-tui-live-p (emacs-tui-completion--session)))
+        (should (= 1 (length (emacs-tui-completion-test--items))))
+        (emacs-tui-completion-accept)
+        (should (equal (if sorter "azure" "alpha") (buffer-string)))
+        (should-not emacs-tui-completion--context)))))
+
+(ert-deftest emacs-tui-completion-retains-snapshot-through-decoration ()
+  (emacs-tui-completion-test--source
+    (let* ((word (copy-sequence "alpha"))
+           (completion-extra-properties
+            (list :annotation-function
+                  (lambda (raw)
+                    ;; Mutating both the provider's storage and decoration
+                    ;; argument must not alter the raw validation snapshot.
+                    (aset word 0 ?z)
+                    (aset raw 0 ?z)
+                    ""))))
+      (insert "a")
+      (should-error (completion-in-region 1 (point) (list word)))
+      (should (equal "a" (buffer-string)))
+      (should-not emacs-tui-completion--context)
+      (should-not emacs-tui-completion--active))))
+
 (ert-deftest emacs-tui-completion-refresh-reuses-popup-and-preserves-raw-value ()
   (emacs-tui-completion-test--source
     (let ((completion-extra-properties

@@ -209,7 +209,13 @@ Honor completion styles, predicates, base size and the suffix boundary."
                    (equal stamp (emacs-tui-completion--stamp)))
         (emacs-tui-completion--release context)
         (user-error "Completion context changed during display"))
-      (setf (emacs-tui--completion-projection context) projection
+      ;; Acceptance computes fresh candidates and compares only these bounds.
+      ;; Keep the raw snapshot isolated through every decoration/display
+      ;; callback, but do not retain all matches between source commands.
+      (setf (emacs-tui--completion-projection context)
+            (list :begin (plist-get projection :begin)
+                  :end (plist-get projection :end)
+                  :metadata (plist-get projection :metadata))
             (emacs-tui--completion-stamp context) stamp)
       (setq emacs-tui-completion--active t)
       (add-hook 'post-command-hook #'emacs-tui-completion--post-command nil t)

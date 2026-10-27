@@ -1,5 +1,15 @@
 # Reproducing latency measurements
 
+The completion lifetime comparison workflow runs baseline and candidate with
+byte-identical fixtures on each runner. It covers 100/10,000-row completion
+filtering, identity/absent sorters in separate Linux/macOS jobs, and source plus
+fresh bytecode. Each mode runs baseline then candidate; results are sequential,
+not randomized. Normal GC settings and inclusive stage instrumentation are
+unchanged. Raw artifacts include all warmups, allocation/GC counters, command
+types, p50/p95/p99 and source/host provenance. Releasing an unused candidate
+snapshot reduces its lifetime, not the number of candidates initially computed
+or copied; a latency claim requires the actual paired reports.
+
 [Instrumented completion stage profiles](../bench/results/2026-10-27-completion-stages/README.md)
 retain all 15,120 samples across identity/absent sorters, source/bytecode and
 Linux/macOS 31.1. They locate substantial restoration cost in projection/native
