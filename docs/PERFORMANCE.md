@@ -192,7 +192,8 @@ paint time. The normal marker/identity/visible-count checks still apply.
 
 The completion fixture uses real `completion-at-point` dispatch, `basic` style,
 a synchronous table backed by a finite string list, Japanese/combining text,
-and no artificial wait. Setup and the initial CAPF invocation occur outside
+and no artificial wait. The disposable source has undo recording disabled;
+these timings exclude undo-history allocation. Setup and the initial CAPF invocation occur outside
 samples. The table handles real metadata/boundary/completion requests. The
 200-row display cap does **not** bound matching: every request can scan all
 source rows. Above 2,000 rows, both filtered and unfiltered displays can contain
@@ -228,3 +229,22 @@ the equal-count display-cap boundary); its p99 is a protocol diagnostic, not a
 credible tail-latency estimate. Linux/macOS 31.1 CI executes both load modes
 and retains raw JSON artifacts for 30 days. No timing threshold is enforced,
 and a passing smoke alone does not establish a performance baseline.
+
+## Collecting full native profiles in CI
+
+The separate **Native popup profile** workflow runs on benchmark-code pull
+requests and can also be launched manually through GitHub Actions. It measures
+100, 1,000 and 10,000 source rows with 10 warmups and 200 measured commands per
+case on Linux/macOS Emacs 31.1. Source and fresh-bytecode modes run sequentially
+on the same runner; each artifact contains both raw reports and their complete
+source/runtime provenance. Artifacts expire after 90 days, so retain selected
+published profiles under `bench/results` together with the workflow run and
+artifact identities. Merely adding this workflow does not publish numbers.
+
+It enforces correctness/protocol completion and bounded process lifetime, not
+latency thresholds. Hosted runners are shared infrastructure with uncontrolled
+scheduling and CPU frequency. Cross-platform and source/bytecode differences
+are observations on these runners, not universal speed ratios. For optimization
+claims, run baseline and candidate on the same otherwise comparable runner and
+retain both inputs and every sample. Package/runtime compatibility CI remains
+independent and required.

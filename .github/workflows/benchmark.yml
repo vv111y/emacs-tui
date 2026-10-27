@@ -1,0 +1,42 @@
+name: Native popup profile
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - 'bench/**'
+      - '.github/workflows/benchmark.yml'
+permissions:
+  contents: read
+concurrency:
+  group: native-profile-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  profile:
+    name: profile (${{ matrix.os }}, 31.1)
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - uses: purcell/setup-emacs@34c6ded44899fd1bf74d2889558befd1750e61a7
+        with:
+          version: '31.1'
+      - name: Measure native source and bytecode on the same runner
+        timeout-minutes: 10
+        run: |
+          python3 bench/run.py --presentation popup --timeout 270 --sizes 100 1000 10000 --samples 200 --warmup 10 --label 'Native popup profile: source' --output .cache/profile-source.json
+          python3 bench/run.py --presentation popup --load-mode bytecode --timeout 270 --sizes 100 1000 10000 --samples 200 --warmup 10 --label 'Native popup profile: bytecode' --output .cache/profile-bytecode.json
+      - name: Retain raw profiles and provenance
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: native-profile-${{ matrix.os }}-31.1
+          path: .cache/profile-*.json
+          # Only the explicitly selected profile reports, inside .cache.
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 90
