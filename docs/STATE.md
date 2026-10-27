@@ -1,5 +1,32 @@
 # Project state
 
+## Completion snapshot lifetime — 2026-10-27
+
+After publication, the completion context retains replacement bounds and
+metadata, but releases the copied full candidate snapshot. Acceptance already
+recomputes candidates and validates the selected raw value and previous bounds.
+The full isolated snapshot still exists through decoration and display callbacks;
+provider strings, native styles, matching and display limits are unchanged.
+Provider-owned caches/metadata and displayed objects can still retain data: this
+is not a bound on total completion memory and does not reduce snapshot creation.
+
+Local Emacs 29.3: all 362 ERT, strict compilation and checkdoc pass; all five
+Python protocol tests pass. The weak-key regression proves an undisplayed raw
+snapshot becomes collectible while its popup remains live, then accepts normally
+with both absent and reversing sorters. It fails on the prior implementation.
+A separate regression preserves validation against a callback that mutates both
+provider storage and its decoration argument. Native 31.1 evidence and exact-head
+independent review remain integration gates. No latency improvement is claimed.
+
+A paired workflow uses identical fixtures, normal GC defaults and the same
+runner for baseline/candidate, separately for identity/absent sorters on Linux
+and macOS. It measures 100/10,000-row completion filtering in source/bytecode,
+200 commands after 10 warmups, with stage clocks and all existing paint, values,
+ownership and cleanup checks. Keep raw reports and inspect both insertion and
+deletion tails before drawing conclusions. Fixed beta refs are unchanged.
+Next: audit paired evidence, broaden actual applications/display validation and
+continue beta feedback. MELPA maintenance-history and human-review gates remain.
+
 ## Completion stage profiles published — 2026-10-27
 
 PR #58 merged at ea3aca27abaacb49710f541d9359a8e133b0f9e3 after exact-head
