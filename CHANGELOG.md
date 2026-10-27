@@ -12,6 +12,8 @@
 - Popup clients dispose before major-mode changes discard their local state.
 - Completion startup interrupted by popup closure or a new completion releases
   the old context without reviving its bindings or disposing the new popup.
+- Completion acceptance revalidates buffer/window ownership after table
+  callbacks and before source reads or edits, preserving external changes.
 - Native terminal tests require visible popup paint before abrupt real-client
   loss, complete popup disposal and continuing input on the surviving terminal.
 

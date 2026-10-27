@@ -293,17 +293,18 @@ popup cleanup; a callback error does not roll back accepted source text."
            (begin (plist-get fresh :begin)) (end (plist-get fresh :end))
            (extra (emacs-tui--completion-extra context))
            (exit (plist-get extra :exit-function))
-           ;; An editing hook may start another completion and release this
-           ;; context's markers.  Native completion reports prefix + choice.
-           (completed (concat (buffer-substring-no-properties
-                               (emacs-tui--completion-begin context) begin) raw)))
-      (unless (and (member raw (plist-get fresh :candidates))
-                   (= begin (plist-get old :begin)) (= end (plist-get old :end))
+           completed)
+      (unless (and (emacs-tui-completion--source-valid-p context)
                    (equal (emacs-tui--completion-stamp context)
                           (emacs-tui-completion--stamp))
-                   (eq context emacs-tui-completion--context))
+                   (member raw (plist-get fresh :candidates))
+                   (= begin (plist-get old :begin)) (= end (plist-get old :end)))
         (emacs-tui-completion--release context)
         (user-error "Completion candidate changed; invoke completion again"))
+      ;; Read only after callbacks have returned to the proven source.  An
+      ;; editing hook can then release the context by starting another one.
+      (setq completed (concat (buffer-substring-no-properties
+                               (emacs-tui--completion-begin context) begin) raw))
       ;; Native tables exclude the field separator from the suffix boundary,
       ;; but may include it in a candidate (notably directory names ending /).
       (when (and (< end (emacs-tui--completion-end context))

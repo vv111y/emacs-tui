@@ -171,7 +171,11 @@ the exit function or insert a common prefix, even with a sole candidate.
 
 Initial provider dispatch is explicit. Once active, native source edits update
 the captured table until its context expires. Completion tables run
-synchronously and must return promptly. `emacs-tui-completion-limit` defaults
+synchronously and must return promptly.
+Tables and metadata callbacks compute candidates without editing the source or
+switching its current buffer/window; effects belong in explicit exit callbacks.
+Stale source or ownership changes reject display/acceptance and preserve user
+edits and focus choices. `emacs-tui-completion-limit` defaults
 to 200 displayed rows; all matches are computed and sorted, then only the
 displayed subset is decorated. This limits display work, not provider work.
 Grouping, documentation panes, automatic initial CAPF dispatch and asynchronous

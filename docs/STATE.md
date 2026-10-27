@@ -17,15 +17,20 @@ and pins straight.el plus the matching example checkout to the new fixed
 audit also found an interrupted-popup startup could revive bindings after its
 close callback had released the context. The frontend now verifies current
 ownership, source validity, an unchanged source generation and a live popup
-before publishing active state; four regressions cover early closure, a new
+before publishing active state; six regressions cover early closure, a new
 completion started during creation, source edits and callback-driven window
-departure. Source validity is checked again after invoking the provider's
-context predicate. The old code
+departure, including a table that moves to another same-buffer window during
+the final acceptance refresh and a callback selecting a foreign buffer. Source
+validity is checked again after invoking
+the provider's context predicate and immediately before editing after table
+callbacks, before any source read or edit and without another provider invocation.
+The foreign-buffer regression asserts zero foreign source reads and preserves
+both buffers and the callback-selected current buffer. The old code
 returned handled=t with context=nil, active=t and TAB still captured. The new
 guard releases only the obsolete context and preserves a replacement popup.
 The initial published head's eight passing jobs did not cover this new finding;
 fresh final-head review, checks and package installation are required.
-Local 355 ERT, strict compilation/checkdoc and the completion PTY's honest
+Local 357 ERT, strict compilation/checkdoc and the completion PTY's honest
 unsupported-native branch passed with the guard. Close/reentry regressions fail
 on the old frontend; source-edit and callback-window regressions fail the first
 guard. Independent review also passed update-time close/reentry probes.
@@ -40,9 +45,9 @@ header/canonical package metadata (`0.1.0beta2`), actual pinned recipe build
 and clean archive installation. The package build tested local source `74906b3`
 before rebasing onto the identical reviewed PR #48 tree; archive SHA256 was
 `f939436dc42bba40247533b4c644227250cb9e85487e4a1311070ba64c7c63cb`.
-After the final startup guard, the actual pinned recipe rebuilt source
-`1e5ff86` and clean-installed on 29.3 with beta2 metadata; archive SHA256 was
-`448618bbe5f12116908b2feed841a3f3fe0d4269e5c9f66cd2723f1fe7bfe410`.
+After the startup and acceptance guards, the actual pinned recipe rebuilt source
+`f347c7f` and clean-installed on 29.3 with beta2 metadata; archive SHA256 was
+`8293f86bec66ccedd4f79d621daf8f5114522cad74e20a30ef13bb69358df233`.
 Independent preliminary release review is clean. Exact published-head review
 and all eight runtime/package CI jobs remain gates before integration. After
 merging, create the fixed beta2 branch at the returned merge SHA and read back
