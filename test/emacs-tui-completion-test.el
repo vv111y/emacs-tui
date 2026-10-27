@@ -143,6 +143,32 @@
       (emacs-tui-completion-accept)
       (should (equal "ac" (buffer-string))))))
 
+(ert-deftest emacs-tui-completion-bounded-decoration-isolates-candidate-properties ()
+  (dolist (sorter (list nil (lambda (all) (nreverse all))))
+    (let* ((raw (list (copy-sequence "alpha") (copy-sequence "alpine")
+                      (copy-sequence "azure")))
+           (projection (list :candidates raw :metadata nil))
+           (emacs-tui-completion-limit 1)
+           (context (emacs-tui--make-completion
+                     :extra (list :display-sort-function sorter
+                                  :annotation-function
+                                  (lambda (candidate)
+                                    (put-text-property 0 1 'face 'bold candidate)
+                                    " [annotated]")))))
+      (should (= 1 (length (emacs-tui-completion--items context projection))))
+      (should (equal '("alpha" "alpine" "azure") raw))
+      (dolist (candidate raw)
+        (should-not (text-properties-at 0 candidate))))))
+
+(ert-deftest emacs-tui-completion-destructive-sorter-cannot-change-projection ()
+  (let* ((raw (list (copy-sequence "alpha") (copy-sequence "alpine")))
+         (projection (list :candidates raw :metadata nil))
+         (context (emacs-tui--make-completion
+                   :extra (list :display-sort-function
+                                (lambda (all) (aset (car all) 0 ?z) all)))))
+    (should-error (emacs-tui-completion--items context projection))
+    (should (equal '("alpha" "alpine") raw))))
+
 (ert-deftest emacs-tui-completion-refresh-reuses-popup-and-preserves-raw-value ()
   (emacs-tui-completion-test--source
     (let ((completion-extra-properties
