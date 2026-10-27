@@ -22,7 +22,11 @@ the display cap; native smoke now includes 2,500 rows to exercise that boundary.
 An independent real-CAPF/model-display probe confirms a stale 200-row display
 passes the old checker and fails the new one. That probe is not native evidence. All five existing window workloads passed in source/bytecode modes, including
 the multi-term filter cases; four Python driver regressions passed. Exact
-published-head review and hosted native CI remain required before integration. Neither fixed
+published-head review and hosted native CI remain required before integration.
+Run 40459636747 passed Linux31 native source/bytecode measurements but failed
+artifact upload because upload-artifact excludes hidden directories by default.
+The exact report glob now explicitly includes its `.cache` directory; a new
+full check run must pass, including artifact retention. This failure is not waived. Neither fixed
 beta release branch is changed. Current MELPA policy blobs were rechecked on
 2026-10-27 and are unchanged; maintenance and substantive human review remain
 external gates. Next after integrating the fixture: collect a full native

@@ -50,6 +50,8 @@ jobs:
         with:
           name: popup-benchmark-${{ matrix.os }}-${{ matrix.emacs }}
           path: .cache/benchmark-popup*.json
+          # Only the explicitly selected benchmark reports, inside .cache.
+          include-hidden-files: true
           if-no-files-found: error
           retention-days: 30
   package:
