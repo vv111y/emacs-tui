@@ -1,5 +1,34 @@
 # Project state
 
+## Inspector integrated; beta/demo handoff — 2026-10-27
+
+PR #63 merged at 64a3eb2e0b89a086793cf995ccd5060c3d31cf0f. Independent review
+5665922973 covered exact head a93d4d889b14f4736fe2a8efa4a1554bb08455a0; its tree
+cfb2eda7dabbcd1f826577f3b38de6055484f2af matches tested merge
+297eabe983f2bec44e99ff554cecfa9cf842d0b3. All eight jobs in CI 40492455852 and
+both paired popup movement jobs in 40492455916 passed. Linux/macOS 31.1 logs
+explicitly verify all 378 ERT, native inspector forward/backward scrolling,
+reading position through eight moves, acknowledgement, dismissal and mode-change
+cleanup. The full suite also passes lifecycle stress, two real terminals,
+abrupt client hangup, benchmark protocols and clean package installs on 31.1
+and 28.1. Local source probe also passes nil view ID/default page scrolling.
+
+README and the demo guide now distinguish the fixed beta2's nine gallery entries
+from main's ten, give a separate main checkout command, and explain the new
+inspector's controls and buffer-local state lifetime. Documented Make targets
+and both gallery counts were checked against the actual revisions. Review also
+corrected an overbroad gallery-dispatch claim: batch tests skip native-required
+entries and separate native fixtures exercise them; the inspector is launched
+directly. This follow-up changes documentation only; its own review/CI remain
+required before integration. No fixed beta release refs moved.
+
+Next useful work: obtain concrete beta/API feedback and expand native display
+coverage (actual GUI, physical emulator/font and multiplexer combinations remain
+unverified). Investigate completion projection costs only against the retained
+mixed measurements; no uniform latency improvement is claimed. Do not submit to
+MELPA until public-maintenance history, substantive human review and the remaining
+package-name advisory are addressed. The package is not yet mature or accepted.
+
 ## Object inspector and focus-preserving preview scrolling — 2026-10-27
 
 Added `emacs-tui-scroll-view` for visible owned read-only text views. It retains

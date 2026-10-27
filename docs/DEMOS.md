@@ -18,8 +18,9 @@ branch remains unchanged. Do not mix new examples with an older installed toolki
 
 | Make target | What to explore | Explicit effects |
 | --- | --- | --- |
-| gallery | Nine showcases, tours, launch and cleanup | Launches your choice |
+| gallery | Nine beta2 showcases; ten on current main, with tours and cleanup | Launches your choice |
 | popup-demo | Typing in the unchanged source, floating candidates, eight compass positions, native undo | TAB explicitly replaces the current word |
+| inspector-demo (main) | Scrollable floating equipment details, eight positions, explicit acknowledgement, source focus | Changes buffer-local demo state only |
 | completion-demo | Emacs's actual Lisp completion provider, styles and source-preserving popup | TAB explicitly accepts a native completion |
 | board-demo | Three task lanes, independent list state, batch moves and explicit application actions | Changes tasks in session memory |
 | reader-demo | Chapter tree, ancestor search paths, formatted pages, wrapping and reading position | Reads self-contained sample text |
@@ -31,12 +32,17 @@ branch remains unchanged. Do not mix new examples with an older installed toolki
 | layout-demo | Columns/rows/grid, maximize, hidden panels, tree, Unicode, editable text, live preview | Scratch edits only |
 
 The inline popup preserves source typing instead of allocating a tiled workspace.
+The inspector on main uses that presentation for a general object and a scrollable
+text view, with an explicit action that keeps the popup open.
 The board has three working lists and no search or preview. The reader is a
 chapter outline beside a document. The snippet picker occupies a single borrowed
 window. The composer uses stacked editable fields, the catalog is a table
 application, and the graph explorer follows relationships. The streaming and
 layout entries are focused capability laboratories. Their different initial
-screens and actions are exercised through the actual gallery launcher.
+screens and actions have application-specific checks. Batch gallery-launch
+checks cover entries without a native-popup requirement. Separate native
+fixtures exercise the source-anchored examples; the inspector is launched
+directly.
 
 The earlier buffer-oriented examples remain runnable as development references,
 but are no longer repeated in the gallery:
@@ -77,6 +83,27 @@ coincide or overlap the word. Wrapped/partly hidden words anchor at point.
 Older terminals leave the gallery open with a capability error instead of
 substituting a tiled interface. A graphical display or the tty-child-frames
 feature is required; the general toolkit still supports older terminals.
+
+### Floating equipment inspector (main)
+
+Use a current main checkout and run `make inspector-demo`, or choose Equipment
+inspector in its gallery. The fixed beta2 does not include this newer example.
+A disposable document opens with pump details floating around the reference.
+M-n and M-p scroll three lines while typing focus stays in the source document.
+C-c C-p cycles eight positions and retains the preview's reading position.
+
+C-c C-a toggles acknowledgement without closing the popup or editing source
+text. C-g dismisses and restores ordinary source bindings. Put point on pump
+again and run M-x emacs-tui-inspector-demo-at-point: acknowledgement survives
+popup dismissal. Inspect valve to see a separate object. Each source buffer owns
+its acknowledgement table; changing major mode or killing that buffer discards
+it. No external equipment, files, completion provider or commit destination is
+involved. The displayed object remains the one explicitly inspected even if you
+edit the source. A graphical display or native TTY child frames is required.
+
+For an application-defined text popup, use `emacs-tui-scroll-view` to scroll its
+visible read-only view while retaining source focus. The operation rejects hidden
+or editable views; applications choose their own key bindings and action policy.
 
 ### Native completion frontend
 
@@ -201,7 +228,9 @@ Together the examples cover the implemented public interaction families:
 persistent mounting, borrowed windows and ephemeral commitment; lists, text,
 tables, trees and editable inputs; selection/focus, marks, queries, numeric sort,
 actions and application keymaps; layouts, maximize and resize; formatted text,
-Unicode and native undo; cancellable streaming providers and application timers.
+Unicode and native undo; cancellable streaming providers and application timers;
+source-anchored read-only inspection, focus-preserving scrolling and explicit
+actions that leave the popup open.
 
 The board, reader, layout, catalog and streaming showcases request automatic
 presentation: native child frames where supported, ordinary windows otherwise.
@@ -216,11 +245,13 @@ application policies, rather than claiming the toolkit has built-in databases,
 network clients, lazy trees, inline text-region widgets or a full form system.
 See README.md and ROADMAP.md for the implemented API and future goals.
 
-Automated checks exercise every gallery entry and its distinct initial view,
-explicit origin commitment,
+Automated gallery-dispatch and separate native-demo checks cover distinct initial
+views, explicit origin commitment,
 session-local collection state, hidden-mark actions, native input/undo,
 streaming failure/recovery and timer disposal. The terminal showcase also
 launches the board, reader and snippet picker, moves a batch, searches a chapter,
 inserts and undoes a snippet, edits the catalog and layout playground, resizes
 120→90→140 columns, and recovers the streaming provider. Physical emulator,
-font, multiplexer and graphical display coverage still needs human use.
+font, multiplexer and graphical display coverage still needs human use. The
+native popup fixture additionally exercises the inspector through scrolling,
+eight moves, acknowledgement and dismissal without changing source text or undo.

@@ -39,7 +39,8 @@ emulators and graphical display variants still need broader community use.
 
 ## Demo gallery
 
-Browse nine applications and capability showcases with guided tours:
+The fixed beta2 includes nine applications and capability showcases with guided
+tours:
 
 ```sh
 git clone --branch release/0.1.0-beta2 https://github.com/vv111y/emacs-tui.git
@@ -54,7 +55,21 @@ and step-by-step tours. Try the inline candidate popup, three-lane task board, c
 snippet picker, object catalog, text composer, streaming search, original graph
 explorer, or layout playground. Each works in a fresh Emacs.
 
-The beta2 checkout includes these showcases; `main` tracks later development.
+For the latest development demos, including the floating equipment inspector,
+use a separate main checkout with its matching runtime:
+
+```sh
+git clone --branch main https://github.com/vv111y/emacs-tui.git emacs-tui-main
+cd emacs-tui-main
+make gallery
+# Or launch the inspector directly:
+make inspector-demo
+```
+
+Main currently has ten gallery entries. The inspector closes with C-g; each
+tour explains its own controls. The native completion example is separately
+available through `make completion-demo`. Main is development code, while the
+beta2 checkout stays fixed to its reviewed release contents.
 The older `release/0.1.0-beta1` branch remains unchanged. The straight.el runtime
 recipe excludes examples. Use the matching checkout for the gallery so examples
 and toolkit come from the same revision.
