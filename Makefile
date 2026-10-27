@@ -1,6 +1,6 @@
 EMACS ?= emacs
 
-.PHONY: test compile checkdoc check clean demo graph-demo gallery popup-demo completion-demo board-demo reader-demo snippet-demo catalog-demo stream-demo layout-demo async-demo dashboard panel composer tree filter-demo package-check tty-smoke benchmark benchmark-smoke
+.PHONY: test compile checkdoc check clean demo graph-demo gallery popup-demo completion-demo board-demo reader-demo snippet-demo catalog-demo stream-demo layout-demo async-demo dashboard panel composer tree filter-demo package-check tty-smoke benchmark benchmark-smoke benchmark-popup-smoke
 test:
 	$(EMACS) -Q --batch -L . -L test -l test/run-tests.el
 compile:
@@ -68,3 +68,7 @@ benchmark-smoke:
 	EMACS=$(EMACS) python3 bench/run.py --timeout 120 --load-mode bytecode --sizes 100 --samples 6 --warmup 2 --output .cache/benchmark-bytecode-smoke.json
 	EMACS=$(EMACS) python3 bench/run.py --timeout 120 --filter-prefix 'row 日本語 ' --kinds filter-list filter-table --sizes 100 --samples 6 --warmup 2 --output .cache/benchmark-terms-smoke.json
 	EMACS=$(EMACS) python3 bench/run.py --timeout 120 --load-mode bytecode --filter-prefix 'row 日本語 ' --kinds filter-list filter-table --sizes 100 --samples 6 --warmup 2 --output .cache/benchmark-terms-bytecode-smoke.json
+
+benchmark-popup-smoke:
+	EMACS=$(EMACS) python3 bench/run.py --presentation popup --timeout 120 --sizes 100 2500 --samples 6 --warmup 2 --output .cache/benchmark-popup-smoke.json
+	EMACS=$(EMACS) python3 bench/run.py --presentation popup --timeout 120 --load-mode bytecode --sizes 100 2500 --samples 6 --warmup 2 --output .cache/benchmark-popup-bytecode-smoke.json

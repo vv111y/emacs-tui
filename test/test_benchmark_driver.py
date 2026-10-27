@@ -5,6 +5,7 @@ Assisted-by: Codex:gpt-6.1-sol-wm
 SPDX-License-Identifier: GPL-3.0-or-later
 """
 import importlib.util
+import tempfile
 import errno
 import os
 import pathlib
@@ -19,6 +20,21 @@ ROOT = pathlib.Path(__file__).resolve().parent.parent
 SPEC = importlib.util.spec_from_file_location("benchmark_driver", ROOT / "bench/run.py")
 DRIVER = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(DRIVER)
+
+
+
+class NativePopupArguments(unittest.TestCase):
+    def test_rejects_mixed_workloads_before_starting_emacs(self):
+        with tempfile.TemporaryDirectory() as directory:
+            output = pathlib.Path(directory) / "report.json"
+            for arguments in (("--presentation", "popup", "--kinds", "navigate-list"),
+                              ("--kinds", "filter-completion"),
+                              ("--presentation", "popup", "--filter-prefix", "row ")):
+                result = subprocess.run([sys.executable, str(ROOT / "bench/run.py"),
+                                         "--output", str(output), *arguments],
+                                        capture_output=True, text=True, timeout=10)
+                self.assertEqual(result.returncode, 2, result.stderr)
+                self.assertFalse(output.exists())
 
 
 class ExitHandling(unittest.TestCase):

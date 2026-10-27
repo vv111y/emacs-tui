@@ -40,6 +40,20 @@ jobs:
       - name: Validate benchmark protocol (no timing threshold)
         timeout-minutes: 5
         run: make clean benchmark-smoke
+      - name: Validate native popup benchmark (no timing threshold)
+        if: matrix.emacs == '31.1'
+        timeout-minutes: 5
+        run: make benchmark-popup-smoke
+      - name: Retain raw native popup protocol samples
+        if: matrix.emacs == '31.1'
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: popup-benchmark-${{ matrix.os }}-${{ matrix.emacs }}
+          path: .cache/benchmark-popup*.json
+          # Only the explicitly selected benchmark reports, inside .cache.
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 30
   package:
     name: package (build 31.1, install 31.1/28.1)
     runs-on: ubuntu-latest
