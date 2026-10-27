@@ -27,7 +27,7 @@ jobs:
           sudo env DEBIAN_FRONTEND=noninteractive apt-get install --yes --no-install-recommends emacs-gtk xvfb xauth
           emacs --version
       - name: Compile graphical fixture strictly
-        run: emacs -Q --batch -L . -L examples -L test --eval '(setq byte-compile-error-on-warn t)' -f batch-byte-compile test/gui-smoke.el test/tty-completion-smoke.el test/emacs-tui-popup-lifecycle-smoke.el
+        run: emacs -Q --batch -L . -L examples -L test --eval '(setq byte-compile-error-on-warn t)' -f batch-byte-compile test/gui-smoke.el test/tty-completion-smoke.el test/emacs-tui-popup-lifecycle-smoke.el test/emacs-tui-multi-popup-smoke.el
       - name: Exercise native graphical frames
         env:
           EMACS_TUI_GUI_REPORT: gui-result.txt

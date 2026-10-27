@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- Three simultaneous floating panels with individual and collective hotkey
+  toggles, hidden-panel selection retention and native source editing. Run
+  `make multi-popup-demo` or use the development gallery. Shared GUI/TTY
+  checks cover sibling isolation, source preservation and cleanup.
+
 - A distinct persistent settings-form demo combines native fields, checkbox-style
   options, live validation and explicit Apply/Revert. Invalid or changed-during-
   publication drafts cannot replace the saved session record. No external settings

@@ -12,14 +12,15 @@ The gallery uses self-contained sample data and works immediately under Emacs -Q
 
 These examples live in the checkout's examples directory, outside the installed
 runtime package. The fixed beta3 branch includes ten gallery entries. Development main adds
-the settings form; all fixed release branches remain unchanged. Do not mix new examples with an older installed toolkit.
+the settings form and independent floating panels; all fixed release branches remain unchanged. Do not mix new examples with an older installed toolkit.
 
 ## Choose a demo
 
 | Make target | What to explore | Explicit effects |
 | --- | --- | --- |
-| gallery | Ten beta3 showcases; main adds the settings form, with tours and cleanup | Launches your choice |
+| gallery | Ten beta3 showcases; main adds the form and independent floating panels, with tours and cleanup | Launches your choice |
 | popup-demo | Typing in the unchanged source, floating candidates, eight compass positions, native undo | TAB explicitly replaces the current word |
+| multi-popup-demo (main) | Three simultaneous floating child frames; individual/all toggles, selection retained while hidden | Browses sample data only; source typing remains native |
 | inspector-demo | Scrollable floating equipment details, eight positions, related objects, Back/Forward, acknowledgement, source focus | Changes buffer-local demo state only |
 | completion-demo | Emacs's actual Lisp completion provider, styles and source-preserving popup | TAB explicitly accepts a native completion |
 | board-demo | Three task lanes, independent list state, batch moves and explicit application actions | Changes tasks in session memory |
@@ -84,6 +85,39 @@ coincide or overlap the word. Wrapped/partly hidden words anchor at point.
 Older terminals leave the gallery open with a capability error instead of
 substituting a tiled interface. A graphical display or the tty-child-frames
 feature is required; the general toolkit still supports older terminals.
+
+### Independent floating panels (development main)
+
+Run `make multi-popup-demo` from current main, or choose Independent floating
+panels in its gallery. A disposable note starts with three separate child frames:
+an object list below point, details to the right and a key guide above-left.
+The source window is never split or replaced while the panels are shown.
+
+| Key | Effect |
+| --- | --- |
+| C-c 1 | Toggle Objects |
+| C-c 2 | Toggle Details |
+| C-c 3 | Toggle Keys |
+| C-c 0 | Hide all if any are visible; show all if none are visible |
+| M-n / M-p | Browse sample objects, including while panels are hidden |
+| C-c C-p | Move Objects through eight positions; siblings stay in place |
+| C-g | Hide all, keeping the toggle bindings active |
+| C-c C-q | Disable the demo and restore ordinary source bindings |
+
+Try hiding Details, choosing another object with M-n, and reopening Details.
+Then hide/show the whole group with C-c 0. Selection survives; hidden panels
+release their frames and buffers, and reopening creates new surfaces. Type and
+undo normally in the source. Closing one panel leaves its siblings live.
+Killing the source or changing its major mode closes every owned panel.
+
+All panels are read-only and retain source keyboard focus. Their positions are
+clamped and may overlap on narrow displays; this is not automatic collision
+avoidance or a draggable window manager. Native child-frame capability is
+required. The fixed beta3 does not contain this development example.
+
+To enable the same demo over an existing source without inserting sample text,
+load examples/emacs-tui-multi-popup-demo.el and run
+M-x emacs-tui-multi-popup-demo-mode. Only your own typing changes source text.
 
 ### Floating equipment inspector
 

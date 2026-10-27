@@ -24,6 +24,10 @@
      :available emacs-tui-popup-supported-p
      :feature emacs-tui-popup-demo :command emacs-tui-popup-demo
      :tour "Candidates float around the word being typed. The source stays in place.\n\n1. Launch to enable the demo in your original buffer. Type map.\n2. M-n / M-p selects; TAB explicitly replaces the word.\n3. C-c C-p cycles N, NE, E, SE, S, SW, W and NW.\n4. Keep typing to filter candidates; normal undo still works.\n5. C-g dismisses; C-c C-q disables the demo and restores bindings.\n\nNative TTY child frames (feature tty-child-frames) or a graphical display are required. Near edges placement is clamped. make popup-demo opens a centered sample document instead.")
+    (:id multi-popup :label "Independent floating panels" :kind "Source-anchored"
+     :feature emacs-tui-multi-popup-demo :command emacs-tui-multi-popup-demo
+     :available emacs-tui-popup-supported-p
+     :tour "Three simultaneous child frames over an unchanged editable source.\n\n1. C-c 1/2/3 toggles Objects, Details and Keys independently.\n2. C-c 0 hides all if any are visible; press again to show all.\n3. M-n/M-p browses objects; hidden panels reopen with the current selection.\n4. C-c C-p moves Objects through eight positions, leaving siblings alone.\n5. Type and undo in the source. C-g hides panels; C-c C-q disables bindings.\n\nRequires graphical or native TTY child frames. Closing/reopening recreates surfaces; source text and window layout stay intact.")
     (:id inspector :label "Equipment inspector (floating text)" :kind "Inline"
      :available emacs-tui-popup-supported-p
      :feature emacs-tui-inspector-demo :command emacs-tui-inspector-demo
