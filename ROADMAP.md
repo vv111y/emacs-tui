@@ -61,6 +61,8 @@ milestones remain capability goals, not claims of completed generality.
 - Commit query, selection or composition to explicit destinations; application
   controls transactions. Inline ghost content and reversible visibility.
 - Multiple simultaneous sessions/terminals; optional completion/action adapters.
+  The native CAPF frontend is an opt-in source-buffer adapter; broader metadata
+  grouping, documentation and async completion need concrete consumer evidence.
 
 ## 4. Stability and performance
 

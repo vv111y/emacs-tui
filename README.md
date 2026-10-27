@@ -139,6 +139,49 @@ coincide or overlap the anchor near an edge. Use a central word to inspect all
 eight placements. Graphical window-manager/font variants still need community
 validation; native terminal behavior has a separate interactive CI scenario.
 
+## Native completion providers
+
+On current `main`, the optional adapter uses your buffer's existing
+`completion-at-point-functions` and Emacs completion styles:
+
+```elisp
+(require 'emacs-tui-completion)
+(emacs-tui-completion-mode 1) ; buffer-local; requires native child frames
+```
+
+Invoke `completion-at-point` normally (`C-M-i` in Emacs Lisp mode). While the
+popup is visible, type to filter, use `M-n`/`M-p` to select, `C-c C-p` to cycle
+positions, `TAB` to accept, and `C-g` to dismiss. Other source bindings apply
+when it is closed. `make completion-demo` opens a disposable Lisp document
+using Emacs's actual symbol provider. The literal-data popup demo remains a
+separate example of automatic activation while typing.
+
+Display honors predicates, category style overrides, display sorting,
+affixation and annotations. Affixation takes precedence over annotation.
+Acceptance preserves completion base prefixes and text beyond the field's
+suffix boundary, strips candidate display properties, and uses native undo.
+It rechecks the candidate and source immediately before editing. A successful
+acceptance closes the popup and calls the provider's captured exit function
+once with the completed field, including its base prefix. Status is `exact`
+when the candidate opens a new field (such as a directory), otherwise `finished`.
+An exit-callback error leaves the accepted text in place; an editing error
+rolls back the edit and retains the popup. Browsing and dismissal never call
+the exit function or insert a common prefix, even with a sole candidate.
+
+Initial provider dispatch is explicit. Once active, native source edits update
+the captured table until its context expires. Completion tables run
+synchronously and must return promptly. `emacs-tui-completion-limit` defaults
+to 200 displayed rows; all matches are computed and sorted, then only the
+displayed subset is decorated. This limits display work, not provider work.
+Grouping, documentation panes, automatic initial CAPF dispatch and asynchronous
+completion tables are not implemented by this adapter. The general toolkit's
+async provider API remains separate.
+
+Disable `emacs-tui-completion-mode` to restore the previous buffer-local
+frontend, or the current global default when none was local. A frontend
+installed afterward is preserved. Changing major mode or killing the source
+disposes the active completion. The core library does not load this adapter.
+
 ## Embedded panels
 
 Run `make panel` to browse buffers in the selected window. RET displays a buffer
@@ -495,6 +538,10 @@ and continue exploration; commitment is a separate command.
 | `emacs-tui-popup-supported-p` | Check native popup capability without allocating a surface |
 | `emacs-tui-reposition-popup` | Choose or cycle eight compass positions |
 | `emacs-tui-layout-popup` | Compute a clamped anchor-relative rectangle without display effects |
+| `emacs-tui-completion-mode` | Optional buffer-local frontend for existing completion-at-point providers |
+| `emacs-tui-completion-next` / `emacs-tui-completion-previous` | Browse candidates while retaining source input focus |
+| `emacs-tui-completion-accept` / `emacs-tui-completion-dismiss` | Explicitly insert the selected completion or close unchanged |
+| `emacs-tui-completion-move` | Cycle the active completion popup's compass position |
 | `emacs-tui-embed` | Borrow an application window for one panel; restore it on close |
 | `emacs-tui-column` | Describe a table column and its item projection |
 | `emacs-tui-sort` | Sort table rows without changing source order or item identity |

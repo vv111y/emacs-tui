@@ -1,6 +1,6 @@
 # MELPA release gates
 
-Verified against upstream on 2026-10-24; recheck before submission. The checked
+Verified against upstream on 2026-10-27; recheck before submission. The checked
 PR-template blob was `80f2e31cdfbb65fb9c0bf04b093e0e4adad84bfe`;
 CONTRIBUTING.org was `1c5c09605cbe26c8279d0efa83375ef3c679077d`.
 
@@ -17,10 +17,10 @@ CONTRIBUTING.org was `1c5c09605cbe26c8279d0efa83375ef3c679077d`.
 - Build the actual recipe using package-build and install/test its output in a
   clean Emacs. A source checkout test is not a package installation test.
 
-The latest checked package-lint revision on 2026-10-24 is
+The latest checked package-lint revision on 2026-10-27 is
 `1865be780a16098f972fef50a52b21ca6ee04df9`. It reports one remaining warning:
 `emacs` is redundant in the main package name. The layout/table/tree/action
-files are helpers of that package and declare `package-lint-main-file`; their
+and completion files are helpers of that package and declare `package-lint-main-file`; their
 metadata checks are clean. The main warning is not suppressed. The beta retains
 `emacs-tui`: it matches the public repository and established API prefix, while
 `tui-*` already belongs to another package. Disclose this rationale in an
@@ -38,7 +38,7 @@ The executable candidate is in `test/recipes/emacs-tui`. See
 [PACKAGING.md](PACKAGING.md) for exact-checkout package-build and clean-install
 validation. This does not submit a recipe or test a live MELPA publication.
 
-On 2026-10-24, the upstream `recipes/emacs-tui` path returned 404. This is
+On 2026-10-27, the upstream `recipes/emacs-tui` path returned 404. This is
 current absence, not a reservation or acceptance; recheck name availability
 before submission. The existing
 [tui.el](https://github.com/ebpa/tui.el) uses `tui-*`; this package uses

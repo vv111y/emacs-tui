@@ -20,6 +20,7 @@ try this gallery. Do not mix new examples with an older installed toolkit.
 | --- | --- | --- |
 | gallery | Nine showcases, tours, launch and cleanup | Launches your choice |
 | popup-demo | Typing in the unchanged source, floating candidates, eight compass positions, native undo | TAB explicitly replaces the current word |
+| completion-demo | Emacs's actual Lisp completion provider, styles and source-preserving popup | TAB explicitly accepts a native completion |
 | board-demo | Three task lanes, independent list state, batch moves and explicit application actions | Changes tasks in session memory |
 | reader-demo | Chapter tree, ancestor search paths, formatted pages, wrapping and reading position | Reads self-contained sample text |
 | snippet-demo | One borrowed-window palette, tracked origin point, explicit insertion and native undo | RET inserts a literal snippet in the launching buffer |
@@ -76,6 +77,22 @@ coincide or overlap the word. Wrapped/partly hidden words anchor at point.
 Older terminals leave the gallery open with a capability error instead of
 substituting a tiled interface. A graphical display or the tty-child-frames
 feature is required; the general toolkit still supports older terminals.
+
+### Native completion frontend
+
+Run `make completion-demo` on a display with native child frames. This opens a
+disposable Emacs Lisp source, invokes its normal completion provider and shows
+real symbols at `(map`. Type `ca` to filter, select with M-n/M-p, move with
+C-c C-p and accept with TAB. C-/ undoes that insertion. C-g dismisses;
+C-M-i begins another completion. No Lisp is evaluated or saved.
+
+In an existing supported source buffer, require `emacs-tui-completion`, enable
+`emacs-tui-completion-mode`, and use the buffer's usual completion command.
+This optional adapter captures the native provider's table and metadata. It
+does not replace your completion providers or require another completion
+package. Source edits refresh an already active completion; initial activation
+is manual. Disable the mode to restore the previous frontend. The gallery's
+literal-word popup deliberately remains the separate automatic-typing example.
 
 ### Task board
 

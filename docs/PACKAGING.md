@@ -18,8 +18,8 @@ It uses package-build's documented no-fetch mode so a moving remote branch
 cannot replace the code under test. The original checkout is never reset.
 This tests recipe parsing, file selection, metadata, archive generation and
 installation; it does not test network fetching or a live MELPA publication.
-The unsubmitted recipe has no commit constraint and includes all five library
-files plus LICENSE.
+The unsubmitted recipe has no commit constraint and includes all six library
+files (including the optional completion adapter) plus LICENSE.
 
 package-build assigns this unsubmitted recipe a dated MELPA-style snapshot
 version, so the archive filename is not the GitHub beta version. Release CI
@@ -30,7 +30,8 @@ consumed by the file-filtered straight.el recipe.
 A separate Emacs process installs the tar into a fresh package directory, with
 an empty working directory and no checkout or build-tool load path. It checks
 library resolution and actual function definitions come from that installation,
-then exercises table filtering, hidden marked actions, native input/undo, tree
+proves the completion adapter is available without being eagerly loaded by
+the core, then exercises table filtering, hidden marked actions, native input/undo, tree
 navigation, maximization and disposal through public APIs. No archive server or
 package dependency downloads are needed during installation.
 

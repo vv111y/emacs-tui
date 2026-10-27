@@ -161,10 +161,13 @@ restore all host bindings and release the popup.  No files are saved."
   :lighter " TUI-Popup"
   (if emacs-tui-popup-demo-mode
       (if (emacs-tui-popup-supported-p)
-          (add-hook 'post-command-hook #'emacs-tui-popup-demo--refresh nil t)
+          (progn
+            (add-hook 'post-command-hook #'emacs-tui-popup-demo--refresh nil t)
+            (add-hook 'change-major-mode-hook #'emacs-tui-popup-demo-stop nil t))
         (setq emacs-tui-popup-demo-mode nil)
         (user-error "This demo needs graphical or native TTY child frames"))
     (remove-hook 'post-command-hook #'emacs-tui-popup-demo--refresh t)
+    (remove-hook 'change-major-mode-hook #'emacs-tui-popup-demo-stop t)
     (emacs-tui-popup-demo--close)))
 
 ;;;###autoload

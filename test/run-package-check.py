@@ -43,7 +43,8 @@ with tempfile.TemporaryDirectory(prefix="emacs-tui-package-") as temporary:
     with tarfile.open(archive) as package:
         names = {pathlib.PurePosixPath(member.name).name for member in package.getmembers()}
         required = {"emacs-tui.el", "emacs-tui-layout.el", "emacs-tui-table.el",
-                    "emacs-tui-tree.el", "emacs-tui-action.el", "emacs-tui-pkg.el", "LICENSE"}
+                    "emacs-tui-tree.el", "emacs-tui-action.el", "emacs-tui-completion.el",
+                    "emacs-tui-pkg.el", "LICENSE"}
         if not required <= names:
             raise SystemExit(f"Archive missing required files: {required - names}")
         if any(".git" in pathlib.PurePosixPath(member.name).parts for member in package.getmembers()):
