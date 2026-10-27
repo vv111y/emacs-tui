@@ -25,6 +25,23 @@ the selected parent and source buffer were correct. The failure report now
 includes Emacs messages to identify disposal causes. This is an unresolved
 native GUI resize finding, not a waived failure or an integration-ready PR.
 
+Local validation was restored using an extracted Ubuntu Emacs 29.3 runtime:
+379 ERT, strict package/example and graphical-fixture compilation, checkdoc,
+and the popup PTY fixture pass. The latter exercises only unsupported-popup
+rejection and native glyph bounds on 29.3, not native popup presentation.
+Native compiler trampoline generation is disabled for this extracted runtime;
+it emits a known missing system Lisp-directory warning. Local Xvfb could not
+open its required Unix sockets, so no local graphical execution is claimed.
+The GUI fixture's negative batch probe rejects non-graphical execution with a
+FAIL report and exit 1. Reports explicitly use UTF-8 so non-ASCII diagnostics
+cannot prompt for a coding system and hide the original failure.
+
+The next diagnostic head records the first unexpected inspector-close stack,
+without changing close behavior; finish cleanup removes that advice first.
+Hosted run 40528135285 was still installing its runtime at this checkpoint.
+No runtime fix is claimed: the previous report contained no reflow error, so
+the exact close path must be established before changing popup lifecycle code.
+
 Added a bounded interactive GTK/Xvfb fixture and separate workflow, using the
 runner distribution's graphical Emacs with its actual version logged. It requires
 a graphical display, types into a mounted child-frame input, opens a source-

@@ -47,14 +47,15 @@
   (when emacs-tui-gui--app (emacs-tui-close emacs-tui-gui--app))
   (when (buffer-live-p emacs-tui-gui--source)
     (kill-buffer emacs-tui-gui--source))
-  (with-temp-file (or (getenv "EMACS_TUI_GUI_REPORT") "gui-result.txt")
-    (insert (if error (format "FAIL %S\n" error)
-              (format "PASS Emacs %s; graphical %S; child input; inspector scroll/action; eight moves; resize; source preservation; cleanup\n"
-                      emacs-version window-system)))
-    (when (and error (get-buffer "*Messages*"))
-      (insert (with-current-buffer "*Messages*" (buffer-string))))
-    (when (and error emacs-tui-gui--close-trace)
-      (insert emacs-tui-gui--close-trace)))
+  (let ((coding-system-for-write 'utf-8-unix))
+    (with-temp-file (or (getenv "EMACS_TUI_GUI_REPORT") "gui-result.txt")
+      (insert (if error (format "FAIL %S\n" error)
+                (format "PASS Emacs %s; graphical %S; child input; inspector scroll/action; eight moves; resize; source preservation; cleanup\n"
+                        emacs-version window-system)))
+      (when (and error (get-buffer "*Messages*"))
+        (insert (with-current-buffer "*Messages*" (buffer-string))))
+      (when (and error emacs-tui-gui--close-trace)
+        (insert emacs-tui-gui--close-trace))))
   (kill-emacs (if error 1 0)))
 
 (defun emacs-tui-gui--step ()
