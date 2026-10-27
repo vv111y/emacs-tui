@@ -1,6 +1,6 @@
 # Public API and compatibility
 
-emacs-tui 0.1.0-beta2 is an experimental community-testing release. Its release
+emacs-tui 0.1.0-beta3 is an experimental community-testing release. Its release
 ref and successful archive builds do not constitute a stable compatibility
 freeze or MELPA acceptance. This policy defines how we work toward that contract.
 

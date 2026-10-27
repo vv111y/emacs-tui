@@ -1,5 +1,26 @@
 # Project state
 
+## Beta3 preparation — 2026-10-27
+
+Prepare a new fixed release/0.1.0-beta3 branch from the reviewed, passing
+release metadata snapshot after integration. Beta1/beta2 must not move. This
+unit aligns package header, CI metadata assertion, straight.el installation,
+changelog, stability policy and the ten-entry demo guide. Installed-client
+validation now exercises the additive scrolling API through public calls,
+including unchanged source focus/text/point/selection. No runtime behavior or
+API signature changes. Local Emacs29.3 passes391 ERT, strict compilation and
+checkdoc. The committed f44b587 snapshot builds with the candidate package-build
+recipe, validates beta3 package metadata, and clean-installs on29.3 including
+the public scrolling smoke; archive SHA256
+403e567322265eb538307b10151a84d21cafe1722f4e7a42ef45c89c3668ac59.
+Independent review and exact-head CI remain required;
+no beta3 ref, tag, MELPA submission or acceptance is claimed at this checkpoint.
+
+PR #71 merged at 0590bbde70d670b1513844ada3ff10eb85baedcd after independent
+review 5670698612 and all eight applicable CI jobs in run40541137454 passed.
+Its tested merge cd4bbfdcb395b33c121d0e9c1781009f88525a8a matched reviewed
+head686b7aba and tree5e538145e26c57443e8833d5831efe340d458893.
+
 ## Integrated handoff — 2026-10-27
 
 The implementation baseline is 6871005fca7bc7a825e40ea01fb111da2b9ccdbf,
