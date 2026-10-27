@@ -18,6 +18,13 @@ without selecting a window or frame; the source/focus assertions remain intact.
 Failure reports include phase and selected/current-buffer diagnostics. This
 correction still requires independent review and a successful native GUI run.
 
+Head 7a33d485a2a42130c1a293923ee77638f36828d6 passed strict compilation
+and the initial interaction/position phase, then failed because the inspector
+child was gone after shrinking the parent to 90x30 (phase 2). Diagnostics confirm
+the selected parent and source buffer were correct. The failure report now
+includes Emacs messages to identify disposal causes. This is an unresolved
+native GUI resize finding, not a waived failure or an integration-ready PR.
+
 Added a bounded interactive GTK/Xvfb fixture and separate workflow, using the
 runner distribution's graphical Emacs with its actual version logged. It requires
 a graphical display, types into a mounted child-frame input, opens a source-

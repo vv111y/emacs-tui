@@ -34,7 +34,9 @@
   (with-temp-file (or (getenv "EMACS_TUI_GUI_REPORT") "gui-result.txt")
     (insert (if error (format "FAIL %S\n" error)
               (format "PASS Emacs %s; graphical %S; child input; inspector scroll/action; eight moves; resize; source preservation; cleanup\n"
-                      emacs-version window-system))))
+                      emacs-version window-system)))
+    (when (and error (get-buffer "*Messages*"))
+      (insert (with-current-buffer "*Messages*" (buffer-string)))))
   (kill-emacs (if error 1 0)))
 
 (defun emacs-tui-gui--step ()
