@@ -1288,6 +1288,41 @@ partially hidden ranges use the glyph at the source window's point instead."
       (when (eq terminal (emacs-tui--popup-terminal popup))
         (emacs-tui-close session)))))
 
+(defun emacs-tui--popup-switch-frame (arguments)
+  "Keep graphical read-only popup events in ARGUMENTS at their source.
+Native focus events can outlive temporary preview selection or resizing.
+Only redirect an exact owned popup while its source is still selected;
+foreign events and invalidated surfaces retain normal Emacs routing."
+  (let* ((event (car-safe arguments))
+         (target (and (consp event) (eq (car event) 'switch-frame)
+                      (consp (cdr event)) (null (cddr event)) (cadr event)))
+         (session
+          (when (and (frame-live-p target) (display-graphic-p target))
+            (cl-find-if
+             (lambda (app)
+               (and (emacs-tui--workspace-active app)
+                    (emacs-tui--workspace-popup app)
+                    (eq target (emacs-tui--workspace-frame app))
+                    (eq (selected-window) (emacs-tui--workspace-origin-window app))
+                    (emacs-tui--subtree app)))
+             emacs-tui--sessions))))
+    (if session
+        (cons (list 'switch-frame (emacs-tui--workspace-origin-frame session))
+              (cdr arguments))
+      arguments)))
+
+(defun emacs-tui--sync-popup-focus-hook ()
+  "Route native focus events only while graphical popups are live."
+  (if (cl-some (lambda (app)
+                 (let ((frame (emacs-tui--workspace-frame app)))
+                   (and (emacs-tui--workspace-active app)
+                        (emacs-tui--workspace-popup app)
+                        (frame-live-p frame) (display-graphic-p frame))))
+               emacs-tui--sessions)
+      (unless (advice-member-p #'emacs-tui--popup-switch-frame #'handle-switch-frame)
+        (advice-add #'handle-switch-frame :filter-args #'emacs-tui--popup-switch-frame))
+    (advice-remove #'handle-switch-frame #'emacs-tui--popup-switch-frame)))
+
 (defun emacs-tui--popup-post-command ()
   "Follow visible popup anchors, closing popups when their source is left."
   (unless emacs-tui--refreshing
@@ -1910,6 +1945,7 @@ KEYMAP supplies application commands for view buffers."
           (add-hook 'delete-frame-functions #'emacs-tui--frame-deleted)
           (add-hook 'window-state-change-hook #'emacs-tui--window-state-changed)
           (emacs-tui--sync-tty-focus-hooks)
+          (emacs-tui--sync-popup-focus-hook)
           (when (or ephemeral popup)
             (let ((hook (lambda () (emacs-tui-close session))))
               (setf (emacs-tui--workspace-origin-kill-hook session) hook)
@@ -2046,6 +2082,7 @@ windows are preserved."
 	(remove-hook 'delete-frame-functions #'emacs-tui--frame-deleted)
 	(remove-hook 'window-state-change-hook #'emacs-tui--window-state-changed))
       (emacs-tui--sync-tty-focus-hooks)
+      (emacs-tui--sync-popup-focus-hook)
       (unwind-protect
           (emacs-tui--stop-request (emacs-tui--workspace-request session))
         (let ((callback (emacs-tui--workspace-on-close session))

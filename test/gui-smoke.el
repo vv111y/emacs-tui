@@ -90,7 +90,7 @@
            (switch-to-buffer emacs-tui-gui--source)
            (goto-char emacs-tui-gui--point)
            (setq emacs-tui-gui--app (emacs-tui-inspector-demo-at-point))
-            (advice-add 'emacs-tui-close :before #'emacs-tui-gui--trace-close)
+           (advice-add 'emacs-tui-close :before #'emacs-tui-gui--trace-close)
            (setq emacs-tui-gui--phase 1)
            (run-at-time .3 nil #'emacs-tui-gui--step))
           ((or 1 2 3)
@@ -136,6 +136,8 @@
                   (cl-assert (not (frame-live-p child)))
                   (cl-assert (not emacs-tui-inspector-demo--active))
                   (cl-assert (not emacs-tui--sessions))
+                  (cl-assert (not (advice-member-p #'emacs-tui--popup-switch-frame
+                                                  #'handle-switch-frame)))
                   (cl-assert (null (cl-set-difference (frame-list) emacs-tui-gui--frames))))
                 (emacs-tui-gui--finish nil)))
            (cl-incf emacs-tui-gui--phase)

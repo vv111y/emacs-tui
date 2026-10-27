@@ -2,6 +2,23 @@
 
 ## Graphical child-frame validation — 2026-10-27
 
+Native trace from job 122279615142 (run 40529824267) identifies the unexpected
+close: handle-switch-frame selected the inspector child, then popup post-command
+cleanup correctly noticed that selection had left the source. The source and
+layout were not invalidated by a geometry error. A narrow graphical-only event
+filter now routes an exact owned, active popup target to its source frame while
+the source window is still selected. Foreign, malformed, terminal, stale and
+invalidated events keep normal routing; explicit source departure still closes
+the popup. The filter is installed only while graphical popups exist and removed
+independently of terminal routing and unrelated advice.
+
+The candidate runtime fix passes all 383 local ERT plus strict compilation and
+checkdoc on extracted Emacs 29.3. Four new event/ownership/lifetime tests cover
+the routing boundary. The graphical fixture retains every interaction, resize,
+source-preservation assertion and now also checks advice disposal. Independent
+review and fresh hosted GUI, terminal/multiplexer and compatibility checks are
+still required before claiming the native focus bug fixed or integrating #67.
+
 Initial PR #67 head da6cddc3ac01d09dc4b21719a2d165917fc4ffa8 passed
 all eight compatibility jobs (40518540981) and both tmux jobs (40518541258).
 Graphical job 122238734562 in run 40518541259 failed strict compilation on
