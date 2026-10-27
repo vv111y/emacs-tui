@@ -1,5 +1,26 @@
 # Project state
 
+## Bounded completion preparation — 2026-10-27
+
+The completion adapter previously copied every candidate string before applying
+the display limit, even without a display sorter. That path now copies only
+the displayed subset; an application sorter still receives isolated copies of
+all candidates. Annotation and affixation retain their isolation from the raw
+projection. No public API changes and no terminal latency improvement is claimed
+without a matching native workload. Existing benchmark metadata supplies an
+identity sorter, so it deliberately continues to exercise the full-sorter path.
+
+Local Emacs 29.3: all 360 ERT pass, strict package/example byte compilation and
+checkdoc pass. New regressions cover destructive annotation properties with and
+without a sorter, and destructive sorter values cannot alter the projection.
+Independent review and exact-head hosted CI remain required before integration.
+Native Linux/macOS 31.1 coverage must verify completion behavior; local batch
+checks do not replace that evidence. Fixed beta refs are unchanged.
+
+Next: add measured stage attribution and an explicitly unsorted completion
+workload, then investigate restoration costs. Broader display/application use
+and the external MELPA gates remain open.
+
 ## Popup movement shipped and measured — 2026-10-27
 
 [PR #54](https://github.com/vv111y/emacs-tui/pull/54) merged at

@@ -150,9 +150,12 @@ Honor completion styles, predicates, base size and the suffix boundary."
          (sorter (emacs-tui-completion--property metadata 'display-sort-function extra))
          (affix (emacs-tui-completion--property metadata 'affixation-function extra))
          (annotate (emacs-tui-completion--property metadata 'annotation-function extra))
-         (all (mapcar #'copy-sequence (plist-get projection :candidates)))
-         (sorted (if sorter (funcall sorter all) all))
-         (shown (cl-subseq sorted 0 (min (length sorted) emacs-tui-completion-limit)))
+         ;; A sorter may destructively change any candidate, so isolate its full
+         ;; input.  Without one, only the bounded decoration input needs copies.
+         (all (plist-get projection :candidates))
+         (sorted (if sorter (funcall sorter (mapcar #'copy-sequence all)) all))
+         (subset (cl-subseq sorted 0 (min (length sorted) emacs-tui-completion-limit)))
+         (shown (if sorter subset (mapcar #'copy-sequence subset)))
          (decorated (if affix (funcall affix (mapcar #'copy-sequence shown))
                       (mapcar (lambda (raw) (list raw "" (if annotate
                                                             (or (funcall annotate raw) "")
