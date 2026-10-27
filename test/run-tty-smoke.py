@@ -2,11 +2,19 @@
 # Assisted-by: Codex:gpt-6.1-sol-wm
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+import argparse, shutil
 import errno, fcntl, os, pathlib, pty, select, signal, struct, subprocess, sys, tempfile, termios, time
 
 def attach_terminal():
     os.setsid()
     fcntl.ioctl(0, termios.TIOCSCTTY, 0)
+
+parser = argparse.ArgumentParser(description="Run an interactive Emacs smoke fixture")
+parser.add_argument("--tmux", action="store_true", help="use an isolated tmux server")
+parser.add_argument("script", nargs="?", default="test/tty-smoke.el")
+args = parser.parse_args()
+if args.tmux and not shutil.which("tmux"):
+    parser.error("--tmux requires tmux on PATH")
 
 with tempfile.TemporaryDirectory() as directory:
     report = pathlib.Path(directory) / "result.txt"
@@ -15,8 +23,16 @@ with tempfile.TemporaryDirectory() as directory:
     master, slave = pty.openpty()
     fcntl.ioctl(slave, termios.TIOCSWINSZ, struct.pack("HHHH", 40, 120, 0, 0))
     env = dict(os.environ, TERM="xterm-256color", EMACS_TUI_SMOKE_REPORT=str(report), EMACS_TUI_SMOKE_READY=str(ready), EMACS_TUI_SMOKE_PAINT=str(paint))
-    script = sys.argv[1] if len(sys.argv) > 1 else "test/tty-smoke.el"
-    process = subprocess.Popen([os.environ.get("EMACS", "emacs"), "-Q", "-nw", "-L", ".", "-l", script], stdin=slave, stdout=slave, stderr=slave, env=env, preexec_fn=attach_terminal)
+    command = [os.environ.get("EMACS", "emacs"), "-Q", "-nw", "-L", ".", "-l", args.script]
+    socket = str(pathlib.Path(directory) / "tmux.sock")
+    if args.tmux:
+        # Never attach to, configure, or terminate a user's existing server.
+        env.pop("TMUX", None)
+        config = pathlib.Path(directory) / "tmux.conf"
+        config.write_text("set -g status off\nset -g default-terminal tmux-256color\n")
+        command = ["tmux", "-S", socket, "-f", str(config),
+                   "new-session", "-s", "smoke", "--", *command]
+    process = subprocess.Popen(command, stdin=slave, stdout=slave, stderr=slave, env=env, preexec_fn=attach_terminal)
     os.close(slave)
     transcript = bytearray()
     deadline = time.monotonic() + 30
@@ -43,7 +59,13 @@ with tempfile.TemporaryDirectory() as directory:
             process.wait()
             result = 1
         if report.exists():
-            print(report.read_text(), end="")
+            report_text = report.read_text()
+            print(report_text, end="")
+            # tmux client status does not propagate the pane command status.
+            if not report_text.startswith("PASS "):
+                result = 1
+            if args.tmux:
+                print("Transport: isolated tmux server; outer PTY paint/resize checks required")
             # Fixtures may require actual terminal paint, beyond Lisp frame state.
             if paint.exists() and (not paint.read_bytes() or paint.read_bytes() not in transcript):
                 print("Expected popup text was not painted on the real terminal.")
@@ -59,3 +81,7 @@ with tempfile.TemporaryDirectory() as directory:
         if process.poll() is None:
             process.kill()
             process.wait()
+        if args.tmux:
+            subprocess.run(["tmux", "-S", socket, "kill-server"],
+                           stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+                           timeout=5, check=False)

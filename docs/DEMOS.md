@@ -255,3 +255,20 @@ inserts and undoes a snippet, edits the catalog and layout playground, resizes
 font, multiplexer and graphical display coverage still needs human use. The
 native popup fixture additionally exercises the inspector through scrolling,
 eight moves, acknowledgement and dismissal without changing source text or undo.
+
+## Automated tmux checks
+
+With tmux and a matching native-child-frame Emacs checkout available, run:
+
+```sh
+python3 test/run-tty-smoke.py --tmux test/tty-popup-smoke.el
+python3 test/run-tty-smoke.py --tmux test/tty-completion-smoke.el
+python3 test/run-tty-smoke.py --tmux test/tty-input-smoke.el
+```
+
+The driver creates a private tmux server/socket with a minimal configuration,
+disables its status line, and checks resize delivery and required popup paint on
+the outer PTY. It terminates only that private server on exit. The separate Linux/macOS
+CI workflow exercises this configuration on Emacs 31.1. This does not validate
+personal tmux configurations, zellij, physical terminal emulators or GUI displays.
+A missing tmux executable is an error, not a skipped success.
