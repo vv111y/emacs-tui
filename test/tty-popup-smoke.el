@@ -6,9 +6,9 @@
 (setq load-prefer-newer t)
 (require 'cl-lib)
 (require 'emacs-tui-gallery (expand-file-name "../examples/emacs-tui-gallery.el"
-                                                   (file-name-directory (or load-file-name buffer-file-name))))
+                                                   (file-name-directory (or load-file-name (bound-and-true-p byte-compile-current-file) buffer-file-name))))
 (require 'emacs-tui-popup-demo (expand-file-name "../examples/emacs-tui-popup-demo.el"
-                                                      (file-name-directory (or load-file-name buffer-file-name))))
+                                                      (file-name-directory (or load-file-name (bound-and-true-p byte-compile-current-file) buffer-file-name))))
 
 (defvar emacs-tui-popup-smoke--source nil)
 (defvar emacs-tui-popup-smoke--window nil)
@@ -61,7 +61,11 @@
 
 (defun emacs-tui-popup-smoke--cycles (app)
   (let ((text (buffer-string)) (point (point)) (undo (cl-remove nil buffer-undo-list))
-        (edges (window-edges)) (selected (emacs-tui-current-item app)) positions)
+        (edges (window-edges)) (selected (emacs-tui-current-item app))
+        (view-buffer (emacs-tui--view-buffer (emacs-tui--resolve-view app 'candidates)))
+        (tick (with-current-buffer (emacs-tui--view-buffer (emacs-tui--resolve-view app 'candidates))
+                (buffer-chars-modified-tick)))
+        positions)
     (dotimes (_ 8)
       (execute-kbd-macro (kbd "C-c C-p"))
       (redisplay t)
@@ -87,11 +91,91 @@
                          (frame-char-height emacs-tui-popup-smoke--parent)))
         (push actual positions))
       (cl-assert (equal selected (emacs-tui-current-item app)))
+      ;; Moving unchanged geometry must not erase/rebuild candidate text.
+      (cl-assert (= tick (with-current-buffer view-buffer (buffer-chars-modified-tick))))
       (cl-assert (equal text (buffer-string)))
       (cl-assert (= point (point)))
       (cl-assert (equal edges (window-edges)))
       (cl-assert (equal undo (cl-remove nil buffer-undo-list))))
-    (cl-assert (= 8 (length (delete-dups positions))))))
+    (cl-assert (= 8 (length (delete-dups positions))))
+    (let* ((popup (emacs-tui--workspace-popup app))
+           (width (emacs-tui--popup-width popup)))
+      (unwind-protect
+          (progn
+            (setf (emacs-tui--popup-width popup) 12)
+            (setq emacs-tui-popup-demo--position (emacs-tui-reposition-popup app))
+            (cl-assert (= 12 (frame-width (emacs-tui--workspace-frame app))))
+            (cl-assert (< tick (with-current-buffer view-buffer (buffer-chars-modified-tick))))
+            (cl-assert (equal selected (emacs-tui-current-item app))))
+        (setf (emacs-tui--popup-width popup) width)
+        (setq emacs-tui-popup-demo--position (emacs-tui-reposition-popup app)))
+      (setq tick (with-current-buffer view-buffer (buffer-chars-modified-tick)))
+      (emacs-tui-refresh app)
+      (cl-assert (< tick (with-current-buffer view-buffer (buffer-chars-modified-tick))))
+      (emacs-tui-popup-smoke--host))))
+
+(defun emacs-tui-popup-smoke--retained-scroll ()
+  ;; Exercise actual scrolled native contents and the fast-path failure cleanup.
+  (let* ((closed 0)
+         (app (emacs-tui-popup
+               :width 32 :height 8 :position 'north
+               :on-close (lambda (_) (cl-incf closed))
+               :view (emacs-tui-view
+                      :id 'rows :multi-select t
+                      :items (cl-loop for i below 100 collect
+                                      (list :id i :label
+                                            (format "row %03d 日本語 é long annotation" i))))))
+         (child (emacs-tui--workspace-frame app))
+         (popup (emacs-tui--workspace-popup app))
+         (begin (emacs-tui--popup-begin popup)) (end (emacs-tui--popup-end popup))
+         (view (emacs-tui--resolve-view app 'rows))
+         (buffer (emacs-tui--view-buffer view))
+         (window (emacs-tui--view-window view)))
+    (unwind-protect
+        (progn
+          (emacs-tui-next-item app 30)
+          (emacs-tui-toggle-mark app)
+          ;; Settle layout first: a full buffer reinstallation can reset the
+          ;; native minimum horizontal scroll.  Then use interactive semantics.
+          (emacs-tui-refresh app)
+          (with-selected-window window (scroll-left 3 t))
+          (redisplay t)
+          (cl-assert (equal (emacs-tui--workspace-geometry app) (emacs-tui--geometry app)))
+          (let ((start (window-start window)) (point (window-point window))
+                (hscroll (window-hscroll window)) (vscroll (window-vscroll window t))
+                (selection (emacs-tui-current-item app)) (marks (emacs-tui-marked-items app))
+                (tick (with-current-buffer buffer (buffer-chars-modified-tick))))
+            (cl-assert (> start (with-current-buffer buffer (point-min))))
+            (cl-assert (> hscroll 0))
+            (cl-assert (= 1 (length marks)))
+            (dotimes (_ 8)
+              (emacs-tui-reposition-popup app)
+              (redisplay t)
+              (emacs-tui-popup-smoke--host)
+              (cl-assert (eq child (emacs-tui--workspace-frame app)))
+              (cl-assert (= start (window-start window)))
+              (cl-assert (= point (window-point window)))
+              (cl-assert (= hscroll (window-hscroll window)))
+              (cl-assert (= vscroll (window-vscroll window t)))
+              (cl-assert (= tick (with-current-buffer buffer (buffer-chars-modified-tick))))
+              (cl-assert (equal selection (emacs-tui-current-item app)))
+              (cl-assert (equal marks (emacs-tui-marked-items app)))))
+          (cl-assert (equal (emacs-tui--workspace-geometry app) (emacs-tui--geometry app)))
+          (cl-letf (((symbol-function 'emacs-tui--fit-child)
+                     (lambda (_) (error "Injected popup fitting failure"))))
+            (cl-assert (eq 'user-error
+                           (condition-case err (emacs-tui-reposition-popup app)
+                             (user-error (car err))))))
+          (cl-assert (not (emacs-tui-live-p app)))
+          (cl-assert (not (frame-live-p child)))
+          (cl-assert (not (buffer-live-p buffer)))
+          (cl-assert (not (marker-buffer begin)))
+          (cl-assert (not (marker-buffer end)))
+          (cl-assert (= closed 1))
+          (cl-assert (not (memq #'emacs-tui--popup-post-command post-command-hook)))
+          (cl-assert (not (memq #'emacs-tui--popup-terminal-deleted delete-terminal-functions)))
+          (emacs-tui-popup-smoke--host))
+      (emacs-tui-close app))))
 
 (defun emacs-tui-popup-smoke--coexistence ()
   ;; A modal child remains the typing target while its own field hosts a popup.
@@ -123,6 +207,7 @@
       (cl-assert (not (emacs-tui-live-p app)))
       (emacs-tui-popup-demo-mode -1))
     (emacs-tui-popup-smoke--host)
+    (emacs-tui-popup-smoke--retained-scroll)
     (emacs-tui-popup-smoke--coexistence)
     (emacs-tui-popup-smoke--host)
     ;; Repurposing the host is a user choice; disposal must not reclaim it.
@@ -153,7 +238,7 @@
   (cancel-timer emacs-tui-popup-smoke--timer)
   (with-temp-file (getenv "EMACS_TUI_SMOKE_REPORT")
     (insert (if emacs-tui-popup-smoke--supported
-                (format "PASS Emacs %s; native TTY popup; host typing/focus/layout preserved; terminal paint marker required; 8 distinct word-relative positions; candidate navigation/filter/accept/undo; Unicode; resize=120->90->140; modal coexistence; source/frame disposal; cleanup\n" emacs-version)
+                (format "PASS Emacs %s; native TTY popup; host typing/focus/layout preserved; terminal paint marker required; 8 distinct word-relative positions; retained rows/scroll/marks; resized viewport and explicit refresh; fitting-failure cleanup; candidate navigation/filter/accept/undo; Unicode; resize=120->90->140; modal coexistence; source/frame disposal; cleanup\n" emacs-version)
               (format "PASS Emacs %s; native wide/combining glyph bounds; unsupported popup rejected without changing host; no split fallback; resize=120->90->140; native presentation NOT exercised\n" emacs-version))))
   (kill-emacs 0))
 
