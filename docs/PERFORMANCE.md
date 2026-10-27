@@ -1,5 +1,13 @@
 # Reproducing latency measurements
 
+[Paired native movement measurements](../bench/results/2026-10-27-popup-movement/README.md)
+now cover PR #54's retained-row reflow on Linux/macOS 31.1. Eight lossless raw
+reports and an audit script preserve all 6,720 records, source provenance and
+p50/p95/p99. At 10k rows the bytecode PTY movement median changes from 39.940 to
+2.331 ms on Linux and 26.957 to 1.329 ms on macOS. Small-list Linux tails do not
+uniformly improve; sequential shared-host measurements are not universal bounds.
+
+
 The [native popup baseline](../bench/results/2026-10-27-native-popup/README.md)
 retains Linux/macOS 31.1 source/bytecode profiles with 200 measured commands per
 case, raw samples and qualified p50/p95/p99. It identifies expensive full popup

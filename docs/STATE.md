@@ -1,40 +1,51 @@
 # Project state
 
-## Popup compass movement optimization — preparation, 2026-10-27
+## Popup movement shipped and measured — 2026-10-27
 
-The native baseline identified full row reconstruction during compass movement.
-Position-only reflow now retains existing rows only when cached geometry is
-current and the fitted content viewport remains unchanged. The cached signature
-includes that viewport, so preexisting margin/header changes invalidate the
-fast path as well as size changes during fitting. Public refresh still renders.
-Native fitting, final ownership validation and unwind cleanup remain shared.
+[PR #54](https://github.com/vv111y/emacs-tui/pull/54) merged at
+0fd29554674e743f691a6664764f6d7c73f23c2a after exact-head independent review
+5663282467 and all eight runtime/package jobs (40463828758) plus both paired
+measurement jobs (40463828773) passed. Reviewed head 05f72bcb823c18ad4227b9e54b93772a70513ba2
+and tested merge e2c990014e4ce339ead3dcb17c8743138b22d9bb share tree
+69f224fdad859cf8bf12de2f03133358db0fe04c.
 
-Independent review reproduced a pre-fit margin invalidation gap in the first
-candidate and confirmed the fix. Local Emacs 29.3 passes 358 ERT, strict runtime
-and native-fixture compilation/checkdoc; the real-window margin regression models
-only native source/fitting. The local PTY verifies glyph bounds and honest
-unsupported presentation, not native positive behavior. Actual Linux/macOS 31.1
-gates add unchanged candidate text over eight moves, resize/public-refresh
-rendering, scrolled/marked row and native window-position preservation, plus
-fitting-failure disposal of captured child/buffer/markers and exact-once cleanup.
-The first native run failed the fixture's nonzero-hscroll precondition before
-moving: Emacs auto-hscroll reset a bare set-window-hscroll with point at column
-zero. Setup now uses normal scroll-left with its persistent minimum, retaining
-the nonzero assertion. This failing behavior check is not waived; fresh native
-CI and exact-head review remain required.
+Position-only reflow retains rows only when cached geometry is current and the
+fitted content viewport is unchanged. Public refresh and changed margins/size
+still render; native fitting, ownership validation and unwind cleanup remain.
+Independent review found and fixed a pre-fit margin invalidation gap. The first
+native test failed its nonzero horizontal-scroll setup; setup now completes
+refresh before normal scroll-left with a persistent minimum. No assertion was
+removed or failing check waived. Fresh Linux/macOS 31.1 tests pass all eight
+positions with retained row text, nonzero scroll, selection and marks, and
+verify captured child/buffer/marker disposal after fitting failure. All 358 ERT,
+strict compilation/checkdoc, package build/clean installation and compatibility,
+CAPF, terminal-client loss and lifecycle checks pass. Local Emacs 29.3 also
+passes 358 ERT and strict checks; local PTY proves only unsupported native mode.
 
-The comparison workflow uses PR-base/candidate checkouts with identical fixture
-bytes on each runner, 100/10,000 rows and 200 measured commands per case in
-source/bytecode modes. No speedup is claimed before inspecting the paired raw
-records. Hosted native checks, exact-head review and all CI remain integration
-gates. Neither fixed beta branch is changed.
+Eight losslessly retained reports in
+[the paired movement comparison](../bench/results/2026-10-27-popup-movement/README.md)
+contain 6,720 records from identical fixtures on baseline/candidate checkouts.
+The audit verifies compressed/raw hashes, every quantile, sample ordering,
+clock arithmetic, paired hosts and fixture bytes. At 10k rows, bytecode PTY
+movement median/p95/p99 changes from 39.940/44.695/47.523 to
+2.331/11.604/13.029 ms on Linux, and 26.957/28.854/30.042 to
+1.329/7.005/7.169 ms on macOS. Sequential hosted runs are not universal latency
+promises: some small-list Linux tails regress. Source undo is disabled in the
+disposable fixture; physical paint, creation and acceptance are not measured.
+All raw fields and warmups remain available. Fixed beta refs are unchanged.
 
-PR #53 integrated the audited baseline at
+PR #53 integrated the audited initial native baseline at
 e76da73b8935c6a199bedceb86f6b12f171b3736 after independent exact-head review and
 all eight runtime/package plus two profile jobs passed in runs 40461793720 and
-40461793763. Raw 7,560-record evidence and audit script are retained. Next after
-this candidate: inspect paired measurements, preserve raw comparisons, then
-attribute completion restoration costs and broaden real application/display use.
+40461793763. Its raw 7,560-record evidence and audit script remain retained.
+
+Next: attribute completion restoration costs before optimizing them; the native
+baseline shows substantial framework/projection work beyond table callbacks.
+Emacs 31 already hashes long delete-dups inputs, so do not presume quadratic
+deduplication. Broaden real application and terminal/GUI use, collect beta API
+feedback and complete release gates in docs/MELPA.md. No maturity or MELPA
+acceptance is claimed; public maintenance and substantive human review remain
+external gates. The paired evidence publication changes no package runtime.
 
 
 ## Native popup baseline — 2026-10-27
