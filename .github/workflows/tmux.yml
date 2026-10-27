@@ -1,0 +1,40 @@
+name: Tmux native smoke
+on:
+  pull_request:
+    paths:
+      - '*.el'
+      - 'examples/**'
+      - 'test/**'
+      - '.github/workflows/tmux.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: tmux-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - uses: purcell/setup-emacs@34c6ded44899fd1bf74d2889558befd1750e61a7
+        with:
+          version: '31.1'
+      - name: Install tmux
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes tmux
+          tmux -V
+          emacs --version
+          emacs -Q --batch --eval "(unless (featurep 'tty-child-frames) (error \"Native TTY child frames required\"))"
+      - name: Smoke driver protocol tests
+        run: python3 -m unittest discover -s test -p test_tty_smoke_driver.py
+      - name: Native popup and input inside tmux
+        timeout-minutes: 5
+        run: |
+          python3 test/run-tty-smoke.py --tmux test/tty-popup-smoke.el
+          python3 test/run-tty-smoke.py --tmux test/tty-completion-smoke.el
+          python3 test/run-tty-smoke.py --tmux test/tty-input-smoke.el

@@ -1,5 +1,33 @@
 # Project state
 
+## Isolated tmux validation path — 2026-10-27
+
+Added optional --tmux transport to the interactive smoke driver. Each run owns a
+private socket/config/server, disables status-line geometry changes, preserves
+the existing outer-PTY resize and paint checks, and kills only its own server.
+A tmux client does not reliably propagate pane exit status, so reports must now
+explicitly start with PASS; failure reports cannot pass via a zero client exit.
+Three real-PTY Python protocol tests cover success, failure-report/zero-exit and
+missing paint. A separate Ubuntu Emacs 31.1 workflow requires tty-child-frames
+and exercises popup/gallery/inspector, completion and native input inside tmux.
+
+Local: Python compilation and all three protocol tests pass; missing tmux fails
+explicitly. This environment no longer has the earlier local Emacs executable,
+and neither tmux nor zellij is installed. No new local Emacs or multiplexer
+success is claimed. Independent review and full hosted CI, including the new
+tmux job, remain integration gates. This tests a minimal tmux configuration,
+not physical emulator/font combinations, user configs, zellij or GUI behavior.
+
+PR #65 merged at e67de7d1dc0b6a047912a39e49d2a6e2c508b6a1 after independent
+review 5666805861 and CI 40501521928 passed. Reviewed head
+3844ab2b44918e463076e5af79e77cff2c3fc738 and tested merge
+0b0ec59c0cf4167c8207369cd079bceb4cbacd9b share tree
+4bf4a0cfe3c0d1bb5dbc39a5d0ef65d8c3f06a91. Both native31 logs explicitly confirm
+379 ERT and inspector gallery-launch/scroll/reposition/acknowledge/dismiss.
+
+Next: resolve any hosted multiplexer findings, expand display coverage and
+collect actual beta feedback. Fixed beta refs and MELPA external gates remain.
+
 ## Native inspector gallery dispatch coverage — 2026-10-27
 
 The native popup fixture now selects the inspector in the real gallery, opens
