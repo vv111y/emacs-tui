@@ -5,7 +5,19 @@ initial beta3 preparation are preserved byte-for-byte in
 [STATE-HISTORY.md](STATE-HISTORY.md). Their pending checks describe their own
 dates, not current blockers; later intermediate edits remain in Git history.
 
-## Floating Details resize candidate — 2026-10-27
+## Oversized native resize coverage candidate — 2026-10-27
+
+The shared GTK/TTY resize journey now requests 10000×10000 cells, verifies
+actual frame bounds clamp inside the parent while requested dimensions survive,
+then restores 50×12 on the same child with source focus retained. Existing
+full-source and sibling-isolation assertions remain. Local 424 ERT, strict
+compile/checkdoc, shared-fixture compilation and diffcheck pass; new native
+execution and independent review remain required. This adds regression coverage,
+not a new clamping implementation. Next: review fresh GTK/Linux/macOS outcomes
+and continue consumer-driven functionality; physical terminal/IME coverage and
+MELPA external gates remain unproven.
+
+## Integrated floating Details resize — 2026-10-27
 
 The public `emacs-tui-resize-popup` requests new dimensions on the same child
 frame, using existing native clamping/reflow and cleanup. Invalid dimensions,
@@ -18,9 +30,11 @@ for stronger native coverage: the TTY long-list journey now checks the public
 API's return value, same child, requested placement, selection and marks on
 grow/shrink. Shared GTK/TTY checks actual growth, same-child shrink, reopened
 size, sibling isolation and exact-once cleanup after a failed native resize.
-These new native journeys still require fresh hosted execution; local batch
-results are not proof of frame behavior. Final review and CI gate publication
-and integration. Fixed beta refs are unchanged.
+PR #84 merged at 0cbb600dc03424d8eb37a7aaa2d15253f94329be after review
+5675233536 and all thirteen final-head checks: CI 40594370108 (eight jobs),
+GTK 40594370130, Linux/macOS tmux 40594370115 and movement comparison
+40594370123 (two jobs). Reviewed bea94e2f and tested merge cc34390f share
+integrated tree 7fbaedf0debc27689d5c24367b8cd00fa21f1f6a. Fixed beta refs unchanged.
 
 ## Integrated reentrant popup movement correction — 2026-10-27
 
