@@ -51,7 +51,8 @@ milestones remain capability goals, not claims of completed generality.
   collapse with keyboard access to every view.
 - Session-local customization, discoverable keys and accessible non-color cues.
 - Generic graph demo covering recursive forward/backlink browsing; separately
-  implement XOB adapter against its actual public APIs.
+  implement XOB adapter against its actual public APIs. The pinned source
+  assessment and first adapter boundary are in [XOB-INTEGRATION.md](docs/XOB-INTEGRATION.md).
 
 ## 3. Async providers and composition
 
