@@ -1,5 +1,38 @@
 # Project state
 
+## Completion fixes integrated and paired evidence retained — 2026-10-27
+
+PR #61 merged at 0673be3d75dc9aa25b5b024eeca393212e3b8fe1 after exact-head
+review 5665586060 and all eight runtime/package jobs in CI 40488618713 plus
+four comparison jobs in 40488618876 passed. Reviewed head
+c5900d9ab5539a304d4ee274f2be446914c60e29 and tested merge
+af2fa8d686d7f98faa078eac78c2e1d98016f7e3 share tree
+dbcac547fb031ab812e2caabd2592e5c8c40c917. All 364 ERT, strict checks,
+native Linux/macOS CAPF display/acceptance, lifecycle and terminal-loss tests,
+benchmark protocols and clean package installs pass. Native file-completion
+tests now confirm affixation-returned candidate faces reach the rendered buffer
+while acceptance and undo preserve plain source text.
+
+[The paired lifetime evidence](../bench/results/2026-10-27-completion-lifetime/README.md)
+retains all 16 reports from final PR #60 run 40487652908: 6,720 records.
+Original ZIP hashes, raw report bytes, all eight measured source hashes per
+side, every aggregate/per-command quantile and all 32 table rows were checked
+independently. The committed auditor passes and checks matching hosts/fixtures,
+GC settings, stage calls, sample order and clock arithmetic. Timings are mixed,
+including regressions: no uniform latency improvement is established. The
+verified benefit is releasing unused raw snapshots between commands; initial
+matching/copying costs and provider-owned caches remain. This publication changes
+no runtime behavior. Fixed beta refs remain unchanged.
+
+Next: return to concrete general-purpose interaction and display coverage. A
+source-anchored object/documentation inspector should demonstrate non-completion
+data and explicit application actions using the existing popup primitives;
+prove any needed scrolling or interaction API through that application. Continue
+human beta use and broader GUI/emulator/multiplexer testing. Avoid speculative
+completion rewrites or global GC tuning based on these synthetic workloads.
+MELPA maintenance history, substantive human review and the name advisory remain
+open; no mature/stable/accepted claim is made.
+
 ## Affixation presentation preserved — 2026-10-27
 
 The completion adapter now uses the validated candidate returned by the

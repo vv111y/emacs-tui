@@ -1,5 +1,12 @@
 # Reproducing latency measurements
 
+[Paired completion snapshot measurements](../bench/results/2026-10-27-completion-lifetime/README.md)
+retain all 16 source/bytecode reports (6,720 records), paired host/fixture checks,
+and every insertion/deletion p50/p95/p99 for 100/10,000 matches. Results are mixed:
+the snapshot lifetime reduction is verified, but no uniform latency improvement
+is established. The full table includes regressions and scheduling-sensitive
+tails. Raw allocation/GC counters are preserved; snapshot creation is unchanged.
+
 The completion lifetime comparison workflow runs baseline and candidate with
 byte-identical fixtures on each runner. It covers 100/10,000-row completion
 filtering, identity/absent sorters in separate Linux/macOS jobs, and source plus
