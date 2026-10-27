@@ -4,30 +4,48 @@ Updated 2026-10-26 (America/Toronto).
 
 ## Active implementation
 
-The owner reported that several gallery entries felt like duplicates. The
-redesign replaces five overlapping live-buffer browsers/searches with three
-self-contained applications: a three-lane task board with batch moves, a chapter
-reader with a wrapped page and tree path search, and a single borrowed-window
-snippet picker with explicit insertion and native undo. The gallery now has
-eight entries. The older buffer examples remain available through their direct
-commands and Make targets as development references; the original graph demo
-and fixed beta1 ref are preserved. No runtime API changes are needed.
+Actual screen inspection during the gallery redesign exposed a pre-existing
+fill-table bug: the rightmost digit of catalog sizes and streaming durations
+was replaced by Emacs's terminal truncation glyph. The renderer allocated the
+entire window body width even though native redisplay reserves a line-end cell.
+The focused fix uses `window-max-chars-per-line`, which accounts for native
+indicator space and font width, before subtracting any selection-mark prefix.
+Fixed-width columns and their minimum-width overflow policy are unchanged.
+See the native [window size API](https://www.gnu.org/software/emacs/manual/html_node/elisp/Window-Sizes.html).
 
-Local Emacs 29.3/Linux passed 320 ERT, strict byte compilation and checkdoc.
-Four new behavior tests cover batch moves and session isolation, reader search
-versus page selection and restored expansion, snippet insertion/cancel/undo,
-and read-only rejection followed by tracked host edits. Every gallery launch now asserts its distinct initial
-view, so an accidental common dispatcher is caught. The actual-terminal
-showcase launches the new applications from the gallery, moves a marked batch,
-searches/reads a chapter and inserts/undoes a snippet before its existing
-catalog/layout/resize/streaming journey. It passed locally with native JIT off
-for the extracted runtime's unavailable compiler, as before. Real PTY screen
-captures at 80 and 120 columns were inspected; board labels and reader headers
-were shortened for narrow panes. Independent review tightened snippet validation
-to send the actual native undo key after insertion without manufacturing a
-post-insertion undo boundary. Physical emulator/font and graphical display
-QA remain human-use gaps. Independent review and exact-head hosted matrix
-checks remain integration gates for this candidate.
+The updated regression checks header/data rows with and without mark prefixes
+against usable display width and preserves numeric payloads. The actual-terminal
+table fixture checks the final numeric glyph's coordinates and zero horizontal
+scroll after 90/140-column resize. The old core fails the revised ERT at
+80 <= 79, and the old core also fails the revised actual-terminal width check
+after resize. The fixed core passes both. Independent review also bypassed only the width
+assertion in a temporary negative fixture; the old core then failed the final
+glyph coordinate bound, confirming actual redisplay loss. Local Emacs 29.3/Linux passed 320 ERT, strict compilation and checkdoc,
+the updated real table PTY, and the complete gallery showcase PTY. Actual catalog screens at 80/120 columns and
+the streaming screen at 120 now show complete numeric values. Graphical/fringe
+variants and physical terminal emulators remain external validation gaps.
+Independent review and exact-head CI remain integration gates for this fix.
+
+PR #44 merged at `11041dc60def1a3d57786fb1daafb731dc36c052` after independent
+coding-agent review and all eight exact-head jobs in
+[40433265058](https://github.com/vv111y/emacs-tui/actions/runs/40433265058).
+The owner had reported repetitive gallery demos. Three new applications replace
+five overlapping live-buffer examples: a three-lane task board with batch moves,
+a chapter reader with a wrapped page and ancestor-path search, and a single
+borrowed-window snippet picker with explicit insertion and native undo. The
+gallery has eight entries; earlier buffer examples remain direct development
+targets. The original graph demo and fixed beta1 ref are preserved.
+
+Each gallery launch now asserts its distinct initial view. Four new behavior
+tests cover board session isolation and batch moves; reader search, selection
+and expansion; snippet insertion/cancel/native undo; and read-only rejection
+followed by tracked host edits. Review strengthened undo coverage to send the
+actual C-/ key without a manufactured trailing boundary. All runtime jobs passed
+320 ERT. Linux/macOS 31.1 each passed the child-frame terminal showcase with
+board batch moves, reader search, snippet insertion/undo, catalog actions,
+native editing, 120->90->140 resize, streaming failure/recovery and cleanup.
+80/120-column screen inspections confirm the new applications' distinct
+presentation. Physical emulator/font and graphical display QA still need use.
 
 PR #43 merged at `625b1ebfdb5356d79cd613a7842fb5fcb9c121c0` after independent
 review and all eight jobs in
