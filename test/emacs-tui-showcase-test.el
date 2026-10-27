@@ -43,7 +43,8 @@
 
 (ert-deftest emacs-tui-showcase-gallery-loads-and-launches-every-example ()
   (emacs-tui-showcase-test--with-host
-    (dolist (entry emacs-tui-gallery--entries)
+    (dolist (entry (cl-remove-if (lambda (item) (plist-get item :available))
+                                 emacs-tui-gallery--entries))
       (switch-to-buffer source)
       (let* ((before timer-list)
              (gallery (emacs-tui-gallery))

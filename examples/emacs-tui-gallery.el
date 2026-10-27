@@ -20,7 +20,11 @@
   "Directory containing the gallery and its sibling examples.")
 
 (defconst emacs-tui-gallery--entries
-  '((:id board :label "Task board" :kind "Persistent"
+  '((:id popup :label "Inline candidate popup (8 positions)" :kind "Inline"
+     :available emacs-tui-popup-supported-p
+     :feature emacs-tui-popup-demo :command emacs-tui-popup-demo
+     :tour "Candidates float around the word being typed. The source stays in place.\n\n1. Launch to enable the demo in your original buffer. Type map.\n2. M-n / M-p selects; TAB explicitly replaces the word.\n3. C-c C-p cycles N, NE, E, SE, S, SW, W and NW.\n4. Keep typing to filter candidates; normal undo still works.\n5. C-g dismisses; C-c C-q disables the demo and restores bindings.\n\nNative TTY child frames (feature tty-child-frames) or a graphical display are required. Near edges placement is clamped. make popup-demo opens a centered sample document instead.")
+    (:id board :label "Task board" :kind "Persistent"
      :feature emacs-tui-board-demo :command emacs-tui-board-demo
      :tour "Three independent task lanes. No search field or preview pane.\n\n1. > moves the selected task forward and follows it to the next lane.\n2. < moves it back. TAB switches lanes without changing tasks.\n3. C-c C-m marks several tasks; > or a moves the marked batch.\n4. Inspect the counts in each lane; completed tasks stay visible.\n5. Close and reopen: each board has its own fresh task state.\n\nSession memory only. No project files or Emacs buffers are changed.")
     (:id catalog :label "Object catalog" :kind "Persistent"
@@ -62,6 +66,9 @@
          (feature (plist-get item :feature))
          (command (plist-get item :command)))
     (unless item (user-error "Choose a demo first"))
+    (when (and (plist-get item :available)
+               (not (funcall (plist-get item :available))))
+      (user-error "This demo requires graphical or native TTY child frames"))
     (require feature (expand-file-name (concat (symbol-name feature) ".el")
                                       emacs-tui-gallery--directory))
     (unless (commandp command) (user-error "Example command is unavailable"))

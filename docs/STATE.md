@@ -4,6 +4,61 @@ Updated 2026-10-26 (America/Toronto).
 
 ## Active implementation
 
+The owner requested source-preserving ephemeral popups with eight positions
+around the word at point. The new `emacs-tui-popup` presentation owns one native
+child frame and a read-only view, leaving the source window/buffer and typing
+focus intact. It shares update, selection, actions and disposal with existing
+sessions. `emacs-tui-reposition-popup` chooses or cycles N/NE/E/SE/S/SW/W/NW.
+Source glyph endpoints and actual child dimensions determine placement; edges
+are clamped to the parent viewport. Wrapped/partly hidden ranges use point.
+Strict native child-frame support is required; an unsupported terminal never
+falls back to a split window. Popup frames are excluded from modal focus
+routing, with a separate terminal-disposal hook and tracked source markers.
+
+The new demo enables a buffer-local completion policy in the original source;
+`make popup-demo` explicitly creates a centered disposable sample document.
+Typing filters sample words in the same child, M-n/p selects, C-c C-p moves,
+TAB accepts explicitly, C-g dismisses and C-c C-q disables. Undo stays native.
+The gallery adds this inline entry and retains its chooser on unsupported
+displays. Public API, controls, data effects and capability limits are documented.
+
+Local Emacs 29.3/Linux passed 331 ERT, strict compilation/checkdoc, the modeled
+matching/foreign-terminal disposal regression and the existing gallery showcase PTY.
+The new real PTY verifies native wide/combining glyph bounds and rejects popup
+creation without modifying/splitting the host on this unsupported display,
+including 120->90->140 resize. It does NOT establish positive child-frame popup
+behavior. Independent review caught a real wide-glyph undercount from the native
+single-object accessor; exclusive range endpoints now correctly measure 日本=4
+and é=1 terminal cells. The combining regression uses endpoint data, including
+compiled-library execution. An early fixture parse error and the failing wide
+probe are not counted as passes.
+
+The new 31.1 PTY path requires actual terminal paint of a popup-only marker in
+addition to Lisp frame state. It exercises original-source gallery activation,
+native typing/focus/layout, eight distinct central placements, selection and
+same-child filtering, explicit acceptance and native undo, Unicode, automatic
+resize, modal/popup coexistence, read-only acceptance rejection and source/frame
+cleanup. Older runtimes exercise the honest unsupported path. Source validity,
+initialization failure, callback focus choices and terminal-identity cleanup have
+ERT coverage. Initial head cb20ad1/run 40445584819 passed Linux/macOS31's 331 ERT and prior
+PTYs, then failed the first west move because native coordinates and reported frame
+parameters diverged. Upstream frame.c shows the direct position setter updates
+TTY internal coordinates only; the parameter setter also stores left/top and
+invalidates root composition. Popup movement now uses that native parameter
+path, and the fixture checks both internal frame-position and reported values
+with detailed diagnostics. The failed head is not counted as passing.
+Native 31.1 results, exact-head independent review and passing hosted CI remain
+integration gates; graphical window-manager/font variants and
+real abrupt popup-client hangup remain broader validation gaps. Package build
+needs hosted pinned dependencies unavailable in this local worktree.
+
+PR #45 merged at `1b6b782b85de7fa80976341d29912960d9a079a4` after independent
+exact-head coding-agent review and all eight jobs in
+[40434283570](https://github.com/vv111y/emacs-tui/actions/runs/40434283570).
+The reviewed tree matches main. Linux/macOS 31.1 each passed 320 ERT, actual table
+rightmost-glyph visibility through 90/140 resize and the full gallery showcase.
+The fixed beta1 branch remains unchanged at `fd976f725c2bbb111d9fe6700bcabccfab1f3774`.
+
 Actual screen inspection during the gallery redesign exposed a pre-existing
 fill-table bug: the rightmost digit of catalog sizes and streaming durations
 was replaced by Emacs's terminal truncation glyph. The renderer allocated the

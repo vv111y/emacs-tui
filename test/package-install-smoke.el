@@ -33,6 +33,12 @@
     (error "Actual definitions did not load from the installed package"))
   (unless (file-exists-p (expand-file-name "LICENSE" (file-name-directory (locate-library "emacs-tui"))))
     (error "Installed package lacks its license"))
+  (dolist (function '(emacs-tui-popup emacs-tui-popup-supported-p emacs-tui-reposition-popup))
+    (unless (and (fboundp function)
+                 (file-in-directory-p (symbol-file function 'defun) package-user-dir))
+      (error "Popup API did not load from the installed package: %s" function)))
+  (when (emacs-tui-popup-supported-p)
+    (error "Batch installation smoke must not advertise native popup display"))
   (save-window-excursion
     (let* ((alpha (list :id 'alpha :label "Alpha"))
            (beta (list :id 'beta :label "Beta")) session)

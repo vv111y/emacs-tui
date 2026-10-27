@@ -96,6 +96,7 @@
         (setq emacs-tui-showcase--frames (frame-list))
         ;; Launch dissimilar applications using the same chooser and native keys.
         (let ((gallery (emacs-tui-gallery)))
+          (emacs-tui-set-selection gallery 'demos 'board)
           (execute-kbd-macro (kbd "C-c C-o"))
           (cl-assert (not (emacs-tui-live-p gallery)))
           (let ((board (emacs-tui-current-session)))

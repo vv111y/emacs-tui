@@ -18,7 +18,8 @@ try this gallery. Do not mix new examples with an older installed toolkit.
 
 | Make target | What to explore | Explicit effects |
 | --- | --- | --- |
-| gallery | Eight distinct showcases, tours, launch and cleanup | Launches your choice |
+| gallery | Nine showcases, tours, launch and cleanup | Launches your choice |
+| popup-demo | Typing in the unchanged source, floating candidates, eight compass positions, native undo | TAB explicitly replaces the current word |
 | board-demo | Three task lanes, independent list state, batch moves and explicit application actions | Changes tasks in session memory |
 | reader-demo | Chapter tree, ancestor search paths, formatted pages, wrapping and reading position | Reads self-contained sample text |
 | snippet-demo | One borrowed-window palette, tracked origin point, explicit insertion and native undo | RET inserts a literal snippet in the launching buffer |
@@ -28,6 +29,7 @@ try this gallery. Do not mix new examples with an older installed toolkit.
 | graph-demo (also demo) | Original graph explorer, links/backlinks, Back/Forward, multi-selection, preview/commit split | C-c C-c inserts demo links into the original buffer |
 | layout-demo | Columns/rows/grid, maximize, hidden panels, tree, Unicode, editable text, live preview | Scratch edits only |
 
+The inline popup preserves source typing instead of allocating a tiled workspace.
 The board has three working lists and no search or preview. The reader is a
 chapter outline beside a document. The snippet picker occupies a single borrowed
 window. The composer uses stacked editable fields, the catalog is a table
@@ -56,6 +58,24 @@ checkout (start a fresh Emacs if another emacs-tui version is already loaded):
 ```
 
 ## Five-minute tours
+
+### Inline candidate popup
+
+Run `make popup-demo` in a terminal Emacs with native child-frame support, or
+choose the gallery entry to enable it in your original source buffer. The
+standalone target prepares a fresh centered sample document; gallery activation
+preserves your source text. Type map, then M-n to choose mapc. C-c C-p cycles
+N, NE, E, SE, S, SW, W and NW. Keep typing to filter: the same popup is reused.
+TAB explicitly accepts the selected word; normal undo reverses acceptance.
+C-g dismisses the popup, and C-c C-q disables the local demo bindings.
+
+The source window is never split or replaced by presentation. Candidate actions
+run in the source context, and the popup has no editing focus. Width/height and
+all positions are clamped to the parent viewport; near edges, positions may
+coincide or overlap the word. Wrapped/partly hidden words anchor at point.
+Older terminals leave the gallery open with a capability error instead of
+substituting a tiled interface. A graphical display or the tty-child-frames
+feature is required; the general toolkit still supports older terminals.
 
 ### Task board
 

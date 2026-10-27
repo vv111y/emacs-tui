@@ -45,7 +45,8 @@ milestones remain capability goals, not claims of completed generality.
 - Per-view queries, selection and scroll state; navigation history.
 - Context actions, multi-selection, tables, trees, form controls, metadata and
   formatted previews, prioritized through real applications.
-- Around-point north/east/south/west layout, overlays and full-workspace mode.
+- Eight-position source-anchored candidate popups; extend around-point views,
+  overlays and full-workspace presentation through concrete consumers.
 - User-switchable layouts, maximize/restore, hidden views and narrow-screen
   collapse with keyboard access to every view.
 - Session-local customization, discoverable keys and accessible non-color cues.

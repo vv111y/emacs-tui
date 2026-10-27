@@ -63,7 +63,10 @@
 (cl-defstruct (emacs-tui--workspace (:constructor emacs-tui--make-workspace))
   views (focus 0) layout backend on-query on-commit origin origin-window
   origin-frame frame query-buffer root windows active origin-kill-hook geometry
-  provider debounce request provider-views on-close host maximized tty-focus)
+  provider debounce request provider-views on-close host maximized tty-focus popup)
+
+(cl-defstruct (emacs-tui--popup (:constructor emacs-tui--make-popup))
+  buffer begin end position width height terminal)
 
 (cl-defstruct (emacs-tui--host (:constructor emacs-tui--make-host))
   window buffer point start hscroll vscroll)
@@ -420,6 +423,10 @@ Ignore narrowing and strip text properties.  Signal an error for other views."
     (unless (and (emacs-tui--workspace-p session)
                  (emacs-tui--workspace-active session))
       (user-error "No active emacs-tui workspace"))
+    (when (and (emacs-tui--workspace-popup session)
+               (not (emacs-tui--subtree session)))
+      (emacs-tui-close session)
+      (user-error "Popup source or surface is no longer available"))
     (when inferred (emacs-tui--sync-view-focus))
     session))
 
@@ -1023,7 +1030,8 @@ results belonging to the previous query.  Untouched views are retained."
 (defun emacs-tui--tty-child-p (session)
   "Whether SESSION has a live native terminal child frame."
   (let ((frame (emacs-tui--workspace-frame session)))
-    (and (frame-live-p frame) (not (display-graphic-p frame)))))
+    (and (not (emacs-tui--workspace-popup session))
+         (frame-live-p frame) (not (display-graphic-p frame)))))
 
 (defun emacs-tui--remember-tty-focus ()
   "Remember each terminal's last explicitly selected interface frame."
@@ -1034,6 +1042,7 @@ results belonging to the previous query.  Untouched views are retained."
                      (frame-terminal (emacs-tui--workspace-frame session))))
         (setf (emacs-tui--workspace-tty-focus session)
               (and (eq selected (emacs-tui--workspace-frame session))
+                   (not (emacs-tui--workspace-popup session))
                    (emacs-tui--subtree session) t))))))
 
 (defun emacs-tui--track-tty-focus ()
@@ -1160,7 +1169,211 @@ Server client disposal can defer both frame hooks until frames are dead."
     (setq emacs-tui--tty-deleting-frames nil)
     (advice-remove #'handle-switch-frame #'emacs-tui--tty-switch-frame)))
 
-(defun emacs-tui--fit-child (session)
+(defun emacs-tui-popup-supported-p (&optional window)
+  "Whether WINDOW's display supports popups without changing host windows.
+WINDOW defaults to the selected window.  Graphical child frames and displays
+advertising `tty-child-frames' are supported.  Older terminals do not fall
+back to split windows, since that would alter the host layout."
+  (setq window (or window (selected-window)))
+  (and (not noninteractive) (window-live-p window)
+       (or (display-graphic-p (window-frame window)) (featurep 'tty-child-frames))))
+
+(defun emacs-tui--popup-source-valid-p (session)
+  "Whether SESSION's popup still has its original visible source buffer."
+  (let* ((popup (emacs-tui--workspace-popup session))
+         (window (emacs-tui--workspace-origin-window session))
+         (buffer (emacs-tui--popup-buffer popup))
+         (parent (emacs-tui--workspace-origin-frame session))
+         (child (emacs-tui--workspace-frame session)))
+    (and (window-live-p window) (buffer-live-p buffer)
+         (eq (window-buffer window) buffer) (eq (window-frame window) parent)
+         (or (null child)
+             (and (frame-live-p child) (eq (frame-parent child) parent)
+                  (eq (frame-terminal child) (frame-terminal parent))))
+         (eq (marker-buffer (emacs-tui--popup-begin popup)) buffer)
+         (eq (marker-buffer (emacs-tui--popup-end popup)) buffer)
+         (with-current-buffer buffer
+           (<= (point-min) (emacs-tui--popup-begin popup)
+               (emacs-tui--popup-end popup) (point-max))))))
+
+(defun emacs-tui--popup-anchor (session)
+  "Return SESSION's visible anchor as a parent-relative pixel rectangle.
+A range on one visual line uses exclusive endpoint coordinates.  Wrapped or
+partially hidden ranges use the glyph at the source window's point instead."
+  (unless (emacs-tui--popup-source-valid-p session)
+    (error "Popup source is no longer available"))
+  (let* ((popup (emacs-tui--workspace-popup session))
+         (window (emacs-tui--workspace-origin-window session))
+         (parent (window-frame window))
+         (begin (marker-position (emacs-tui--popup-begin popup)))
+         (end (marker-position (emacs-tui--popup-end popup)))
+         (first (posn-at-point begin window))
+         (after (posn-at-point end window))
+         (point (posn-at-point (window-point window) window))
+         (edges (window-inside-pixel-edges window)) width)
+    (unless point (error "Popup anchor is offscreen"))
+    (if (and first after (< begin end)
+             (= (cdr (posn-x-y first)) (cdr (posn-x-y after)))
+             (<= 0 (car (posn-x-y first)) (car (posn-x-y after))
+                 (window-body-width window t))
+             (> (car (posn-x-y after)) (car (posn-x-y first))))
+        (setq width (- (car (posn-x-y after)) (car (posn-x-y first))))
+      (setq first point)
+      (let* ((at (window-point window))
+             (next (with-current-buffer (window-buffer window) (min (point-max) (1+ at))))
+             (size (window-text-pixel-size window at next nil
+                                           (* 2 (frame-char-height parent)))))
+        (setq width (max (frame-char-width parent) (car size)))))
+    (let* ((xy (posn-x-y first))
+           (height (cdr (posn-object-width-height first))))
+      (list (+ (car edges) (car xy)) (+ (cadr edges) (cdr xy)) width
+            (max (frame-char-height parent) (or height 0))))))
+
+(defun emacs-tui--fit-popup (session)
+  "Fit SESSION's popup around its visible source anchor without selecting it."
+  (let* ((popup (emacs-tui--workspace-popup session))
+         (parent (emacs-tui--workspace-origin-frame session))
+         (child (emacs-tui--workspace-frame session))
+         (cw (frame-char-width child)) (ch (frame-char-height child))
+         (pw (frame-inner-width parent)) (ph (frame-inner-height parent))
+         (columns (min (emacs-tui--popup-width popup) (/ pw cw)))
+         (rows (min (emacs-tui--popup-height popup) (/ ph ch))))
+    (when (or (< columns 2) (< rows 2)) (error "No space for the popup"))
+    (unless (and (= columns (frame-width child)) (= rows (frame-height child)))
+      (let ((frame-resize-pixelwise t)) (set-frame-size child columns rows)))
+    (when (or (> (frame-pixel-width child) pw) (> (frame-pixel-height child) ph))
+      (error "Display minimum popup size exceeds the parent viewport"))
+    (let ((rect (emacs-tui-layout-popup
+                 (emacs-tui--popup-anchor session)
+                 (frame-pixel-width child) (frame-pixel-height child)
+                 (list 0 0 pw ph) (emacs-tui--popup-position popup)
+                 (cons (frame-char-width parent) (frame-char-height parent)))))
+      (unless (and (equal (cons (car rect) (cadr rect)) (frame-position child))
+                   (equal (car rect) (frame-parameter child 'left))
+                   (equal (cadr rect) (frame-parameter child 'top)))
+        ;; The parameter setter also invalidates native TTY composition and
+        ;; keeps reported parameters in sync with the internal coordinates.
+        (modify-frame-parameters child `((left . ,(car rect)) (top . ,(cadr rect))))))))
+
+(defun emacs-tui--make-popup-surface (session)
+  "Create SESSION's single popup child frame without touching the host layout."
+  (let* ((parent (emacs-tui--workspace-origin-frame session))
+         (popup (emacs-tui--workspace-popup session))
+         (parameters
+          `((parent-frame . ,parent) (minibuffer . ,(minibuffer-window parent))
+            (left . 0) (top . 0) (width . ,(min (emacs-tui--popup-width popup)
+                           (max 2 (/ (frame-inner-width parent) (frame-char-width parent)))))
+            (height . ,(min (emacs-tui--popup-height popup)
+                            (max 2 (/ (frame-inner-height parent) (frame-char-height parent))))) (min-width . 2) (min-height . 2)
+            (undecorated . t) (visibility . nil) (no-focus-on-map . t)
+            (menu-bar-lines . 0) (tool-bar-lines . 0) (tab-bar-lines . 0)
+            (internal-border-width . 0) (left-fringe . 0) (right-fringe . 0)
+            (vertical-scroll-bars . nil) (horizontal-scroll-bars . nil))))
+    (save-selected-window
+      (let ((child (make-frame (if (display-graphic-p parent)
+                                  (cons '(no-accept-focus . t) parameters)
+                                parameters))))
+        ;; Record ownership before any operation which can fail or run hooks.
+        (setf (emacs-tui--workspace-frame session) child
+              (emacs-tui--workspace-root session) (frame-root-window child)
+              (emacs-tui--workspace-backend session) 'popup)
+        (condition-case nil (redirect-frame-focus child parent) (error nil))
+        (emacs-tui--fit-popup session)
+        (make-frame-visible child)))))
+
+(defun emacs-tui--popup-terminal-deleted (terminal)
+  "Dispose popups belonging to TERMINAL before its frame handles expire."
+  (dolist (session (copy-sequence emacs-tui--sessions))
+    (when-let* ((popup (emacs-tui--workspace-popup session)))
+      (when (eq terminal (emacs-tui--popup-terminal popup))
+        (emacs-tui-close session)))))
+
+(defun emacs-tui--popup-post-command ()
+  "Follow visible popup anchors, closing popups when their source is left."
+  (unless emacs-tui--refreshing
+    (dolist (session (copy-sequence emacs-tui--sessions))
+      (when (emacs-tui--workspace-popup session)
+        (if (or (not (emacs-tui--popup-source-valid-p session))
+                (not (eq (selected-window) (emacs-tui--workspace-origin-window session))))
+            (emacs-tui-close session)
+          (condition-case nil
+              (progn
+                (redisplay t)
+                (unless (equal (emacs-tui--workspace-geometry session)
+                               (emacs-tui--geometry session))
+                  (emacs-tui-refresh session)))
+            (error (emacs-tui-close session))))))))
+
+(cl-defun emacs-tui-popup (&key view (window (selected-window)) begin end
+                              (position 'south-west) (width 32) (height 8) on-close)
+  "Show VIEW around BEGIN..END in WINDOW, retaining source input focus.
+WINDOW must be the selected input window; presentation leaves its buffer and
+layout intact.  BEGIN and END default to WINDOW's point and track source edits.
+Single-visual-line ranges anchor around the whole range; wrapped/hidden ranges
+anchor at point.
+POSITION is one of `emacs-tui-layout-popup-positions'.  WIDTH and HEIGHT are
+requested child-frame columns/rows, including the header.  Edges are clamped to
+the parent; constrained positions can coincide or overlap the anchor.
+VIEW must be read-only.  Applications keep typing in their own source buffer,
+publish candidates with `emacs-tui-update', navigate with `emacs-tui-next-item'
+and accept with `emacs-tui-select', passing the returned session explicitly.
+Use `emacs-tui-reposition-popup' to move it.  No completion effects or keymaps
+are installed in the host.  Leaving, killing or repurposing the source closes
+the popup.  ON-CLOSE follows `emacs-tui-mount'.  Native child frames are
+required; unsupported terminals signal an error without changing the host."
+  (unless (and (window-live-p window) (not (window-minibuffer-p window))
+               (eq window (selected-window)))
+    (user-error "A popup needs the selected live source window"))
+  (unless (emacs-tui-popup-supported-p window)
+    (user-error "Popups require graphical or native TTY child frames"))
+  (unless (and (emacs-tui--view-p view) (not (emacs-tui--view-editable view))
+               (memq position emacs-tui-layout-popup-positions)
+               (integerp width) (>= width 2) (integerp height) (>= height 2))
+    (error "Invalid popup view, position or dimensions"))
+  (let* ((buffer (window-buffer window))
+         (begin (or begin (window-point window)))
+         (end (or end (window-point window))) popup ready)
+    (with-current-buffer buffer
+      (unless (and (integer-or-marker-p begin) (integer-or-marker-p end)
+                   (<= (point-min) begin end (point-max))
+                   (cl-every (lambda (pos) (or (not (markerp pos))
+                                               (eq (marker-buffer pos) buffer)))
+                             (list begin end)))
+        (error "Popup bounds must belong to the source buffer"))
+      (setq popup (emacs-tui--make-popup
+                   :buffer buffer :begin (copy-marker begin) :end (copy-marker end t)
+                   :position position :width width :height height
+                   :terminal (frame-terminal (window-frame window)))))
+    (unwind-protect
+        (prog1 (progn
+                 (redisplay t)
+                 (emacs-tui--create :views (list view) :layout 'columns
+                                    :backend 'child-frame :popup popup :debounce 0.08
+                                    :on-close on-close))
+          (setq ready t))
+      (unless ready
+        (set-marker (emacs-tui--popup-begin popup) nil)
+        (set-marker (emacs-tui--popup-end popup) nil)))))
+
+(defun emacs-tui-reposition-popup (session &optional position)
+  "Move SESSION's popup to POSITION, or cycle clockwise when omitted.
+Retain source input, candidate selection and marks.  Return the requested
+position symbol.  Near edges native viewport clamping can limit movement."
+  (setq session (emacs-tui--require-session session))
+  (let ((popup (emacs-tui--workspace-popup session)))
+    (unless popup (user-error "This session is not an anchored popup"))
+    (setq position
+          (or position
+              (nth (mod (1+ (cl-position (emacs-tui--popup-position popup)
+                                         emacs-tui-layout-popup-positions)) 8)
+                   emacs-tui-layout-popup-positions)))
+    (unless (memq position emacs-tui-layout-popup-positions)
+      (error "Unknown popup position: %S" position))
+    (setf (emacs-tui--popup-position popup) position)
+    (unless (emacs-tui-refresh session) (user-error "Popup is no longer available"))
+    position))
+
+(defun emacs-tui--fit-workspace-child (session)
   "Fit SESSION's existing child frame inside its live parent.
 Dimensions are converted from parent inner pixels to child character
 cells.  Actual dimensions are checked because a display may impose a
@@ -1185,6 +1398,12 @@ larger minimum frame size than the requested size."
     (when (or (> (+ left (frame-pixel-width child)) width)
               (> (+ top (frame-pixel-height child)) height))
       (error "Display minimum child-frame size exceeds the parent viewport"))))
+
+(defun emacs-tui--fit-child (session)
+  "Fit SESSION's child frame according to its presentation policy."
+  (if (emacs-tui--workspace-popup session)
+      (emacs-tui--fit-popup session)
+    (emacs-tui--fit-workspace-child session)))
 
 (defun emacs-tui--make-surface (session requested)
   "Create SESSION's owned display surface using REQUESTED backend."
@@ -1293,6 +1512,8 @@ A foreign window inside the subtree makes it unsuitable for reflow."
                                     (emacs-tui--workspace-windows session)))
          (ancestor root))
     (when (and (window-live-p root)
+               (or (null (emacs-tui--workspace-popup session))
+                   (emacs-tui--popup-source-valid-p session))
                (frame-live-p (emacs-tui--workspace-origin-frame session))
                (or (null (emacs-tui--workspace-origin session))
                    (and (window-live-p (emacs-tui--workspace-origin-window session))
@@ -1322,6 +1543,10 @@ A foreign window inside the subtree makes it unsuitable for reflow."
           (mapcar (lambda (window) (list window (window-edges window)))
                   (cl-remove-if-not #'window-live-p
                                     (emacs-tui--workspace-windows session)))
+          (when (emacs-tui--workspace-popup session)
+            (list (window-edges (emacs-tui--workspace-origin-window session))
+                  (emacs-tui--popup-anchor session)
+                  (frame-position (emacs-tui--workspace-frame session))))
           (when-let* ((child (emacs-tui--workspace-frame session)))
             (let ((parent (emacs-tui--workspace-origin-frame session)))
               (and (frame-live-p child)
@@ -1421,7 +1646,8 @@ ARRANGING means old windows were already captured before layout changes."
 
 (defun emacs-tui--focus-window (session)
   "Select SESSION's focused view when there is no separate query input."
-  (unless (emacs-tui--workspace-query-buffer session)
+  (unless (or (emacs-tui--workspace-query-buffer session)
+              (emacs-tui--workspace-popup session))
     (let ((window (emacs-tui--view-window (emacs-tui--focused-view session))))
       (when (window-live-p window)
         (select-window window)
@@ -1566,10 +1792,11 @@ separate sessions for independently owned panels."
                      :provider provider :debounce debounce :on-close on-close :keymap keymap))
 
 (cl-defun emacs-tui--create (&key views layout backend on-query on-commit
-                                  provider debounce on-close ephemeral host-window keymap)
+                                  provider debounce on-close ephemeral host-window keymap popup)
   "Create views and resources shared by both interface lifecycles.
 VIEWS, LAYOUT, BACKEND, ON-QUERY, ON-COMMIT, PROVIDER, DEBOUNCE and
-ON-CLOSE specify configuration.  EPHEMERAL enables query input and
+ON-CLOSE specify configuration.  POPUP optionally configures an anchored
+read-only presentation.  EPHEMERAL enables query input and
 origin-buffer commit policy.  HOST-WINDOW borrows an existing window.
 KEYMAP supplies application commands for view buffers."
   (unless (and (proper-list-p views) views
@@ -1600,7 +1827,7 @@ KEYMAP supplies application commands for view buffers."
            :origin (when ephemeral (copy-marker (point)))
            :origin-window (or host-window (selected-window))
            :origin-frame (if host-window (window-frame host-window) (selected-frame))
-           :active t))
+           :active t :popup popup))
          (query (when ephemeral (generate-new-buffer " *emacs-tui query*")))
          initialized)
     (setf (emacs-tui--workspace-query-buffer session) query)
@@ -1653,19 +1880,24 @@ KEYMAP supplies application commands for view buffers."
                          :vscroll (window-vscroll host-window t)))
                       (emacs-tui--workspace-root session) host-window
                       (emacs-tui--workspace-backend session) 'embedded))
-            (emacs-tui--make-surface session backend))
+            (if popup (emacs-tui--make-popup-surface session)
+              (emacs-tui--make-surface session backend)))
           (emacs-tui--arrange session)
           (setf (emacs-tui--workspace-geometry session) (emacs-tui--geometry session))
           (push session emacs-tui--sessions)
           (add-hook 'delete-frame-functions #'emacs-tui--frame-deleted)
           (add-hook 'window-state-change-hook #'emacs-tui--window-state-changed)
           (emacs-tui--sync-tty-focus-hooks)
-          (when ephemeral
+          (when (or ephemeral popup)
             (let ((hook (lambda () (emacs-tui-close session))))
               (setf (emacs-tui--workspace-origin-kill-hook session) hook)
-              (with-current-buffer (marker-buffer (emacs-tui--workspace-origin session))
+              (with-current-buffer (if popup (emacs-tui--popup-buffer popup)
+                                     (marker-buffer (emacs-tui--workspace-origin session)))
                 (add-hook 'kill-buffer-hook hook nil t))))
-          (select-window (emacs-tui--workspace-root session))
+          (when popup
+            (add-hook 'post-command-hook #'emacs-tui--popup-post-command)
+            (add-hook 'delete-terminal-functions #'emacs-tui--popup-terminal-deleted))
+          (unless popup (select-window (emacs-tui--workspace-root session)))
           (emacs-tui--focus-window session)
           (with-current-buffer (or query (emacs-tui--view-buffer
                                           (emacs-tui--focused-view session)))
@@ -1741,6 +1973,15 @@ windows are preserved."
     (setf (emacs-tui--workspace-active session) nil)
     (setq emacs-tui--sessions (delq session emacs-tui--sessions))
     (emacs-tui--restore-tty-focus session)
+    (when-let* ((popup (emacs-tui--workspace-popup session)))
+      (when (buffer-live-p (emacs-tui--popup-buffer popup))
+        (with-current-buffer (emacs-tui--popup-buffer popup)
+          (remove-hook 'kill-buffer-hook (emacs-tui--workspace-origin-kill-hook session) t)))
+      (set-marker (emacs-tui--popup-begin popup) nil)
+      (set-marker (emacs-tui--popup-end popup) nil))
+    (unless (cl-some #'emacs-tui--workspace-popup emacs-tui--sessions)
+      (remove-hook 'post-command-hook #'emacs-tui--popup-post-command)
+      (remove-hook 'delete-terminal-functions #'emacs-tui--popup-terminal-deleted))
     (unwind-protect
         (let* ((origin (emacs-tui--workspace-origin session))
                (origin-window (emacs-tui--workspace-origin-window session))

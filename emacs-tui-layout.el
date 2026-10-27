@@ -29,6 +29,40 @@
 
 (require 'cl-lib)
 
+(defconst emacs-tui-layout-popup-positions
+  '(north north-east east south-east south south-west west north-west)
+  "Clockwise positions surrounding an anchor rectangle.")
+
+(defun emacs-tui-layout-popup (anchor width height viewport position &optional gap)
+  "Place a WIDTH by HEIGHT popup around ANCHOR at POSITION.
+ANCHOR and VIEWPORT are (X Y WIDTH HEIGHT) rectangles in the same units.
+POSITION is one of `emacs-tui-layout-popup-positions'.  GAP is an optional
+nonnegative (HORIZONTAL . VERTICAL) separation, defaulting to zero.
+Return (X Y WIDTH HEIGHT), clamped to VIEWPORT.  Near viewport edges,
+positions may coincide or overlap the anchor; no offscreen space is invented.
+All dimensions must be positive integers; coordinates must be integers."
+  (dolist (rect (list anchor viewport))
+    (unless (and (proper-list-p rect) (= 4 (length rect))
+                 (cl-every #'integerp rect) (> (nth 2 rect) 0) (> (nth 3 rect) 0))
+      (error "Expected a positive rectangle: %S" rect)))
+  (unless (and (integerp width) (> width 0) (integerp height) (> height 0)
+               (memq position emacs-tui-layout-popup-positions)
+               (or (null gap) (and (consp gap) (integerp (car gap)) (>= (car gap) 0)
+                                   (integerp (cdr gap)) (>= (cdr gap) 0))))
+    (error "Invalid popup dimensions, position or gap"))
+  (pcase-let* ((`(,ax ,ay ,aw ,ah) anchor)
+               (`(,vx ,vy ,vw ,vh) viewport)
+               (w (min width vw)) (h (min height vh))
+               (gx (or (car gap) 0)) (gy (or (cdr gap) 0))
+               (x (cond ((memq position '(north-west west south-west)) (- ax w gx))
+                        ((memq position '(north-east east south-east)) (+ ax aw gx))
+                        (t (+ ax (/ (- aw w) 2)))))
+               (y (cond ((memq position '(north-west north north-east)) (- ay h gy))
+                        ((memq position '(south-west south south-east)) (+ ay ah gy))
+                        (t (+ ay (/ (- ah h) 2))))))
+    (list (max vx (min x (- (+ vx vw) w)))
+          (max vy (min y (- (+ vy vh) h))) w h)))
+
 (defun emacs-tui-layout--segments (extent count)
   "Divide EXTENT into COUNT positive segments.
 Return a list of (OFFSET SIZE) pairs.  Earlier segments receive remainders."
