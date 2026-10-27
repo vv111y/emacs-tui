@@ -297,7 +297,7 @@
 
 (ert-deftest emacs-tui-showcase-native-gallery-rejection-preserves-chooser ()
   (save-window-excursion
-    (dolist (id '(popup inspector))
+    (dolist (id '(popup inspector multi-popup))
       (let ((gallery (emacs-tui-gallery)))
         (unwind-protect
             (progn

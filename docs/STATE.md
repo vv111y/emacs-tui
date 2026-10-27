@@ -5,6 +5,33 @@ initial beta3 preparation are preserved byte-for-byte in
 [STATE-HISTORY.md](STATE-HISTORY.md). Their pending checks describe their own
 dates, not current blockers; later intermediate edits remain in Git history.
 
+## Multi-popup demo candidate — 2026-10-27
+
+The owner requested multiple simultaneous floating child frames, with keys for
+each panel and the complete group. The new make multi-popup-demo target and
+gallery entry compose three existing popup sessions without adding core API.
+C-c 1/2/3 toggles Objects/Details/Keys; C-c 0 hides all if any is visible,
+otherwise shows all. Selection survives hidden panels; reopening recreates
+owned surfaces. M-n/p browses, C-c C-p moves Objects independently, C-g hides,
+and C-c C-q removes the buffer-local bindings. Source typing/undo stay native.
+
+Independent review found callback-context cleanup, close-error containment,
+dismissal-during-start and partial-publication issues; dedicated regressions
+cover the fixes. Native GUI/TTY fixtures share a real three-frame keyboard
+journey, including direct frame deletion, major-mode changes and source death.
+Local Emacs29.3 passes414 ERT, strict library/example compilation/checkdoc
+and strict compilation of the new native helper plus GUI/TTY fixtures. The
+extracted local runtime disables unavailable JIT compilation. Final exact-head
+review and all applicable hosted checks are required before integration; batch
+evidence alone does not establish native composition. The local29.3 PTY
+unsupported-popup branch passes without claiming positive native coverage.
+Fixed beta1/beta2/beta3 refs remain unchanged. Current main will have twelve
+gallery entries after this unit; the fixed beta3 has ten.
+
+PR #73 merged at496056c455695edaec9518c702e633c6104a2b4f after independent
+review5671654221 and all eight CI jobs40552001701 passed. It preserves the
+original111672-byte checkpoint file unchanged in STATE-HISTORY.md.
+
 ## Current release
 
 PR #72 integrated beta3 at a43239cfca0c455b4512525f323afdd1e11b20e0.
