@@ -5,8 +5,24 @@ initial beta3 preparation are preserved byte-for-byte in
 [STATE-HISTORY.md](STATE-HISTORY.md). Their pending checks describe their own
 dates, not current blockers; later intermediate edits remain in Git history.
 
-## Independent panel-placement candidate — 2026-10-27
+## XOB integration assessment — 2026-10-27
 
+PR #79 documents the actual owner repository API at pinned org-xob commit
+b097f5e255f7cc0a9950c059c81df90eca95795b (2026-10-22), with primary links in
+[XOB-INTEGRATION.md](XOB-INTEGRATION.md). Public active-buffer traversal is not
+a complete knowledge-base catalogue; navigation/insertion commands and private
+content/link collectors do not constitute a pure snapshot API. Loading/starting
+XOB has application-wide effects, so core must not implicitly do so for preview.
+The next adapter unit should establish read-only snapshots and separate explicit
+actions, test disposable data, and state any active-buffer-only scope honestly.
+No XOB code was executed and no user knowledge-base files were accessed or
+modified. The original documentation-only head 54a7957 passed eight CI jobs in
+40569203071 and exact-head coding-agent review 5673040497; the rebased final
+head still needs its own review and CI before integration. No adapter is shipped.
+
+## Integrated independent panel placement — 2026-10-27
+
+PR #80 merged at b6a5ff0757722d6b5562dcf183c96c954cdaf811.
 The multi-popup demo adds C-c p 1/2/3 to move Objects/Details/Keys through the
 eight requested positions independently. C-c C-p remains the Objects alias.
 Each requested position survives hiding/reopening and source departure/return;
@@ -15,51 +31,58 @@ moving. Placement is application-owned, with no core API change; native bounds
 still clamp and can cause overlap. Stale/dismissed moves cannot publish saved
 placement. Policy regressions and a native keyboard journey cover all eight
 positions per panel, sibling geometry isolation and retained reopened placement.
-Local Emacs29.3 passes418 ERT, strict compile/checkdoc and native fixture
-compilation. Independent review and positive hosted execution gate integration.
+Local and hosted 418 ERT, strict compile/checkdoc and native fixture compilation
+pass. Independent final-head review 5673190020 covers 42eb1365; reviewed tree
+e87305b9fcf5c868f87fbe6af2f248d5e7dd2d4c matches tested merge d09b44c9 and
+integrated commit. All eleven final checks passed: CI 40570898030 (eight jobs),
+GTK 40570898065 and Linux/macOS tmux 40570898070. Native logs explicitly include
+independent placement and source departures. Package job 122424477328 installs
+the same archive on 31.1/28.1; SHA256
+91fca4341de8e5a9555d38e7b2ce2492347f4fdd4356740f1163354000413dfa.
+Physical terminal/display and broader input-method testing remain open;
+no maturity or new fixed-release claim is made.
 
 ## Integrated sibling-popup departure coverage — 2026-10-27
 
-PR #78 merged at484286408a3c715c2034033c6faf0fa7a0e7a49a. It extends the
-shared real-frame journey through both buffer and window
-commands. It checks that all three old frames/view buffers/anchor markers are
+PR #78 merged at 484286408a3c715c2034033c6faf0fa7a0e7a49a. It extends the
+shared real-frame journey through both buffer and window commands. It checks that all three old frames/view buffers/anchor markers are
 released and popup command routing is removed, edits the destination, then
 returns and explicitly recreates the panels with retained selection. Source
 text, point and undo are checked. This adds no production API.
 
 The initial GTK journey failed its final complete window-state comparison.
-Diagnostic run40567170801, job122411438165, at head9ebb209 printed both states:
+Diagnostic run 40567170801, job 122411438165, at head 9ebb209 printed both states:
 only prev-buffers differed, gaining the source buffer itself after the fixture's
 intentional switch-away/return commands. Dimensions, selected buffer, point,
 start and other fields were unchanged. Linux/macOS tmux had passed the preceding
-b0264c3 head in40566268666; those results do not validate the correction.
+b0264c3 head in 40566268666; those results do not validate the correction.
 
 The correction retains the original complete-state assertion around popup
 operations before navigation, and adds a new complete-state assertion around
 reopening after each return. It does not filter history fields or relax equality.
 Source and resource assertions still cover the deliberate navigation. Local
-Emacs29.3 passes415 ERT, strict compile/checkdoc and strict shared/GUI/TTY fixture
-compilation. Independent exact-head review5673096905 covers10724484; its tree
-16f6ce1537e5a52fe10ce1e1b161546020d67f71 matches tested merge19858866 and the
-integrated commit. All eleven checks passed: CI40569899852 (eight jobs),
-GTK40569899845 and Linux/macOS tmux40569899947. All three native environments
-explicitly report source departures. Package job122421009193 clean-installs the
-same archive on31.1/28.1; SHA256
+Emacs 29.3 passes 415 ERT, strict compile/checkdoc and strict shared/GUI/TTY fixture
+compilation. Independent exact-head review 5673096905 covers 10724484; its tree
+16f6ce1537e5a52fe10ce1e1b161546020d67f71 matches tested merge 19858866 and the
+integrated commit. All eleven checks passed: CI 40569899852 (eight jobs),
+GTK 40569899845 and Linux/macOS tmux 40569899947. All three native environments
+explicitly report source departures. Package job 122421009193 clean-installs the
+same archive on 31.1/28.1; SHA256
 f547f30ac460a1669e2a34fc4597a7bcf96d8c40b773b20561d71d315dce22bb.
-The local29.3 runtime alone cannot prove native terminal child-frame behavior.
+The local 29.3 runtime alone cannot prove native terminal child-frame behavior.
 
 ## Integrated native multi-popup gallery launch — 2026-10-27
 
 PR #77 merged at a32e3f64b8ada0007a71fc8b131f7f9b33095fec after independent
-exact-head review5672728137 and all eleven checks passed. Reviewed head a53067a
-and tested merge26a5c04 share treefebd48d4d8cbd2257028ebb716a7b6b29ca92d71.
+exact-head review 5672728137 and all eleven checks passed. Reviewed head a53067a
+and tested merge 26a5c04 share tree febd48d4d8cbd2257028ebb716a7b6b29ca92d71.
 The shared journey selects the gallery entry, reads its tour with RET and
 launches with C-c C-o, then asserts chooser disposal and the three real sibling
 frames. A failed tour command releases the chooser; the regression uses a real
-ordinary-window gallery. Local/hosted415 ERT and strict compile/checkdoc pass.
-CI40565040105 has eight successful jobs; GTK40565039863 and Linux/macOS tmux
-40565039877 explicitly report gallery launch. Package job122403958392 installs
-the same archive on31.1/28.1; SHA256
+ordinary-window gallery. Local/hosted 415 ERT and strict compile/checkdoc pass.
+CI 40565040105 has eight successful jobs; GTK 40565039863 and Linux/macOS tmux
+40565039877 explicitly report gallery launch. Package job 122403958392 installs
+the same archive on 31.1/28.1; SHA256
 c3047a0ce4a8c1feb1ab8a2b034836a80dd7c96714e62fb2d3522fede2600ece.
 
 ## Integrated multi-popup demo — 2026-10-27
@@ -95,8 +118,8 @@ unsupported branch does not establish native composition. Physical display,
 Ghostty/iTerm2 and broader input-method coverage remain open. Fixed beta1/2/3
 refs are unchanged. Current main has twelve gallery entries; fixed beta3 has ten.
 
-Next: finish independent per-panel placement in PR #80 above, then prioritize
-concrete beta feedback and measured application costs. Keep one independently
+Next: use the pinned XOB assessment to define an optional snapshot/action
+adapter; prioritize concrete beta feedback and measured application costs. Keep one independently
 owned session per floating panel; no speculative group/window-manager API.
 
 PR #73 merged at496056c455695edaec9518c702e633c6104a2b4f after independent
