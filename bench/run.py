@@ -110,6 +110,19 @@ def metrics(records):
             if key.endswith("_ms") or key in ("cons_cells", "string_chars", "gc_count")}
 
 
+def validate_completion_stages(record, filtering):
+    """Reject missing/inconsistent instrumentation instead of publishing zeros."""
+    for stage in ("projection", "native_matching", "decoration", "publication"):
+        elapsed = record.get(stage + "_ms")
+        if (not isinstance(elapsed, (int, float)) or not math.isfinite(elapsed)
+                or elapsed < 0 or record.get(stage + "_calls") != int(filtering)):
+            raise RuntimeError("invalid completion stage sample: " + stage)
+        if not filtering and elapsed != 0:
+            raise RuntimeError("completion stage measured outside completion")
+    if record["native_matching_ms"] > record["projection_ms"]:
+        raise RuntimeError("nested matching time exceeds inclusive projection time")
+
+
 def wait_for_exit(process, master, timeout, transcript):
     """Drain terminal output through exit using bounded nonblocking waitpid polls.
 
@@ -186,7 +199,8 @@ def run(args):
                    EMACS_TUI_BENCH_CASES=json.dumps(cases), EMACS_TUI_BENCH_LOAD_MODE=args.load_mode,
                    EMACS_TUI_BENCH_FILTER_PREFIX=args.filter_prefix,
                    EMACS_TUI_BENCH_PRESENTATION=args.presentation,
-                   EMACS_TUI_BENCH_COMPLETION_SORT=args.completion_sort)
+                   EMACS_TUI_BENCH_COMPLETION_SORT=args.completion_sort,
+                   EMACS_TUI_BENCH_COMPLETION_STAGES="1" if args.completion_stages else "0")
         env.pop("EMACSLOADPATH", None)
         executable = os.environ.get("EMACS", "emacs")
         library_root, compiled = prepare_libraries(directory, args.load_mode, executable, env)
@@ -290,6 +304,9 @@ def run(args):
                 if (record["case"], record["sequence"]) != (external["case"], external["sequence"]):
                     raise RuntimeError("sample identity mismatch")
                 record.update(external)
+                if args.completion_stages:
+                    validate_completion_stages(record, cases[record["case"]]["kind"]
+                                               == "filter-completion")
             summaries = []
             for index, case in enumerate(cases):
                 measured = [r for r in records if r["case"] == index and not r["warmup"]]
@@ -300,6 +317,7 @@ def run(args):
                 summaries.append(dict(case, metrics=metrics(measured), by_command=by_command))
             result.update(schema=1, label=args.label, presentation=args.presentation, source=identity, cases=cases,
                           load_mode=args.load_mode, bytecode_sha256=compiled,
+                          completion_stages=args.completion_stages,
                           wall_timeout_s=args.timeout, pty_launcher="fresh-python-session",
                           command=command, samples=args.samples, warmup=args.warmup,
                           recorded_at_utc=time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
@@ -349,6 +367,8 @@ def main():
     parser.add_argument("--kinds", nargs="+", choices=KINDS)
     parser.add_argument("--presentation", choices=("windows", "popup"), default="windows",
                         help="popup requires actual native TTY child frames; no fallback")
+    parser.add_argument("--completion-stages", action="store_true",
+                        help="instrument inclusive completion stages; changes timing overhead")
     parser.add_argument("--completion-sort", choices=("identity", "none"), default="identity",
                         help="popup completion metadata sorter (default: identity)")
     parser.add_argument("--output", type=pathlib.Path, required=True)
@@ -364,6 +384,8 @@ def main():
         args.kinds = list(allowed)
     if any(kind not in allowed for kind in args.kinds):
         parser.error("kinds must match the requested presentation")
+    if args.completion_stages and "filter-completion" not in args.kinds:
+        parser.error("completion-stages requires a popup completion workload")
     if args.completion_sort != "identity" and "filter-completion" not in args.kinds:
         parser.error("completion-sort requires a popup completion workload")
     if args.presentation == "popup" and args.filter_prefix:

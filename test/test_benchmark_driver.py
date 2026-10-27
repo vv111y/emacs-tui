@@ -27,7 +27,10 @@ class NativePopupArguments(unittest.TestCase):
     def test_rejects_mixed_workloads_before_starting_emacs(self):
         with tempfile.TemporaryDirectory() as directory:
             output = pathlib.Path(directory) / "report.json"
-            for arguments in (("--completion-sort", "none"),
+            for arguments in (("--completion-stages",),
+                              ("--presentation", "popup", "--kinds", "move-popup",
+                               "--completion-stages"),
+                              ("--completion-sort", "none"),
                               ("--presentation", "popup", "--kinds", "move-popup",
                                "--completion-sort", "none"),
                               ("--presentation", "popup", "--kinds", "navigate-list"),
@@ -38,6 +41,22 @@ class NativePopupArguments(unittest.TestCase):
                                         capture_output=True, text=True, timeout=10)
                 self.assertEqual(result.returncode, 2, result.stderr)
                 self.assertFalse(output.exists())
+
+
+class CompletionStageRecords(unittest.TestCase):
+    def test_rejects_missing_failed_and_inconsistent_stage_measurements(self):
+        valid = {key: value for stage in ("projection", "native_matching", "decoration", "publication")
+                 for key, value in ((stage + "_ms", 1.0), (stage + "_calls", 1))}
+        DRIVER.validate_completion_stages(valid, True)
+        for changes in ({"decoration_calls": 0}, {"publication_ms": float("nan")},
+                        {"native_matching_ms": 2.0}, {"projection_ms": -1.0}):
+            with self.assertRaises(RuntimeError):
+                DRIVER.validate_completion_stages(dict(valid, **changes), True)
+        with self.assertRaises(RuntimeError):
+            DRIVER.validate_completion_stages({}, True)
+        with self.assertRaises(RuntimeError):
+            DRIVER.validate_completion_stages(valid, False)
+        DRIVER.validate_completion_stages(dict.fromkeys(valid, 0), False)
 
 
 class ExitHandling(unittest.TestCase):

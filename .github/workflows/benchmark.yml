@@ -13,13 +13,14 @@ concurrency:
   cancel-in-progress: true
 jobs:
   profile:
-    name: profile (${{ matrix.os }}, 31.1)
+    name: profile (${{ matrix.os }}, 31.1, ${{ matrix.sort }})
     runs-on: ${{ matrix.os }}
     timeout-minutes: 15
     strategy:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, macos-latest]
+        sort: [identity, none]
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
@@ -30,12 +31,12 @@ jobs:
       - name: Measure native source and bytecode on the same runner
         timeout-minutes: 10
         run: |
-          python3 bench/run.py --presentation popup --timeout 270 --sizes 100 1000 10000 --samples 200 --warmup 10 --label 'Native popup profile: source' --output .cache/profile-source.json
-          python3 bench/run.py --presentation popup --load-mode bytecode --timeout 270 --sizes 100 1000 10000 --samples 200 --warmup 10 --label 'Native popup profile: bytecode' --output .cache/profile-bytecode.json
+          python3 bench/run.py --presentation popup --completion-stages --completion-sort ${{ matrix.sort }} --timeout 270 --sizes 100 1000 10000 --samples 200 --warmup 10 --label 'Native popup profile: source' --output .cache/profile-source.json
+          python3 bench/run.py --presentation popup --completion-stages --completion-sort ${{ matrix.sort }} --load-mode bytecode --timeout 270 --sizes 100 1000 10000 --samples 200 --warmup 10 --label 'Native popup profile: bytecode' --output .cache/profile-bytecode.json
       - name: Retain raw profiles and provenance
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
-          name: native-profile-${{ matrix.os }}-31.1
+          name: native-profile-${{ matrix.os }}-31.1-${{ matrix.sort }}
           path: .cache/profile-*.json
           # Only the explicitly selected profile reports, inside .cache.
           include-hidden-files: true

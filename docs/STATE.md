@@ -1,5 +1,30 @@
 # Project state
 
+## Completion stage attribution — preparation, 2026-10-27
+
+Benchmark-only opt-in instrumentation now separates inclusive projection, native
+matching, decoration and existing-popup publication. Reports include stage call
+counts and instrumentation policy; malformed measurements fail before report
+publication. Timings overlap, include instrumentation/GC, and are not comparable
+to the prior uninstrumented baseline as a speedup pair. Full hosted profiles now
+cover identity and absent sorters in source/bytecode on Linux/macOS. Package
+runtime and API are unchanged. Native smoke exercises the instrumented unsorted
+path; full profiles also check zero stage calls outside completion.
+
+PR #57 merged at 561e91e83306e2f025cb7abd47d37608341b7306 after independent
+review 5663933663, eight CI jobs in 40472111751 and two profile jobs in
+40472111645 passed. Both native platforms passed unsorted source/bytecode smoke.
+The earlier positive-native gates below are now satisfied. Fixed beta refs remain
+unchanged. Local Python: five protocol/report-validation tests pass; driver
+compilation, Lisp parenthesis and diff checks pass. Independent extracted-wrapper
+ERT probes pass return identity, error/quit/throw propagation, excluded setup and
+non-completion work, and inclusive nested timing. These are not native-display
+evidence. New instrumentation still requires exact review and hosted execution.
+
+Next: inspect and retain full stage profiles, attribute restoration costs, then
+measure any proposed runtime change with matching fixtures. Broader application
+and display use plus MELPA maintenance/human-review gates remain open.
+
 ## Explicit unsorted completion workload — 2026-10-27
 
 The native benchmark now accepts --completion-sort none for filter-completion,
