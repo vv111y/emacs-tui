@@ -1,0 +1,38 @@
+{
+  "run": 40460297101,
+  "head": "9a39c701af02f333d8e60cce53c3926a0c128a56",
+  "measured_commit": "e1447e346867c730ca7fafcf119a8f1eb3ab0fd4",
+  "tree": "27bdb8642108103a4af3e574df27e43ed1a2085e",
+  "artifacts": {
+    "linux": {
+      "id": 12713883509,
+      "sha256": "ad2db4f2a3a36e1a45c7ffc86108d791b79ed5560ddfdf3045c84d693ada9e55"
+    },
+    "macos": {
+      "id": 12714765278,
+      "sha256": "579d0308b9b09b47806cff1770b4acc8e26ce951f678c851b49392609ee7b3f8"
+    }
+  },
+  "files": {
+    "linux-source.json.gz": {
+      "sha256": "b5773446e7ab3268088997416b4ba96cbd00dbaa4fe63afa3aaceb7c5e51e025",
+      "uncompressed_sha256": "3adbbb5e3e15c6520d0bff8246ef440f5baae2b166eeadfa7c9d01b2a8e067e3",
+      "records": 1890
+    },
+    "linux-bytecode.json.gz": {
+      "sha256": "227e66251dc9e334530a07989bf9a0c00b3021e72d6e87b6abee4e0269c7e518",
+      "uncompressed_sha256": "680358afd06447a0a3c5f9ee1868c43f3cfbac32c0567c79121c433b82acb192",
+      "records": 1890
+    },
+    "macos-source.json.gz": {
+      "sha256": "2f4ed675e5bc0b72e0fcb4ca937b105cf602870a9c2a4266ece2988c48ddc0df",
+      "uncompressed_sha256": "308f431d2fab93ce5abe4565f962b1ccd90be795e981e1f805ba7e38d203575c",
+      "records": 1890
+    },
+    "macos-bytecode.json.gz": {
+      "sha256": "34b838288d42ef9bda458af9490023fdcae79b0beb735076726a5524ec7b8cf3",
+      "uncompressed_sha256": "2deef4c15fd5b40e2fb8234eb82bd022292c71a894382cc4194382d8e42da83d",
+      "records": 1890
+    }
+  }
+}
