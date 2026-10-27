@@ -176,5 +176,14 @@
                        (car (emacs-tui--workspace-views
                              (emacs-tui-multi-popup-demo--session 'objects))))))))
 
+(ert-deftest emacs-tui-multi-gallery-failed-tour-releases-real-chooser ()
+  (require 'emacs-tui-multi-popup-smoke)
+  (save-window-excursion
+    (let ((before (copy-sequence emacs-tui--sessions)) (noninteractive nil))
+      (cl-letf (((symbol-function 'execute-kbd-macro)
+                 (lambda (&rest _) (error "Injected tour command failure"))))
+        (should-error (emacs-tui-multi-popup-smoke)))
+      (should-not (cl-set-difference emacs-tui--sessions before)))))
+
 (provide 'emacs-tui-multi-popup-test)
 ;;; emacs-tui-multi-popup-test.el ends here
