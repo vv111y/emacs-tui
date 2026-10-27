@@ -3,7 +3,8 @@
 ## Unreleased
 
 - Three simultaneous floating panels with individual and collective hotkey
-  toggles, hidden-panel selection retention and native source editing. Run
+  toggles, independent eight-position movement, hidden-panel selection/placement
+  retention and native source editing. Run
   `make multi-popup-demo` or use the development gallery. Shared GUI/TTY
   checks cover sibling isolation, source preservation and cleanup.
 
