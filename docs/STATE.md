@@ -1,5 +1,31 @@
 # Project state
 
+## Native inspector gallery dispatch coverage — 2026-10-27
+
+The native popup fixture now selects the inspector in the real gallery, opens
+its tour with RET and launches with C-c C-o. It asserts gallery disposal and a
+live inspector before the existing scrolling, eight-position reading retention,
+acknowledgement, source/undo preservation and cleanup checks. A new ERT checks
+both native-only entries reject unsupported displays without changing the live
+chooser, selection, windows or buffers. This closes a gap in direct-only demo
+testing; runtime behavior is unchanged.
+
+Local Emacs 29.3: 379 ERT, strict compilation and checkdoc pass. Local PTY popup
+checks pass only the unsupported-display branch. Exact-head review and hosted
+Linux/macOS 31.1 gallery-launch evidence remain integration gates. The demo guide
+now describes the intended native dispatch coverage precisely.
+
+PR #64 merged at 3f3fbcc405130102472a0797cc0c6e09eeeaac04 after review
+5666003258 and all eight CI 40493302221 jobs passed. Reviewed head
+276e2f2930161c66a62d3058694650a92f0e26e3 and tested merge
+1fddfc0e20e2cd52d07a4a51b5205e8c84eb54b9 share tree
+c07aed581e3ffb0a67a45431fe724a384f4799c9. Beta refs remain fixed.
+
+Next: broader native display/multiplexer coverage and concrete beta feedback.
+MELPA's one-month maintenance checkbox was rechecked upstream on October 27;
+human review and remaining package-name advisory still require resolution.
+No stable-release or MELPA acceptance claim is made.
+
 ## Inspector integrated; beta/demo handoff — 2026-10-27
 
 PR #63 merged at 64a3eb2e0b89a086793cf995ccd5060c3d31cf0f. Independent review

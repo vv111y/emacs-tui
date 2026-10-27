@@ -41,8 +41,8 @@ application, and the graph explorer follows relationships. The streaming and
 layout entries are focused capability laboratories. Their different initial
 screens and actions have application-specific checks. Batch gallery-launch
 checks cover entries without a native-popup requirement. Separate native
-fixtures exercise the source-anchored examples; the inspector is launched
-directly.
+fixtures exercise the source-anchored examples through their gallery launch
+commands.
 
 The earlier buffer-oriented examples remain runnable as development references,
 but are no longer repeated in the gallery:

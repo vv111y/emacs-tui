@@ -205,10 +205,18 @@
 
 (defun emacs-tui-popup-smoke--inspector ()
   "Read and explicitly act on a source-anchored object through native keys."
-  (let (source app)
+  (let (source app gallery)
     (unwind-protect
         (progn
-          (emacs-tui-inspector-demo)
+          (setq gallery (emacs-tui-gallery))
+          (emacs-tui-set-selection gallery 'demos 'inspector)
+          (execute-kbd-macro (kbd "RET"))
+          (cl-assert (string-match-p
+                      "acknowledgement"
+                      (emacs-tui--view-text (emacs-tui--resolve-view gallery 'tour))))
+          (execute-kbd-macro (kbd "C-c C-o"))
+          (cl-assert (not (emacs-tui-live-p gallery)))
+          (cl-assert (emacs-tui-live-p emacs-tui-inspector-demo--session))
           (setq source (current-buffer) app emacs-tui-inspector-demo--session)
           (let* ((text (buffer-string)) (point (point))
                  (child (emacs-tui--workspace-frame app))
@@ -251,6 +259,7 @@
             (cl-assert (not (emacs-tui-live-p app)))
             (cl-assert (not emacs-tui-inspector-demo--active))))
       (when app (emacs-tui-close app))
+      (when gallery (emacs-tui-close gallery))
       (when (buffer-live-p source) (kill-buffer source))
       (switch-to-buffer emacs-tui-popup-smoke--source))))
 
@@ -293,7 +302,7 @@
   (cancel-timer emacs-tui-popup-smoke--timer)
   (with-temp-file (getenv "EMACS_TUI_SMOKE_REPORT")
     (insert (if emacs-tui-popup-smoke--supported
-                (format "PASS Emacs %s; native TTY popup; host typing/focus/layout preserved; terminal paint marker required; 8 distinct word-relative positions; retained rows/scroll/marks; resized viewport and explicit refresh; fitting-failure cleanup; candidate navigation/filter/accept/undo; Unicode; resize=120->90->140; modal coexistence; inspector scroll/reposition/acknowledge/dismiss; source/frame disposal; cleanup\n" emacs-version)
+                (format "PASS Emacs %s; native TTY popup; host typing/focus/layout preserved; terminal paint marker required; 8 distinct word-relative positions; retained rows/scroll/marks; resized viewport and explicit refresh; fitting-failure cleanup; candidate navigation/filter/accept/undo; Unicode; resize=120->90->140; modal coexistence; inspector gallery-launch/scroll/reposition/acknowledge/dismiss; source/frame disposal; cleanup\n" emacs-version)
               (format "PASS Emacs %s; native wide/combining glyph bounds; unsupported popup rejected without changing host; no split fallback; resize=120->90->140; native presentation NOT exercised\n" emacs-version))))
   (kill-emacs 0))
 
