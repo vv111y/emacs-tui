@@ -272,3 +272,13 @@ the outer PTY. It terminates only that private server on exit. The separate Linu
 CI workflow exercises this configuration on Emacs 31.1. This does not validate
 personal tmux configurations, zellij, physical terminal emulators or GUI displays.
 A missing tmux executable is an error, not a skipped success.
+
+## Automated graphical checks
+
+The graphical workflow installs the runner distribution's GTK Emacs and records
+its version. It runs `test/gui-smoke.el` interactively under Xvfb, requires a real
+graphical display, and checks child-frame input, anchored inspector scrolling and
+actions, parent-relative bounds through eight positions, resizing and cleanup.
+Its execution is bounded by an external timeout and requires a PASS report.
+This verifies native graphical state and interaction; it does not inspect rendered
+pixels, fonts, desktop window managers, macOS GUI Emacs or physical displays.

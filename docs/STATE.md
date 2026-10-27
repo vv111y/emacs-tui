@@ -1,5 +1,33 @@
 # Project state
 
+## Graphical child-frame validation — 2026-10-27
+
+Added a bounded interactive GTK/Xvfb fixture and separate workflow, using the
+runner distribution's graphical Emacs with its actual version logged. It requires
+a graphical display, types into a mounted child-frame input, opens a source-
+anchored inspector, scrolls and acknowledges explicitly, checks all eight popup
+positions stay within parent bounds, resizes the parent twice and checks source
+text/point/undo and disposal. The workflow strictly compiles the fixture and
+requires a PASS report; timeout or failure cannot become a skipped success.
+
+Local source structure/diff checks pass, but no Emacs/X server is available here.
+Independent review and hosted graphical behavior plus existing compatibility and
+tmux checks remain gates. This tests native GUI state/input, not pixel appearance,
+fonts, desktop window managers, macOS GUI or physical displays. No runtime API
+changes or fixed beta ref movement.
+
+PR #66 merged at 35c6339b96e75ac95f41121be2787930d18035ef after independent
+review 5667583093, all eight CI 40510012489 jobs and both Linux/macOS tmux jobs
+in 40510012473 passed. Reviewed head db111629c62205f02ecad02ef191a13868aab27d
+and tested merge 1de59c72bde204e4d48d5dd341de693615a99764 share tree
+891a2a9783d6c39e9b3115a761e094aa7ce4405b. Both tmux logs explicitly verify
+popup/inspector, completion and multiline input behavior. Main remains at 379
+ERT; new checks add native display coverage rather than an ERT count increase.
+
+Next: fix any graphical findings before broadening features; continue beta use
+and display validation. MELPA's month-of-public-maintenance requirement was
+rechecked on October 27; substantive human review and name advisory remain.
+
 ## Isolated tmux validation path — 2026-10-27
 
 Added optional --tmux transport to the interactive smoke driver. Each run owns a
