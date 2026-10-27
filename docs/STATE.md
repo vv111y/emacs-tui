@@ -5,7 +5,13 @@ initial beta3 preparation are preserved byte-for-byte in
 [STATE-HISTORY.md](STATE-HISTORY.md). Their pending checks describe their own
 dates, not current blockers; later intermediate edits remain in Git history.
 
-## Multi-popup demo candidate — 2026-10-27
+## Integrated multi-popup demo — 2026-10-27
+
+PR #75 merged at47070b0b9ea1c975ab9aef28dab6cd1e38ead73b after independent
+review5671981968 and all eleven exact-head checks passed. The reviewed head
+94682cf6b372da8db94733426958589d6af4320d and tested merge
+f7d186dcd7766e9dc43407a8ca1f04120490f3e1 share integrated tree
+9fb17a2b9de8e5afb5b8da46ec08c49e7e51a25f.
 
 The owner requested multiple simultaneous floating child frames, with keys for
 each panel and the complete group. The new make multi-popup-demo target and
@@ -20,13 +26,21 @@ dismissal-during-start and partial-publication issues; dedicated regressions
 cover the fixes. Native GUI/TTY fixtures share a real three-frame keyboard
 journey, including direct frame deletion, major-mode changes and source death.
 Local Emacs29.3 passes414 ERT, strict library/example compilation/checkdoc
-and strict compilation of the new native helper plus GUI/TTY fixtures. The
-extracted local runtime disables unavailable JIT compilation. Final exact-head
-review and all applicable hosted checks are required before integration; batch
-evidence alone does not establish native composition. The local29.3 PTY
-unsupported-popup branch passes without claiming positive native coverage.
-Fixed beta1/beta2/beta3 refs remain unchanged. Current main will have twelve
-gallery entries after this unit; the fixed beta3 has ten.
+and strict compilation of the shared helper plus GUI/TTY fixtures. Hosted CI
+40555916227 passes all eight compatibility/package jobs; graphical40555916247
+passes GTK/Xvfb job122371806698; tmux40555916274 passes Linux/macOS jobs
+122371807141/122371806507. All three native environments explicitly report the
+three-sibling-popup/individual-and-collective-toggle journey. The package job
+122371805766 clean-installs the same archive on31.1/28.1; artifact SHA256
+eaf725128183fff6b2d116b153d7a33e4a8df36858b691fab87d7a52c53499b0.
+The extracted local runtime disables unavailable JIT compilation; its29.3 PTY
+unsupported branch does not establish native composition. Physical display,
+Ghostty/iTerm2 and broader input-method coverage remain open. Fixed beta1/2/3
+refs are unchanged. Current main has twelve gallery entries; fixed beta3 has ten.
+
+Next: add native gallery-launch coverage for this new entry, then prioritize
+concrete beta feedback and measured application costs. Keep one independently
+owned session per floating panel; no speculative group/window-manager API.
 
 PR #73 merged at496056c455695edaec9518c702e633c6104a2b4f after independent
 review5671654221 and all eight CI jobs40552001701 passed. It preserves the
