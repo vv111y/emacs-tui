@@ -162,7 +162,9 @@ No explicit close is used before checking the old resources."
               (cl-assert (emacs-tui-multi-popup-demo--session 'objects))
               (execute-kbd-macro (kbd "C-c 3"))
               (emacs-tui-multi-popup-smoke--departures source parent)
-              (cl-assert (equal windows (window-state-get (frame-root-window parent))))
+              (cl-assert (equal windows (window-state-get (frame-root-window parent))) nil
+                         "Source window state changed: before=%S after=%S"
+                         windows (window-state-get (frame-root-window parent)))
               (cl-assert (equal text (buffer-string)))
               (cl-assert (= position (point)))
               (cl-assert (null buffer-undo-list))
