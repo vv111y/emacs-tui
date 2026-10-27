@@ -1,5 +1,31 @@
 # Project state
 
+## Settings form candidate — 2026-10-27
+
+PR #72 is integrated at a43239cfca0c455b4512525f323afdd1e11b20e0.
+The NEW fixed release/0.1.0-beta3 was created and read back at that SHA on
+2026-10-27; beta1/beta2 are unchanged. All thirteen exact-head checks passed:
+CI40549386943, GUI40549388704, tmux40549386969 and movement40549386952.
+Reviewed headf033c2e, tested merge8716ba4 and integration share treebc4fba1.
+Review5671420206 independently verified396ERT/strict compilation/checkdoc.
+The form now targets this integrated baseline; earlier pending release notes
+below are historical. PR #73 will replace this chronology with a concise handoff.
+
+A separate application demo composes native Name/Retry fields, a table of
+checkbox-style options and live validation with explicit Apply/Revert. It owns
+its draft and applied record in session memory; no core form API or external
+persistence is introduced. Invalid drafts and drafts changed by native render
+hooks during Apply cannot replace the saved record. Eight focused ERT tests
+cover boundaries, undo, session isolation, failed and stale publication, and
+Revert. The gallery gains a distinct eleventh development entry; fixed beta3
+keeps its ten-entry snapshot. Native showcase commands exercise invalid then
+valid Apply, option toggling and Revert. Final review and exact-head hosted
+checks remain required; this candidate depends on the input fix in PR #72.
+Local Emacs29.3 passes404 ERT, strict compilation/checkdoc and the real-PTY
+showcase (windows backend), including form validation/options/apply/revert.
+The local extracted runtime disables unavailable JIT compilation. Native TTY
+child-frame behavior remains a hosted Linux/macOS responsibility.
+
 ## Beta3 input preservation follow-up — 2026-10-27
 
 Publication remains blocked pending renewed review and all exact-head checks.

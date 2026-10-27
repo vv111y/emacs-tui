@@ -83,7 +83,7 @@
           (cl-assert (equal emacs-tui-showcase--frames (frame-list)))
           (cl-assert (equal "Origin:" (with-current-buffer "*Showcase origin*" (buffer-string))))
           (with-temp-file (getenv "EMACS_TUI_SMOKE_REPORT")
-            (insert (format "PASS Emacs %s; real TTY; backend=%s; gallery dispatch; board batch moves; reader chapter search; snippet insert/undo; catalog hidden marks/action; native editor; layout/resize=120->90->140; stream failure/recovery; cleanup\n"
+            (insert (format "PASS Emacs %s; real TTY; backend=%s; gallery dispatch; form validation/options/apply/revert; board batch moves; reader chapter search; snippet insert/undo; catalog hidden marks/action; native editor; layout/resize=120->90->140; stream failure/recovery; cleanup\n"
                             emacs-version emacs-tui-showcase--backend)))
           (kill-emacs 0))))
     ((error quit) (emacs-tui-showcase--fail err))))
@@ -116,6 +116,34 @@
             (cl-assert (string-prefix-p "Compass" (buffer-string)))
             (cl-assert word-wrap)
             (execute-kbd-macro (kbd "C-c C-q"))))
+        (let ((gallery (emacs-tui-gallery)))
+          (emacs-tui-set-selection gallery 'demos 'form)
+          (execute-kbd-macro (kbd "C-c C-o"))
+          (let ((form (emacs-tui-current-session)))
+            (cl-assert (not (emacs-tui-live-p gallery)))
+            (execute-kbd-macro (kbd "C-a C-k O p s"))
+            (emacs-tui-focus-view form 'retries)
+            (execute-kbd-macro (kbd "C-a C-k 1 1"))
+            (cl-assert (string-match-p
+                        "Draft invalid"
+                        (emacs-tui--view-text (emacs-tui--resolve-view form 'status))))
+            (cl-assert (eq 'rejected
+                           (condition-case nil
+                               (progn (emacs-tui-act form 'apply) 'accepted)
+                             (user-error 'rejected))))
+            (execute-kbd-macro (kbd "C-a C-k 1 0"))
+            (emacs-tui-focus-view form 'options)
+            (execute-kbd-macro (kbd "SPC C-c C-c"))
+            (cl-assert (not (plist-get (emacs-tui-current-item form) :checked)))
+            (cl-assert (string-match-p
+                        "Name: Ops"
+                        (emacs-tui--view-text (emacs-tui--resolve-view form 'status))))
+            (emacs-tui-focus-view form 'name)
+            (execute-kbd-macro (kbd "C-a C-k d r a f t C-c C-r"))
+            (cl-assert (equal "Ops" (emacs-tui-input-value form 'name)))
+            (cl-assert (equal "10" (emacs-tui-input-value form 'retries)))
+            (execute-kbd-macro (kbd "C-c C-q"))
+            (cl-assert (not (emacs-tui-live-p form)))))
         (buffer-enable-undo)
         (undo-boundary)
         (let ((gallery (emacs-tui-gallery)))

@@ -11,14 +11,14 @@ Emacs. No extra packages, sample files, network services or XOB setup are needed
 The gallery uses self-contained sample data and works immediately under Emacs -Q.
 
 These examples live in the checkout's examples directory, outside the installed
-runtime package. The fixed beta3 branch includes this gallery; the older beta1/beta2
-branches remain unchanged. Do not mix new examples with an older installed toolkit.
+runtime package. The fixed beta3 branch includes ten gallery entries. Development main adds
+the settings form; all fixed release branches remain unchanged. Do not mix new examples with an older installed toolkit.
 
 ## Choose a demo
 
 | Make target | What to explore | Explicit effects |
 | --- | --- | --- |
-| gallery | Ten beta3 showcases, with tours and cleanup | Launches your choice |
+| gallery | Ten beta3 showcases; main adds the settings form, with tours and cleanup | Launches your choice |
 | popup-demo | Typing in the unchanged source, floating candidates, eight compass positions, native undo | TAB explicitly replaces the current word |
 | inspector-demo | Scrollable floating equipment details, eight positions, related objects, Back/Forward, acknowledgement, source focus | Changes buffer-local demo state only |
 | completion-demo | Emacs's actual Lisp completion provider, styles and source-preserving popup | TAB explicitly accepts a native completion |
@@ -26,6 +26,7 @@ branches remain unchanged. Do not mix new examples with an older installed toolk
 | reader-demo | Chapter tree, ancestor search paths, formatted pages, wrapping and reading position | Reads self-contained sample text |
 | snippet-demo | One borrowed-window palette, tracked origin point, explicit insertion and native undo | RET inserts a literal snippet in the launching buffer |
 | catalog-demo | Search input, numeric sort, fill-width table, formatted details, hidden marks, batch actions | Collect/clear in session memory |
+| form-demo (main) | Native fields, checkbox-style options, live validation, draft versus applied settings | Apply/Revert changes session memory only |
 | composer | Two native editable fields, multiline composition and live preview | C-c C-c copies to kill ring |
 | stream-demo | Visible batches, debounce, cancellation, partial failure and recovery | Synthetic data only |
 | graph-demo (also demo) | Original graph explorer, links/backlinks, Back/Forward, multi-selection, preview/commit split | C-c C-c inserts demo links into the original buffer |
@@ -154,6 +155,24 @@ literal snippet at the tracked original point, then restores that window's
 original buffer. Normal undo reverses insertion. Launch again and q cancels
 without editing. A read-only host rejects insertion and leaves the picker open.
 The picker never evaluates snippet text, saves files or writes to the kill ring.
+
+### Validated settings form (development main)
+
+Use a matching main checkout and run `make form-demo`, or select Settings form
+from its gallery. The fixed beta3 does not contain this entry. Name and Retries
+are ordinary editable Emacs buffers: type, paste and undo normally. TAB cycles
+Name, Retries, Options and the live validation/applied-record pane. In Options,
+SPC toggles the selected checkbox; n/p selects another option.
+
+Set Retries to 11: validation explains the 0–10 limit, and C-c C-c refuses Apply.
+Change it to 10, toggle an option and press C-c C-c again. The applied record now
+reflects that valid draft while the form stays open. Edit Name and use C-c C-r
+to restore the last applied record. Changed fields reset undo; unchanged fields
+retain it. C-c C-q closes. Reopening starts fresh session defaults.
+
+No Emacs preferences, files, source buffers or kill-ring values are changed.
+This demonstrates application-owned validation and persistence policy composed
+from native input, a table of options and actions; no form framework is required.
 
 ### Object catalog
 
