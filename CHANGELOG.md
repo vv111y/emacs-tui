@@ -1,5 +1,18 @@
 # Changelog
 
+## Unreleased
+
+- Source-preserving native candidate popups with eight compass positions,
+  tracked anchors, explicit application actions and a typing-driven demo.
+- Optional buffer-local `emacs-tui-completion-mode` uses native completion
+  providers, styles, annotations/affixes, field boundaries and exit callbacks.
+  `make completion-demo` demonstrates Emacs's actual Lisp symbol provider.
+- Distinct task-board, reader and snippet applications replace repetitive
+  gallery entries; table fill widths preserve the rightmost terminal glyph.
+- Popup clients dispose before major-mode changes discard their local state.
+
+These additions are on main, outside the fixed 0.1.0-beta1 release branch.
+
 ## 0.1.0-beta1 — 2026-10-24
 
 First community-testing release of the general-purpose Emacs TUI toolkit.

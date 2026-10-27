@@ -1,10 +1,10 @@
 EMACS ?= emacs
 
-.PHONY: test compile checkdoc check clean demo graph-demo gallery popup-demo board-demo reader-demo snippet-demo catalog-demo stream-demo layout-demo async-demo dashboard panel composer tree filter-demo package-check tty-smoke benchmark benchmark-smoke
+.PHONY: test compile checkdoc check clean demo graph-demo gallery popup-demo completion-demo board-demo reader-demo snippet-demo catalog-demo stream-demo layout-demo async-demo dashboard panel composer tree filter-demo package-check tty-smoke benchmark benchmark-smoke
 test:
 	$(EMACS) -Q --batch -L . -L test -l test/run-tests.el
 compile:
-	$(EMACS) -Q --batch -L . --eval '(setq byte-compile-error-on-warn t)' -f batch-byte-compile emacs-tui-layout.el emacs-tui-table.el emacs-tui-tree.el emacs-tui-action.el emacs-tui.el examples/*.el
+	$(EMACS) -Q --batch -L . --eval '(setq byte-compile-error-on-warn t)' -f batch-byte-compile emacs-tui-layout.el emacs-tui-table.el emacs-tui-tree.el emacs-tui-action.el emacs-tui.el emacs-tui-completion.el examples/*.el
 checkdoc:
 	$(EMACS) -Q --batch -L . -l test/check-docs.el
 check: test compile checkdoc
@@ -19,6 +19,7 @@ tty-smoke:
 	EMACS=$(EMACS) python3 test/run-tty-smoke.py test/tty-demo-smoke.el
 	EMACS=$(EMACS) python3 test/run-tty-smoke.py test/tty-showcase-smoke.el
 	EMACS=$(EMACS) python3 test/run-tty-smoke.py test/tty-popup-smoke.el
+	EMACS=$(EMACS) python3 test/run-tty-smoke.py test/tty-completion-smoke.el
 	EMACS=$(EMACS) python3 test/check-reflow-smoke.py
 	EMACS=$(EMACS) python3 test/run-clients-smoke.py
 	EMACS=$(EMACS) python3 test/run-hangup-smoke.py
@@ -28,6 +29,8 @@ demo graph-demo:
 	$(EMACS) -Q -nw -L . -l examples/emacs-tui-demo.el -f emacs-tui-demo
 popup-demo:
 	$(EMACS) -Q -nw -L . -l examples/emacs-tui-popup-demo.el -f emacs-tui-popup-demo-sample
+completion-demo:
+	$(EMACS) -Q -nw -L . -l examples/emacs-tui-completion-demo.el -f emacs-tui-completion-demo
 gallery:
 	$(EMACS) -Q -nw -L . -l examples/emacs-tui-gallery.el -f emacs-tui-gallery
 board-demo:

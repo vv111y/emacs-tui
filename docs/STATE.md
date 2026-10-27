@@ -1,6 +1,77 @@
 # Project state
 
-Updated 2026-10-26 (America/Toronto).
+## Current continuation — native completion adapter
+
+PR #46 merged at `38891789aae720696fa96c17deaa01feb066326a` after independent
+exact-head coding-agent review and all eight jobs in
+[40446110274](https://github.com/vv111y/emacs-tui/actions/runs/40446110274).
+Main's tree matches the reviewed `f5306d060a10535f0c9cf54e520c2ef74f7fbd54`.
+Linux/macOS 31.1 each passed 331 ERT and the real popup PTY with a required
+popup-only terminal paint marker, eight distinct central placements, native
+typing/filtering/selection/acceptance/undo, Unicode, resize, modal coexistence
+and cleanup. The failed first-head movement run below remains recorded.
+
+The next focused unit adds optional `emacs-tui-completion-mode`, using existing
+completion-at-point providers instead of literal example candidates. Core does
+not require the adapter. Initial native provider dispatch is manual; source
+edits refresh the active captured table. The adapter preserves styles/category
+overrides, predicates, captured metadata, base prefixes and outside suffixes,
+and separates decorated rows from inserted values. Only visible popups activate
+local navigation/accept/dismiss/move bindings. Disable restores the previous
+frontend only while this mode still owns it; major-mode/source disposal and
+late close callbacks release only the owning context. The literal-data demo
+also now stops before a major-mode change clears its locals.
+
+Native source inspection established that directory choices consume a matching
+field separator from the preserved suffix and report `exact` when opening a new
+field; other choices report `finished`. Exit callbacks receive the full
+completed field including base prefix, once after successful insertion and
+cleanup. Editing errors roll back; exit-callback errors preserve accepted text.
+No common-prefix insertion or automatic acceptance is performed.
+
+Local Emacs 29.3/Linux passed 351 ERT, strict compilation/checkdoc and the new
+completion PTY's honest unsupported-display path through 120->90->140 resize.
+Twenty new ERT cases exercise real completion protocols/styles and source
+editing with modeled presentation. The first directory regression caught and
+fixed a duplicated slash; a test closure's parallel binding and an initial
+fixture parse error were corrected. Those failures are not counted as passes.
+The new positive hosted path uses actual Lisp CAPF dispatch, terminal paint,
+same-child filtering, native keys/undo, file boundaries/exit and major-mode
+cleanup. Independent review, positive native 31.1 execution and exact-head
+hosted runtime/package CI remain integration gates for this unit. The actual
+pinned package-build recipe built source `c7463d8` and its archive clean-installed
+on local Emacs 29.3, proving the optional helper is packaged without eager core
+loading. Build-tool sources were restored from their pinned upstream blobs
+before this check; hosted 31.1/28.1 installation is still required. Independent
+review found acceptance-hook reentry could release old markers and skip the
+accepted candidate's exit callback; completion results are now captured before
+editing and old disposal preserves a new context. Other review fixes retain
+captured case settings during metadata/exit calls, honor native nil category
+overrides without reviving extra properties, and require a positive display
+limit. Each has a behavioral regression. All eleven local PTY scenarios and
+four reflow fault probes passed; the separate multi-client run could not create
+its Unix server socket (`Operation not permitted`). Local abrupt-client-loss
+coverage is likewise unavailable here, so hosted client/hangup CI remains
+required. No failing check is waived.
+
+Completion tables remain synchronous and must return promptly. The default
+200-row cap bounds only display/decoration; all matches are computed/sorted.
+Grouping, documentation panes, automatic initial CAPF dispatch and async
+completion tables are outside this adapter's current scope. GUI/font variants,
+physical terminal/multiplexer use and real abrupt popup-client loss remain
+broader validation gaps. The beta1 branch remains fixed and these additions are
+unreleased main development, not a new beta tag or MELPA publication.
+
+On 2026-10-27, current MELPA policy blobs still match docs/MELPA.md; the
+`recipes/emacs-tui` path still returns 404. Latest package-lint main remains
+`1865be780a16098f972fef50a52b21ca6ee04df9`; its exact source blob was verified
+and rerun. Only the existing main package-name advisory remains; the optional
+completion helper is clean. Public maintenance and substantive
+human review remain external gates; no eligibility or acceptance is claimed.
+Next: finish this adapter's review/native validation, then concrete popup
+consumer needs and broader lifecycle/display validation before adding abstractions.
+
+Updated 2026-10-27 (America/Toronto).
 
 ## Active implementation
 
