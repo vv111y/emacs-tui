@@ -1,5 +1,39 @@
 # Project state
 
+## Native popup baseline — 2026-10-27
+
+PR #51 merged at 107dfc3fdf26a1d803c970d3e5b8d8a4dd4e050b after exact-head
+independent review and all eight jobs in run 40460185462 passed. Both 31.1
+platforms passed native source/bytecode protocols, all 357 ERT, strict checks,
+native lifecycle/CAPF/client-loss checks and retained artifact uploads. The
+earlier hidden-directory artifact failure was fixed and not waived.
+
+PR #52 merged at ae7ba28aeecfd04791ac8e17f2f519ac41972f9b with exact reviewed
+tree 27bdb8642108103a4af3e574df27e43ed1a2085e. All eight runtime/package jobs in
+40460835278 and both native profile jobs in 40460835255 passed after retargeting
+to main and recording its ancestry with a forward merge. Raw artifacts were
+retained on both platforms; review 5663038248 covers that exact head. Fixed beta
+branches are unchanged. Result-only paths are excluded from future full-profile
+triggers; ordinary runtime CI still checks this evidence publication.
+
+
+Full profile run 40460297101 passed Linux/macOS 31.1 at 100/1,000/10,000 rows,
+200 measured commands and 10 warmups. Four original raw reports are retained
+losslessly under bench/results/2026-10-27-native-popup with a provenance/checksum
+manifest. ZIP digests match GitHub; all report quantiles were recomputed, all
+7,560 records validated and source hashes checked against the measured tree.
+These are hosted-PTY observations, not physical paint or universal latency
+promises. Disabled undo, the synthetic table and overlapping clocks are explicit.
+
+At 10k, bytecode compass-move PTY medians were 42.147 ms Linux and 31.486 ms macOS;
+completion restoration medians were 155.877 ms and 118.627 ms. Table callback
+medians were below 0.4 ms in this fixture. Full popup reflow rebuilds the view on
+movement; it is the next concrete performance target. Compare baseline/candidate
+on the same runner before claiming improvement and preserve resize/selection/
+ownership cleanup. Completion projection needs further attribution. Human app
+use, GUI/emulator/multiplexer testing and MELPA external gates remain open.
+
+
 ## Full native profile collection — preparation, 2026-10-27
 
 A separate benchmark workflow prepares reproducible Linux/macOS Emacs31.1

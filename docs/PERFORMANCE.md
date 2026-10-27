@@ -1,5 +1,10 @@
 # Reproducing latency measurements
 
+The [native popup baseline](../bench/results/2026-10-27-native-popup/README.md)
+retains Linux/macOS 31.1 source/bytecode profiles with 200 measured commands per
+case, raw samples and qualified p50/p95/p99. It identifies expensive full popup
+reflow and completion restoration without claiming an optimization yet.
+
 The first [published navigation pair](../bench/results/2026-10-24-navigation/README.md)
 includes environment/provenance, raw samples, p50/p95/p99 and allocation counters
 before/after removing row reconstruction from selection movement. It covers
@@ -233,7 +238,7 @@ and a passing smoke alone does not establish a performance baseline.
 ## Collecting full native profiles in CI
 
 The separate **Native popup profile** workflow runs on benchmark-code pull
-requests and can also be launched manually through GitHub Actions. It measures
+requests (excluding retained result files) and can also be launched manually through GitHub Actions. It measures
 100, 1,000 and 10,000 source rows with 10 warmups and 200 measured commands per
 case on Linux/macOS Emacs 31.1. Source and fresh-bytecode modes run sequentially
 on the same runner; each artifact contains both raw reports and their complete
