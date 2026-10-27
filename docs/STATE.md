@@ -11,6 +11,13 @@ workflow commands explicitly add examples to load-path. Independent review
 found no substantive issue in that correction. Graphical runtime behavior is
 still unverified; fresh exact-head checks are required before integration.
 
+The corrected fixture compiled in run 40526621073 but failed its current-buffer
+assertion during native execution. Timer callbacks do not establish the selected
+window's buffer as current. Each step now explicitly uses that window's buffer
+without selecting a window or frame; the source/focus assertions remain intact.
+Failure reports include phase and selected/current-buffer diagnostics. This
+correction still requires independent review and a successful native GUI run.
+
 Added a bounded interactive GTK/Xvfb fixture and separate workflow, using the
 runner distribution's graphical Emacs with its actual version logged. It requires
 a graphical display, types into a mounted child-frame input, opens a source-
