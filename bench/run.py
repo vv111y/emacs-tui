@@ -309,8 +309,10 @@ def run(args):
                           provider_fixture=({"debounce_ms": 10, "timer_delay_ms": 20}
                                             if args.presentation == "windows" else
                                             {"type": "synchronous-completion-table",
-                                             "artificial_delay_ms": 0, "display_limit": 200}),
-                          filter_fixture={"prefix": args.filter_prefix},
+                                             "artificial_delay_ms": 0, "display_limit": 200,
+                                             "applies_to": "filter-completion", "style": "basic"}),
+                          filter_fixture={"prefix": "row " if args.presentation == "popup"
+                                          else args.filter_prefix},
                           quantile_method="nearest-rank", summaries=summaries, records=records)
             args.output.parent.mkdir(parents=True, exist_ok=True)
             args.output.write_text(json.dumps(result, indent=2, ensure_ascii=False) + "\n")

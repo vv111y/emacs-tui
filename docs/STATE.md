@@ -18,7 +18,9 @@ actual native positive evidence requires hosted Linux/macOS 31.1. Independent
 preliminary review caught a repaint-proof gap for identical successive cases;
 setup now forces a full redraw outside timing. Final review also required
 exact displayed candidate values/order when filtered and full results both hit
-the display cap; native smoke now includes 2,500 rows to exercise that boundary. All five existing window workloads passed in source/bytecode modes, including
+the display cap; native smoke now includes 2,500 rows to exercise that boundary.
+An independent real-CAPF/model-display probe confirms a stale 200-row display
+passes the old checker and fails the new one. That probe is not native evidence. All five existing window workloads passed in source/bytecode modes, including
 the multi-term filter cases; four Python driver regressions passed. Exact
 published-head review and hosted native CI remain required before integration. Neither fixed
 beta release branch is changed. Current MELPA policy blobs were rechecked on
