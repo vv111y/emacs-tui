@@ -5,6 +5,30 @@ initial beta3 preparation are preserved byte-for-byte in
 [STATE-HISTORY.md](STATE-HISTORY.md). Their pending checks describe their own
 dates, not current blockers; later intermediate edits remain in Git history.
 
+## Native graphical form candidate — 2026-10-27
+
+The GTK fixture exercises the settings form's native ordinary windows: field
+editing, rejected invalid Apply, option toggling, successful Apply and Revert,
+then owned-window/view-buffer cleanup and source preservation. It requires four
+live distinct view windows on the graphical parent, with no extra frame.
+The initial PR #81 GTK run 40575334155 / job 122440124319 failed at
+`(frame-live-p child)`: the test incorrectly assumed the form uses a child frame,
+although its public command deliberately uses `emacs-tui-mount`'s windows default.
+The correction tests the actual application presentation, preserving all existing
+child-frame journeys; no production behavior is changed. Initial eight CI jobs
+40575334183 and Linux/macOS tmux 40575334117 passed, but do not validate the fix.
+The corrected helper completes locally against actual ordinary windows, including
+native editing and cleanup; independent review also injected an editing error
+and verified disposal of all four windows/buffers plus source restoration.
+Local Emacs 29.3 passes 418 ERT, strict library/example compilation/checkdoc,
+strict GUI-fixture compilation and diffcheck. These do not prove GTK behavior.
+Fresh exact-head review and all native checks remain required before integration.
+
+PR #79 integrated at 7a32848159cf65af901fbb4affc41b8020c60474 after exact-head
+review 5673327045 and all eight CI 40572579490 jobs passed. Reviewed a694bc0e
+and tested merge d2086007 share tree b963d0e37b1d5c7c02e958b2dec98cf7ea75218e.
+The source assessment below remains a documentation boundary, not an adapter.
+
 ## XOB integration assessment — 2026-10-27
 
 PR #79 documents the actual owner repository API at pinned org-xob commit

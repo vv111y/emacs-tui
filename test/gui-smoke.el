@@ -12,6 +12,7 @@
 (require 'cl-lib)
 (require 'emacs-tui)
 (require 'emacs-tui-inspector-demo)
+(require 'emacs-tui-form-demo)
 (require 'emacs-tui-popup-lifecycle-smoke)
 (require 'emacs-tui-multi-popup-smoke)
 
@@ -52,13 +53,78 @@
   (let ((coding-system-for-write 'utf-8-unix))
     (with-temp-file (or (getenv "EMACS_TUI_GUI_REPORT") "gui-result.txt")
       (insert (if error (format "FAIL %S\n" error)
-                (format "PASS Emacs %s; graphical %S; three sibling popups/gallery launch/source departures/independent placement/individual and collective toggles; child input; inspector scroll/action/related/history; eight moves; resize; source preservation; twenty command-loop lifetimes; cleanup\n"
+                (format "PASS Emacs %s; graphical %S; three sibling popups/gallery launch/source departures/independent placement/individual and collective toggles; child input; form validation/options/apply/revert; inspector scroll/action/related/history; eight moves; resize; source preservation; twenty command-loop lifetimes; cleanup\n"
                         emacs-version window-system)))
       (when (and error (get-buffer "*Messages*"))
         (insert (with-current-buffer "*Messages*" (buffer-string))))
       (when (and error emacs-tui-gui--close-trace)
         (insert emacs-tui-gui--close-trace))))
   (kill-emacs (if error 1 0)))
+
+(defun emacs-tui-gui--form ()
+  "Exercise native form editing, validation and explicit saved state."
+  (let ((frames (frame-list)) (source (current-buffer))
+        (text (buffer-string)) (position (point))
+        (source-window (selected-window)) app windows buffers)
+    (unwind-protect
+        (progn
+          (setq app (emacs-tui-form-demo)
+                windows (mapcar #'emacs-tui--view-window
+                                (emacs-tui--workspace-views app))
+                buffers (mapcar #'emacs-tui--view-buffer
+                                (emacs-tui--workspace-views app)))
+          (redisplay t)
+          (cl-assert (= 4 (length buffers)))
+          (cl-assert (cl-every #'buffer-live-p buffers))
+          ;; The public form deliberately uses mount's ordinary-window default.
+          ;; Exercise that real presentation on the graphical parent.
+          (cl-assert (eq 'windows (emacs-tui--workspace-backend app)))
+          (cl-assert (= 4 (length (delete-dups (copy-sequence windows)))))
+          (cl-assert (cl-every #'window-live-p windows))
+          (cl-assert (cl-every (lambda (window)
+                                 (eq (window-frame window) emacs-tui-gui--parent))
+                               windows))
+          (cl-assert (equal frames (frame-list)))
+          (execute-kbd-macro (kbd "C-a C-k O p s"))
+          (emacs-tui-focus-view app 'retries)
+          (execute-kbd-macro (kbd "C-a C-k 1 1"))
+          (cl-assert (string-match-p
+                      "Draft invalid"
+                      (emacs-tui--view-text (emacs-tui--resolve-view app 'status))))
+          (cl-assert (eq 'rejected
+                         (condition-case nil
+                             (progn (emacs-tui-act app 'apply) 'accepted)
+                           (user-error 'rejected))))
+          (cl-assert (string-match-p
+                      "Name: Local demo"
+                      (emacs-tui--view-text (emacs-tui--resolve-view app 'status))))
+          (execute-kbd-macro (kbd "C-a C-k 1 0"))
+          (emacs-tui-focus-view app 'options)
+          (cl-assert (eq 'wrap (plist-get (emacs-tui-current-item app) :id)))
+          (execute-kbd-macro (kbd "SPC C-c C-c"))
+          (cl-assert (not (plist-get (emacs-tui-current-item app) :checked)))
+          (execute-kbd-macro (kbd "SPC"))
+          (cl-assert (plist-get (emacs-tui-current-item app) :checked))
+          (cl-assert (string-match-p
+                      "Wrap text=off"
+                      (emacs-tui--view-text (emacs-tui--resolve-view app 'status))))
+          (emacs-tui-focus-view app 'name)
+          (execute-kbd-macro (kbd "C-a C-k d r a f t C-c C-r"))
+          (cl-assert (equal "Ops" (emacs-tui-input-value app 'name)))
+          (cl-assert (equal "10" (emacs-tui-input-value app 'retries)))
+          (cl-assert (eq 'wrap (plist-get (emacs-tui-current-item app 'options) :id)))
+          (cl-assert (not (plist-get (emacs-tui-current-item app 'options) :checked)))
+          (execute-kbd-macro (kbd "C-c C-q"))
+          (cl-assert (not (emacs-tui-live-p app)))
+          (cl-assert (not (cl-some #'window-live-p windows)))
+          (cl-assert (eq source-window (selected-window)))
+          (cl-assert (not (cl-some #'buffer-live-p buffers)))
+          (cl-assert (equal frames (frame-list)))
+          (cl-assert (eq source (window-buffer (selected-window))))
+          (with-current-buffer source
+            (cl-assert (equal text (buffer-string)))
+            (cl-assert (= position (point)))))
+      (when app (emacs-tui-close app)))))
 
 (defun emacs-tui-gui--step ()
   "Run the next integration phase after native display events settle."
@@ -146,6 +212,7 @@
                   (cl-assert (not (advice-member-p #'emacs-tui--popup-switch-frame
                                                   #'handle-switch-frame)))
                   (cl-assert (null (cl-set-difference (frame-list) emacs-tui-gui--frames))))
+                (emacs-tui-gui--form)
                 (emacs-tui-multi-popup-smoke)
                 (emacs-tui-popup-lifecycle-smoke)
                 (emacs-tui-gui--finish nil)))
