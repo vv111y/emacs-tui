@@ -100,15 +100,20 @@ The source window is never split or replaced while the panels are shown.
 | C-c 3 | Toggle Keys |
 | C-c 0 | Hide all if any are visible; show all if none are visible |
 | M-n / M-p | Browse sample objects, including while panels are hidden |
-| C-c C-p | Move Objects through eight positions; siblings stay in place |
+| C-c p 1 / 2 / 3 | Move Objects / Details / Keys through eight positions independently |
+| C-c C-p | Alias for moving Objects |
 | C-g | Hide all, keeping the toggle bindings active |
 | C-c C-q | Disable the demo and restore ordinary source bindings |
 
 Try hiding Details, choosing another object with M-n, and reopening Details.
-Then hide/show the whole group with C-c 0. Selection survives; hidden panels
+Move each panel with C-c p 1/2/3, then hide/show the group with C-c 0.
+Selection and each requested position survive; hidden panels
 release their frames and buffers, and reopening creates new surfaces. Type and
 undo normally in the source. Closing one panel leaves its siblings live.
-Killing the source or changing its major mode closes every owned panel.
+Moving a hidden panel asks you to show it first. Disabling/re-enabling resets
+selection and placement. Leaving the source closes its panels; returning and
+pressing C-c 0 reopens them with retained state. Killing the source or changing
+its major mode closes every owned panel.
 
 All panels are read-only and retain source keyboard focus. Their positions are
 clamped and may overlap on narrow displays; this is not automatic collision

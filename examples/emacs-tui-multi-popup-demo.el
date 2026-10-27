@@ -26,6 +26,7 @@
 
 (defvar-local emacs-tui-multi-popup-demo--sessions nil)
 (defvar-local emacs-tui-multi-popup-demo--index 0)
+(defvar-local emacs-tui-multi-popup-demo--positions nil)
 (defvar-local emacs-tui-multi-popup-demo--generation nil)
 (defvar emacs-tui-multi-popup-demo--busy nil)
 (defvar emacs-tui-multi-popup-demo-mode nil)
@@ -70,7 +71,7 @@
                                     emacs-tui-multi-popup-demo--objects) :text)))
     ('keys (emacs-tui-view
             :id id :title "Independent floating panels"
-            :text "C-c 1 / 2 / 3: toggle each panel\nC-c 0: hide all / show all\nM-n / M-p: browse objects\nC-c C-p: move Objects | C-g: hide\nC-c C-q: disable demo"))))
+            :text "C-c 1 / 2 / 3: toggle each panel\nC-c 0: hide all / show all\nC-c p 1 / 2 / 3: move each panel\nM-n / M-p: browse objects\nC-g: hide | C-c C-q: disable"))))
 
 (defun emacs-tui-multi-popup-demo--check-context (source window generation)
   "Reject publication after SOURCE, WINDOW or GENERATION changed."
@@ -90,7 +91,9 @@
             (setq app
                   (emacs-tui-popup
                    :view (emacs-tui-multi-popup-demo--view id)
-                   :position (nth 1 spec) :width (nth 2 spec) :height (nth 3 spec)
+                   :position (or (alist-get id emacs-tui-multi-popup-demo--positions)
+                                 (nth 1 spec))
+                   :width (nth 2 spec) :height (nth 3 spec)
                    :on-close
                    (lambda (closed)
                      (when (buffer-live-p source)
@@ -188,12 +191,32 @@ panels so reopening shows coherent application state."
   "Inspect the previous sample object."
   (interactive) (emacs-tui-multi-popup-demo--browse -1))
 
+(defun emacs-tui-multi-popup-demo--move (id)
+  "Cycle panel ID through eight positions and remember its placement."
+  (unless emacs-tui-multi-popup-demo-mode (user-error "Enable the multi-popup demo first"))
+  (when emacs-tui-multi-popup-demo--busy (user-error "A panel operation is in progress"))
+  (let ((app (emacs-tui-multi-popup-demo--session id))
+        (source (current-buffer)) (window (selected-window))
+        (generation emacs-tui-multi-popup-demo--generation)
+        (emacs-tui-multi-popup-demo--busy t))
+    (unless app (user-error "Show the %s panel first" id))
+    (let ((position (emacs-tui-reposition-popup app)))
+      (emacs-tui-multi-popup-demo--check-context source window generation)
+      (unless (eq app (emacs-tui-multi-popup-demo--session id))
+        (user-error "Panel changed during movement"))
+      (setf (alist-get id emacs-tui-multi-popup-demo--positions) position))))
+
 (defun emacs-tui-multi-popup-demo-move ()
-  "Cycle the object list through eight positions, leaving sibling panels alone."
-  (interactive)
-  (let ((app (emacs-tui-multi-popup-demo--session 'objects)))
-    (unless app (user-error "Show the object list first"))
-    (emacs-tui-reposition-popup app)))
+  "Cycle Objects through eight positions, leaving sibling panels alone."
+  (interactive) (emacs-tui-multi-popup-demo--move 'objects))
+
+(defun emacs-tui-multi-popup-demo-move-details ()
+  "Cycle Details through eight positions, leaving sibling panels alone."
+  (interactive) (emacs-tui-multi-popup-demo--move 'details))
+
+(defun emacs-tui-multi-popup-demo-move-keys ()
+  "Cycle Keys through eight positions, leaving sibling panels alone."
+  (interactive) (emacs-tui-multi-popup-demo--move 'keys))
 
 (defun emacs-tui-multi-popup-demo--stop ()
   "Invalidate pending publication and release this source's panels and hooks."
@@ -214,8 +237,12 @@ Use \\[emacs-tui-multi-popup-demo-toggle-all] to hide all if any are visible,
 otherwise show all.  \\[emacs-tui-multi-popup-demo-next] browses objects.
 \\[emacs-tui-multi-popup-demo-dismiss] hides panels but retains bindings;
 \\[emacs-tui-multi-popup-demo-disable] disables them.  Reopening retains
-application selection, recreating display surfaces.  Typing and undo stay in
-the source.  Positions are clamped and may overlap."
+application selection and each panel's placement, recreating display surfaces.
+Use \\[emacs-tui-multi-popup-demo-move],
+\\[emacs-tui-multi-popup-demo-move-details] and
+\\[emacs-tui-multi-popup-demo-move-keys] to move each panel independently.
+Each cycles through eight positions.  Typing and undo stay in the source.
+Positions are clamped and may overlap."
   :lighter " MultiPop"
   :keymap (let ((map (make-sparse-keymap)))
             (define-key map (kbd "C-c 1") #'emacs-tui-multi-popup-demo-toggle-objects)
@@ -225,6 +252,9 @@ the source.  Positions are clamped and may overlap."
             (define-key map (kbd "M-n") #'emacs-tui-multi-popup-demo-next)
             (define-key map (kbd "M-p") #'emacs-tui-multi-popup-demo-previous)
             (define-key map (kbd "C-c C-p") #'emacs-tui-multi-popup-demo-move)
+            (define-key map (kbd "C-c p 1") #'emacs-tui-multi-popup-demo-move)
+            (define-key map (kbd "C-c p 2") #'emacs-tui-multi-popup-demo-move-details)
+            (define-key map (kbd "C-c p 3") #'emacs-tui-multi-popup-demo-move-keys)
             (define-key map (kbd "C-g") #'emacs-tui-multi-popup-demo-dismiss)
             (define-key map (kbd "C-c C-q") #'emacs-tui-multi-popup-demo-disable)
             map)
@@ -238,6 +268,7 @@ the source.  Positions are clamped and may overlap."
       (setq generation (make-symbol "multi-popup")
             emacs-tui-multi-popup-demo-mode t
             emacs-tui-multi-popup-demo--index 0
+            emacs-tui-multi-popup-demo--positions nil
             emacs-tui-multi-popup-demo--generation generation)
       (add-hook 'kill-buffer-hook #'emacs-tui-multi-popup-demo--stop nil t)
       (add-hook 'change-major-mode-hook #'emacs-tui-multi-popup-demo--stop nil t)
@@ -259,7 +290,7 @@ the source.  Positions are clamped and may overlap."
   (text-mode)
   (insert "Independent floating panels over a native editable document\n"
           "C-c 1 Objects | C-c 2 Details | C-c 3 Keys | C-c 0 All\n"
-          "M-n/p browse | C-c C-p move Objects | C-g hide | C-c C-q disable\n"
+          "M-n/p browse | C-c p 1/2/3 move panels | C-g hide | C-c C-q disable\n"
           (make-string 35 ?\n))
   (goto-char (point-min)) (forward-line (max 5 (/ (window-body-height) 2)))
   (insert (make-string (max 0 (- (/ (window-body-width) 2) 4)) ?\s) "equipment")

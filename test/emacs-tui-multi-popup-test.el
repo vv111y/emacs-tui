@@ -26,11 +26,20 @@
                     (cl-incf calls)
                     (when (equal calls fail-on) (error "Injected creation failure"))
                     (let ((app (emacs-tui--make-workspace
-                                :active t :views (list (plist-get args :view)))))
+                                :active t :views (list (plist-get args :view))
+                                :popup (emacs-tui--make-popup :position (plist-get args :position)))))
                       (push app created)
                       (push (cons app (plist-get args :on-close)) callbacks)
                       (when create-hook (funcall create-hook))
                       app)))
+                 ((symbol-function 'emacs-tui-reposition-popup)
+                  (lambda (app &optional position)
+                    (let* ((popup (emacs-tui--workspace-popup app))
+                           (current (emacs-tui--popup-position popup))
+                           (next (or position
+                                     (nth (mod (1+ (cl-position current emacs-tui-layout-popup-positions)) 8)
+                                          emacs-tui-layout-popup-positions))))
+                      (setf (emacs-tui--popup-position popup) next))))
                  ((symbol-function 'emacs-tui-set-selection)
                   (lambda (app _id id)
                     (setf (emacs-tui--view-selected (car (emacs-tui--workspace-views app))) id)))
@@ -175,6 +184,50 @@
     (should (eq 'valve (emacs-tui--view-selected
                        (car (emacs-tui--workspace-views
                              (emacs-tui-multi-popup-demo--session 'objects))))))))
+
+(ert-deftest emacs-tui-multi-placement-is-independent-and-survives-hidden-panels ()
+  (emacs-tui-multi-test--source
+    (let ((text (buffer-string)) (position (point)))
+      (emacs-tui-multi-popup-demo-mode 1)
+      (emacs-tui-multi-popup-demo-next)
+      (dolist (step '((objects "C-c p 1" west)
+                      (details "C-c p 2" south-east)
+                      (keys "C-c p 3" north)))
+        (let* ((id (car step))
+               (siblings (cl-remove-if (lambda (entry) (eq id (car entry)))
+                                       (copy-tree emacs-tui-multi-popup-demo--positions))))
+          (execute-kbd-macro (kbd (nth 1 step)))
+          (should (eq (nth 2 step) (alist-get id emacs-tui-multi-popup-demo--positions)))
+          (dolist (entry siblings)
+            (should (eq (cdr entry) (alist-get (car entry) emacs-tui-multi-popup-demo--positions))))))
+      (execute-kbd-macro (kbd "C-c 2 C-c 2 C-c 0 C-c 0"))
+      (dolist (entry '((objects . west) (details . south-east) (keys . north)))
+        (should (eq (cdr entry)
+                    (emacs-tui--popup-position
+                     (emacs-tui--workspace-popup (emacs-tui-multi-popup-demo--session (car entry)))))))
+      (should (= 1 emacs-tui-multi-popup-demo--index))
+      (should (equal text (buffer-string))) (should (= position (point)))
+      (emacs-tui-multi-popup-demo-mode -1)
+      (emacs-tui-multi-popup-demo-mode 1)
+      (should-not emacs-tui-multi-popup-demo--positions))))
+
+(ert-deftest emacs-tui-multi-hidden-panel-movement-does-not-open-it ()
+  (emacs-tui-multi-test--source
+    (emacs-tui-multi-popup-demo-mode 1)
+    (emacs-tui-multi-popup-demo-toggle-details)
+    (should-error (emacs-tui-multi-popup-demo-move-details) :type 'user-error)
+    (should-not (emacs-tui-multi-popup-demo--session 'details))
+    (should (= 2 (cl-count-if #'emacs-tui-live-p created)))
+    (should-not emacs-tui-multi-popup-demo--positions)))
+
+(ert-deftest emacs-tui-multi-movement-does-not-save-after-dismissal ()
+  (emacs-tui-multi-test--source
+    (emacs-tui-multi-popup-demo-mode 1)
+    (cl-letf (((symbol-function 'emacs-tui-reposition-popup)
+               (lambda (&rest _) (emacs-tui-multi-popup-demo-dismiss) 'north)))
+      (should-error (emacs-tui-multi-popup-demo-move-details) :type 'user-error))
+    (should-not emacs-tui-multi-popup-demo--positions)
+    (should-not (cl-some #'emacs-tui-live-p created))))
 
 (ert-deftest emacs-tui-multi-gallery-failed-tour-releases-real-chooser ()
   (require 'emacs-tui-multi-popup-smoke)

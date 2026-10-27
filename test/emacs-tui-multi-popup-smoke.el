@@ -30,9 +30,39 @@
         (cl-assert (frame-live-p child))
         (cl-assert (frame-visible-p child))
         (cl-assert (eq parent (frame-parent child)))
+        (when-let* ((position (alist-get (car spec) emacs-tui-multi-popup-demo--positions)))
+          (cl-assert (eq position (emacs-tui--popup-position (emacs-tui--workspace-popup app)))))
         (push child frames)))
     (cl-assert (= 3 (length (delete-dups frames))))
     frames))
+
+(defun emacs-tui-multi-popup-smoke--placements (parent)
+  "Move each panel with native keys on PARENT and retain placement on reopening."
+  (dolist (step '((objects "C-c p 1") (details "C-c p 2") (keys "C-c p 3")))
+    (let* ((id (car step)) (app (emacs-tui-multi-popup-demo--session id))
+           (start (emacs-tui--popup-position (emacs-tui--workspace-popup app)))
+           (siblings
+            (mapcar (lambda (entry)
+                      (let ((frame (emacs-tui--workspace-frame (cdr entry))))
+                        (list (car entry) (cdr entry) frame (frame-position frame))))
+                    (cl-remove-if (lambda (entry) (eq id (car entry)))
+                                  emacs-tui-multi-popup-demo--sessions))))
+      ;; Nine moves visit every requested position and retain one beyond START.
+      (dotimes (count 9)
+        (execute-kbd-macro (kbd (cadr step)))
+        (cl-assert (eq app (emacs-tui-multi-popup-demo--session id)))
+        (cl-assert (eq (nth (mod (+ (cl-position start emacs-tui-layout-popup-positions)
+                                    count 1) 8) emacs-tui-layout-popup-positions)
+                       (alist-get id emacs-tui-multi-popup-demo--positions)))
+        (dolist (sibling siblings)
+          (cl-assert (eq (nth 1 sibling) (emacs-tui-multi-popup-demo--session (car sibling))))
+          (cl-assert (equal (nth 3 sibling) (frame-position (nth 2 sibling)))))
+        (emacs-tui-multi-popup-smoke--frames parent))))
+  (let ((positions (copy-tree emacs-tui-multi-popup-demo--positions)))
+    (cl-assert (= 3 (length positions)))
+    (execute-kbd-macro (kbd "C-c 2 C-c 2 C-c 0 C-c 0"))
+    (cl-assert (equal positions emacs-tui-multi-popup-demo--positions))
+    (emacs-tui-multi-popup-smoke--frames parent)))
 
 (defun emacs-tui-multi-popup-smoke--departures (source parent)
   "Leave SOURCE through native commands and recreate its panels on PARENT.
@@ -45,6 +75,7 @@ No explicit close is used before checking the old resources."
             (let* ((host (selected-window))
                    (other (when (eq kind 'window) (split-window-right)))
                    (index emacs-tui-multi-popup-demo--index)
+                   (positions (copy-tree emacs-tui-multi-popup-demo--positions))
                    (text (buffer-string)) (position (point))
                    (undo (copy-tree buffer-undo-list))
                    (apps (mapcar #'cdr emacs-tui-multi-popup-demo--sessions))
@@ -89,6 +120,7 @@ No explicit close is used before checking the old resources."
               (cl-assert emacs-tui-multi-popup-demo-mode)
               (cl-assert (null emacs-tui-multi-popup-demo--sessions))
               (cl-assert (= index emacs-tui-multi-popup-demo--index))
+              (cl-assert (equal positions emacs-tui-multi-popup-demo--positions))
               (cl-assert (equal text (buffer-string)))
               (cl-assert (= position (point)))
               (cl-assert (equal undo buffer-undo-list))
@@ -98,6 +130,7 @@ No explicit close is used before checking the old resources."
                 (execute-kbd-macro (kbd "C-c 0"))
                 (emacs-tui-multi-popup-smoke--frames parent)
                 (cl-assert (equal windows (window-state-get (frame-root-window parent)))))
+              (cl-assert (equal positions emacs-tui-multi-popup-demo--positions))
               (cl-assert (eq (plist-get (nth index emacs-tui-multi-popup-demo--objects) :id)
                              (plist-get (emacs-tui-current-item
                                          (emacs-tui-multi-popup-demo--session 'objects)) :id)))))
@@ -164,6 +197,7 @@ No explicit close is used before checking the old resources."
               (cl-assert (not (emacs-tui-multi-popup-demo--session 'keys)))
               (cl-assert (emacs-tui-multi-popup-demo--session 'objects))
               (execute-kbd-macro (kbd "C-c 3"))
+              (emacs-tui-multi-popup-smoke--placements parent)
               (cl-assert (equal windows (window-state-get (frame-root-window parent))) nil
                          "Source window state changed: before=%S after=%S"
                          windows (window-state-get (frame-root-window parent)))

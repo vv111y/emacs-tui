@@ -5,9 +5,23 @@ initial beta3 preparation are preserved byte-for-byte in
 [STATE-HISTORY.md](STATE-HISTORY.md). Their pending checks describe their own
 dates, not current blockers; later intermediate edits remain in Git history.
 
-## Native sibling-popup departure candidate — 2026-10-27
+## Independent panel-placement candidate — 2026-10-27
 
-PR #78 extends the shared real-frame journey through both buffer and window
+The multi-popup demo adds C-c p 1/2/3 to move Objects/Details/Keys through the
+eight requested positions independently. C-c C-p remains the Objects alias.
+Each requested position survives hiding/reopening and source departure/return;
+disabling/re-enabling starts from defaults. Hidden panels must be shown before
+moving. Placement is application-owned, with no core API change; native bounds
+still clamp and can cause overlap. Stale/dismissed moves cannot publish saved
+placement. Policy regressions and a native keyboard journey cover all eight
+positions per panel, sibling geometry isolation and retained reopened placement.
+Local Emacs29.3 passes418 ERT, strict compile/checkdoc and native fixture
+compilation. Independent review and positive hosted execution gate integration.
+
+## Integrated sibling-popup departure coverage — 2026-10-27
+
+PR #78 merged at484286408a3c715c2034033c6faf0fa7a0e7a49a. It extends the
+shared real-frame journey through both buffer and window
 commands. It checks that all three old frames/view buffers/anchor markers are
 released and popup command routing is removed, edits the destination, then
 returns and explicitly recreates the panels with retained selection. Source
@@ -25,10 +39,14 @@ operations before navigation, and adds a new complete-state assertion around
 reopening after each return. It does not filter history fields or relax equality.
 Source and resource assertions still cover the deliberate navigation. Local
 Emacs29.3 passes415 ERT, strict compile/checkdoc and strict shared/GUI/TTY fixture
-compilation. Independent review of4f5036c found no structural issue; final
-review and fresh positive hosted results remain integration gates. The local29.3
-runtime cannot prove native terminal child-frame behavior. Do not merge the
-failing diagnostic head or reuse its checks for the correction.
+compilation. Independent exact-head review5673096905 covers10724484; its tree
+16f6ce1537e5a52fe10ce1e1b161546020d67f71 matches tested merge19858866 and the
+integrated commit. All eleven checks passed: CI40569899852 (eight jobs),
+GTK40569899845 and Linux/macOS tmux40569899947. All three native environments
+explicitly report source departures. Package job122421009193 clean-installs the
+same archive on31.1/28.1; SHA256
+f547f30ac460a1669e2a34fc4597a7bcf96d8c40b773b20561d71d315dce22bb.
+The local29.3 runtime alone cannot prove native terminal child-frame behavior.
 
 ## Integrated native multi-popup gallery launch — 2026-10-27
 
@@ -77,7 +95,7 @@ unsupported branch does not establish native composition. Physical display,
 Ghostty/iTerm2 and broader input-method coverage remain open. Fixed beta1/2/3
 refs are unchanged. Current main has twelve gallery entries; fixed beta3 has ten.
 
-Next: finish the native sibling-popup departure candidate above, then prioritize
+Next: finish independent per-panel placement in PR #80 above, then prioritize
 concrete beta feedback and measured application costs. Keep one independently
 owned session per floating panel; no speculative group/window-manager API.
 

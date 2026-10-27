@@ -52,7 +52,7 @@
   (let ((coding-system-for-write 'utf-8-unix))
     (with-temp-file (or (getenv "EMACS_TUI_GUI_REPORT") "gui-result.txt")
       (insert (if error (format "FAIL %S\n" error)
-                (format "PASS Emacs %s; graphical %S; three sibling popups/gallery launch/source departures/individual and collective toggles; child input; inspector scroll/action/related/history; eight moves; resize; source preservation; twenty command-loop lifetimes; cleanup\n"
+                (format "PASS Emacs %s; graphical %S; three sibling popups/gallery launch/source departures/independent placement/individual and collective toggles; child input; inspector scroll/action/related/history; eight moves; resize; source preservation; twenty command-loop lifetimes; cleanup\n"
                         emacs-version window-system)))
       (when (and error (get-buffer "*Messages*"))
         (insert (with-current-buffer "*Messages*" (buffer-string))))
