@@ -177,13 +177,26 @@
              (snapshots (make-hash-table :test #'eq :weakness 'key))
              (project (symbol-function 'emacs-tui-completion--projection)))
         (insert "a")
-        (cl-letf (((symbol-function 'emacs-tui-completion--projection)
-                   (lambda (context)
-                     (let ((projection (funcall project context)))
-                       ;; The middle match is undisplayed with either sorter.
-                       (puthash (nth 1 (plist-get projection :candidates)) t snapshots)
-                       projection))))
-          (completion-in-region 1 (point) '("alpha" "alpine" "azure")))
+        (completion-in-region 1 (point) '("alpha" "alpine" "azure"))
+        ;; As in Emacs's weak-table tests, use a joined thread so conservative
+        ;; stack scanning cannot retain a dead projection from the test itself.
+        (should
+         (thread-join
+          (make-thread
+           (lambda ()
+             (with-current-buffer source
+               (let ((completion-styles '(basic))
+                     (completion-category-defaults nil)
+                     (completion-category-overrides nil)
+                     (emacs-tui-completion-limit 1))
+                 (cl-letf (((symbol-function 'emacs-tui-completion--projection)
+                            (lambda (context)
+                              (let ((projection (funcall project context)))
+                                ;; Undisplayed with either sorter.
+                                (puthash (nth 1 (plist-get projection :candidates))
+                                         t snapshots)
+                                projection))))
+                   (emacs-tui-completion--refresh emacs-tui-completion--context))))))))
         (garbage-collect)
         (should (= 0 (hash-table-count snapshots)))
         (should (emacs-tui-live-p (emacs-tui-completion--session)))

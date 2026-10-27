@@ -18,6 +18,14 @@ A separate regression preserves validation against a callback that mutates both
 provider storage and its decoration argument. Native 31.1 evidence and exact-head
 independent review remain integration gates. No latency improvement is claimed.
 
+Initial CI 40486893255 failed only the new GC assertion on 28.1/28.2. The
+fixture now projects in a joined thread, following Emacs's own weak-table tests
+to keep stale conservative stack references out of collection checks. The same
+zero-key assertion remains, and still fails against the old runtime locally.
+Local 29.3 full checks pass; a separately extracted Debian 28.2 aborts even on
+an empty batch evaluation in this container, so it supplies no test evidence.
+Fresh hosted 28.1/28.2 checks are required; no failed job is waived.
+
 A paired workflow uses identical fixtures, normal GC defaults and the same
 runner for baseline/candidate, separately for identity/absent sorters on Linux
 and macOS. It measures 100/10,000-row completion filtering in source/bytecode,
