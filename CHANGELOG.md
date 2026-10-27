@@ -16,6 +16,9 @@
   Stage profiles distinguish provider, projection, update and redisplay costs.
 - Graphical popup focus events preserve the selected source instead of
   unexpectedly selecting and closing a read-only popup after preview operations.
+- Native input edits made while modification hooks are inhibited survive
+  focus changes, refresh, layout and metadata-only updates, retaining text
+  properties and undo. Explicit replacement remains an application action.
 - Native GTK/Xvfb completion and inspector checks complement Linux/macOS TTY
   and tmux tests. Repeated command-loop disposal checks verify that leaving or
   replacing a source preserves ordinary navigation and releases owned resources.

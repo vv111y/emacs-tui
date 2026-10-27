@@ -12,6 +12,117 @@
 (require 'ert)
 (require 'emacs-tui)
 
+(ert-deftest emacs-tui-input-suppressed-edit-survives-focus-navigation ()
+  (save-window-excursion
+    (let* ((app (emacs-tui-mount
+                 :views (list (emacs-tui-input :id 'input :value "A")
+                              (emacs-tui-view :id 'other :items '("Other")))))
+           (input (current-buffer)))
+      (unwind-protect
+          (progn
+            (let ((inhibit-modification-hooks t)) (goto-char (point-max)) (insert "B"))
+            (let ((undo (copy-tree buffer-undo-list)) (position (point)))
+              (emacs-tui-focus-view app 'other)
+              (emacs-tui-previous-view app)
+              (should (eq input (current-buffer)))
+              (should (equal "AB" (emacs-tui-input-value app 'input)))
+              (should (equal undo buffer-undo-list))
+              (should (= position (point)))))
+        (emacs-tui-close app)))))
+
+(ert-deftest emacs-tui-input-render-hook-edit-survives-same-reflow ()
+  (save-window-excursion
+    (let* ((app (emacs-tui-mount
+                 :views (list (emacs-tui-view :id 'items :items '("Item"))
+                              (emacs-tui-input :id 'input :value "A"))))
+           input entered)
+      (unwind-protect
+          (progn
+            (emacs-tui-focus-view app 'input)
+            (setq input (current-buffer))
+            (emacs-tui-focus-view app 'items)
+            (let ((hook (lambda (&rest _)
+                          (unless entered
+                            (setq entered t)
+                            (with-current-buffer input
+                              (goto-char (point-max)) (insert "B"))))))
+              (add-hook 'before-change-functions hook nil t)
+              (unwind-protect (emacs-tui-refresh app)
+                (remove-hook 'before-change-functions hook t)))
+            (should entered)
+            ;; The earlier pane's hook edits the input after reflow begins.
+            (should (equal "AB" (emacs-tui-input-value app 'input))))
+        (emacs-tui-close app)))))
+
+(ert-deftest emacs-tui-input-cross-buffer-hook-edit-survives-reflow ()
+  (let ((calls 0) entered input)
+    (save-window-excursion
+      (let ((app (emacs-tui-mount
+                  :views (list (emacs-tui-input :id 'input :value "A"
+                                               :on-change (lambda (&rest _) (cl-incf calls)))
+                               (emacs-tui-view :id 'preview :text "Old")))))
+        (unwind-protect
+            (progn
+              (setq input (current-buffer))
+              (emacs-tui-focus-view app 'preview)
+              (let ((hook (lambda (&rest _)
+                            (unless entered
+                              (setq entered t)
+                              (with-current-buffer input
+                                (goto-char (point-max))
+                                (insert (propertize "日本語" 'face 'bold)))))))
+                (add-hook 'before-change-functions hook nil t)
+                (unwind-protect (emacs-tui-update app 'preview :text "New")
+                  (remove-hook 'before-change-functions hook t)))
+              (should (equal "A日本語" (emacs-tui-input-value app 'input)))
+              (let ((undo (with-current-buffer input (copy-tree buffer-undo-list))))
+                (emacs-tui-set-layout app 'rows)
+                (should (equal "A日本語" (emacs-tui-input-value app 'input)))
+                (with-current-buffer input
+                  (should (equal undo buffer-undo-list))
+                  (should (eq 'bold (get-text-property 2 'face)))))
+              ;; The originating native hook inhibited nested change hooks.
+              ;; Reflow must preserve its edit without inventing a callback.
+              (should (= 0 calls)))
+          (emacs-tui-close app))))))
+
+(ert-deftest emacs-tui-input-suppressed-edit-survives-quiet-update ()
+  (save-window-excursion
+    (let ((app (emacs-tui-mount :views (list (emacs-tui-input :id 'input :value "A")))))
+      (unwind-protect
+          (progn
+            (let ((inhibit-modification-hooks t)) (goto-char (point-max)) (insert "B"))
+            (narrow-to-region 2 3)
+            (let ((undo (copy-tree buffer-undo-list)))
+              (emacs-tui-update app 'input :title "Updated title")
+              (emacs-tui-update app 'input)
+              (should (equal "AB" (emacs-tui-input-value app 'input)))
+              (should (equal undo buffer-undo-list))
+              (should (= 2 (point-min))))
+            ;; An explicit replacement still wins and resets undo normally.
+            (emacs-tui-update app 'input :text "Replacement")
+            (should (equal "Replacement" (emacs-tui-input-value app 'input)))
+            (should-not buffer-undo-list))
+        (emacs-tui-close app)))))
+
+(ert-deftest emacs-tui-input-hidden-suppressed-edit-survives-layout ()
+  (save-window-excursion
+    (let* ((app (emacs-tui-mount
+                 :views (list (emacs-tui-input :id 'input :value "A")
+                              (emacs-tui-view :id 'other :items '("Other")))))
+           (input (current-buffer)))
+      (unwind-protect
+          (progn
+            (emacs-tui-focus-view app 'other)
+            (emacs-tui-toggle-maximize app)
+            (with-current-buffer input
+              (let ((inhibit-modification-hooks t)) (goto-char (point-max)) (insert "B")))
+            (emacs-tui-refresh app)
+            (emacs-tui-toggle-maximize app)
+            (emacs-tui-focus-view app 'input)
+            (should (equal "AB" (emacs-tui-input-value app 'input))))
+        (emacs-tui-close app)))))
+
 (defmacro emacs-tui-input-test--with (views &rest body)
   "Mount VIEWS as session, run BODY and release owned resources."
   (declare (indent 1) (debug t))

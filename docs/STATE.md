@@ -1,5 +1,33 @@
 # Project state
 
+## Beta3 input preservation follow-up — 2026-10-27
+
+Publication remains blocked pending renewed review and all exact-head checks.
+A distinct form demo exposed a core data-loss case: an application's native
+render hook can edit another input buffer while Emacs inhibits nested change
+hooks. Later focus or reflow restored the obsolete cached value. Mounted input
+buffers now supply their full, property-preserving text immediately before
+ordinary rendering; updates capture live input before staging. Initial values
+and explicit text replacement retain their existing semantics. No synthetic
+on-change callback is generated. Five regressions cover focus, cross-buffer
+hooks, same-reflow ordering, hidden input and quiet updates/explicit replacement.
+Local Emacs29.3 passes396 ERT, strict compilation and checkdoc; independent
+focus and same-reflow probes both retain the native edit. The extracted local
+runtime needs JIT compilation disabled because its compiler is unavailable.
+
+The original PR #72 head ba32c011 had twelve successful checks, but both GUI
+attempts (jobs122326825627 and122336344646) were cancelled during package
+installation at the fifteen-minute job deadline, before compile or native tests.
+The GUI workflow now excludes recommended apt packages and bounds installation
+at twenty minutes inside a twenty-five-minute job. Native fixture assertions
+and sixty-second execution limits are unchanged. Old passes do not qualify the
+updated head. A successful fresh GUI run remains mandatory. No beta3 ref exists.
+
+The settings-form demo remains unpublished local work until this core issue is
+resolved; its application-level stale-draft check also needs final review. Draft
+PR #73 is a separate state-document archive stacked on #72 and must be rebased,
+updated and rechecked after the final release facts are known.
+
 ## Beta3 preparation — 2026-10-27
 
 Prepare a new fixed release/0.1.0-beta3 branch from the reviewed, passing
@@ -7,8 +35,8 @@ release metadata snapshot after integration. Beta1/beta2 must not move. This
 unit aligns package header, CI metadata assertion, straight.el installation,
 changelog, stability policy and the ten-entry demo guide. Installed-client
 validation now exercises the additive scrolling API through public calls,
-including unchanged source focus/text/point/selection. No runtime behavior or
-API signature changes. Local Emacs29.3 passes391 ERT, strict compilation and
+including unchanged source focus/text/point/selection. The initial metadata-only candidate had no runtime behavior or
+API signature changes. Its local Emacs29.3 run passed391 ERT, strict compilation and
 checkdoc. The committed f44b587 snapshot builds with the candidate package-build
 recipe, validates beta3 package metadata, and clean-installs on29.3 including
 the public scrolling smoke; archive SHA256

@@ -398,6 +398,17 @@ Ignore narrowing and strip text properties.  Signal an error for other views."
         (widen)
         (buffer-substring-no-properties (point-min) (point-max))))))
 
+(defun emacs-tui--capture-input (view)
+  "Synchronize editable VIEW's cached text with its live buffer.
+Native hooks may be inhibited by another buffer's modification hook.  Read
+the buffer before redisplay can replace it with an obsolete cached value.
+This does not edit text, reset undo or synthesize an application callback."
+  (when (and (emacs-tui--view-editable view)
+             (buffer-live-p (emacs-tui--view-buffer view)))
+    (with-current-buffer (emacs-tui--view-buffer view)
+      (setf (emacs-tui--view-text view)
+            (save-restriction (widen) (buffer-string))))))
+
 (defun emacs-tui--field-changed (&rest _arguments)
   "Record native edits and notify the current editable view's application."
   (when (and (not emacs-tui--rendering) (emacs-tui-live-p emacs-tui--session))
@@ -786,6 +797,12 @@ Return (CONTENT POSITION ROW-RANGES).  Projection errors leave display intact."
 (defun emacs-tui--render-view (session view)
   "Render VIEW in SESSION without replacing its buffer or window.
 Prepare application projections before changing any displayed content."
+  ;; Once mounted, a live input buffer is authoritative.  Initial rendering
+  ;; must still use its supplied value, and staged copies from explicit updates
+  ;; must retain their replacement text rather than reading the old buffer.
+  (when (and (memq session emacs-tui--sessions)
+             (memq view (emacs-tui--workspace-views session)))
+    (emacs-tui--capture-input view))
   (let ((buffer (emacs-tui--view-buffer view)))
     (when (buffer-live-p buffer)
       (with-current-buffer buffer
@@ -885,6 +902,7 @@ Return SESSION."
       (error "TEXT must be a string or nil"))
     (when (and title-p (not (stringp title)))
       (error "TITLE must be a string"))
+    (emacs-tui--capture-input view)
     (let ((candidate (copy-emacs-tui--view view)))
       (when title-p (setf (emacs-tui--view-title candidate) title))
       (when items-p
