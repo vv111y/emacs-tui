@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.1.0-beta2 — 2026-10-27
 
 - Source-preserving native candidate popups with eight compass positions,
   tracked anchors, explicit application actions and a typing-driven demo.
@@ -10,8 +10,24 @@
 - Distinct task-board, reader and snippet applications replace repetitive
   gallery entries; table fill widths preserve the rightmost terminal glyph.
 - Popup clients dispose before major-mode changes discard their local state.
+- Completion startup interrupted by popup closure or a new completion releases
+  the old context without reviving its bindings or disposing the new popup.
+- Completion acceptance revalidates buffer/window ownership after table
+  callbacks and before source reads or edits, preserving external changes.
+- Native terminal tests require visible popup paint before abrupt real-client
+  loss, complete popup disposal and continuing input on the surviving terminal.
 
-These additions are on main, outside the fixed 0.1.0-beta1 release branch.
+The new popup APIs are additive. Existing persistent, embedded and ephemeral
+workspace calls keep their behavior; the completion frontend is opt-in.
+Floating popups require graphical or advertised native TTY child frames and
+reject unsupported displays without splitting the source window. Other toolkit
+presentations retain their ordinary-window fallback on Emacs 28.1+.
+
+The fixed beta2 branch includes the matching examples and optional runtime
+adapter. Install only `emacs-tui*.el` with the documented straight.el recipe;
+use a matching source checkout for demos. The beta1 branch remains unchanged.
+Both betas retain an experimental API and await substantive community use.
+GitHub prerelease tags and MELPA publication remain separate external steps.
 
 ## 0.1.0-beta1 — 2026-10-24
 

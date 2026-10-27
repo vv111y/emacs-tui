@@ -1,6 +1,6 @@
 # Public API and compatibility
 
-emacs-tui 0.1.0-beta1 is an experimental community-testing release. Its release
+emacs-tui 0.1.0-beta2 is an experimental community-testing release. Its release
 ref and successful archive builds do not constitute a stable compatibility
 freeze or MELPA acceptance. This policy defines how we work toward that contract.
 
@@ -62,7 +62,9 @@ passing test suite establishes maturity on its own.
 
 For a stable 1.x API, compatible additions belong in minor releases, compatible
 fixes in patch releases, and incompatible public changes require a major
-release with a migration guide. Backend selection remains capability-based;
-new display capabilities must preserve the documented ordinary-window fallback.
+release with a migration guide. Backend selection remains capability-based.
+Existing workspace presentations retain the documented ordinary-window fallback.
+Source-preserving floating popups explicitly require native child frames and
+reject unsupported displays; callers can check capability before activation.
 Any change to the supported Emacs floor must be explicit in metadata and release
 notes and validated with the resulting package artifact.

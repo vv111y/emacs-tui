@@ -11,14 +11,14 @@ a query field or origin-buffer commit. Single panels can also borrow existing
 application windows and restore their original buffer when closed.
 XOB is an intended consumer; the toolkit is not specific to XOB, Org or graphs.
 
-**0.1.0 beta: ready for community testing.** The API remains experimental,
+**0.1.0 beta2: ready for community testing.** The API remains experimental,
 and the package is not on MELPA yet. The reviewed beta is available from its
 versioned release branch while the matching GitHub prerelease tag awaits an
 authenticated publication step.
 
 ## Install the beta
 
-The beta release ref is `release/0.1.0-beta1`. It is fixed to the reviewed beta
+The beta release ref is `release/0.1.0-beta2`. It is fixed to the reviewed beta
 contents and will not track later development. With
 [straight.el](https://github.com/radian-software/straight.el) on Emacs 28.1 or
 later, evaluate:
@@ -27,7 +27,7 @@ later, evaluate:
 (straight-use-package
  '(emacs-tui :type git
              :repo "https://github.com/vv111y/emacs-tui.git"
-             :branch "release/0.1.0-beta1"
+             :branch "release/0.1.0-beta2"
              :files ("emacs-tui*.el")))
 ```
 
@@ -42,7 +42,7 @@ emulators and graphical display variants still need broader community use.
 Browse nine applications and capability showcases with guided tours:
 
 ```sh
-git clone https://github.com/vv111y/emacs-tui.git
+git clone --branch release/0.1.0-beta2 https://github.com/vv111y/emacs-tui.git
 cd emacs-tui
 make gallery
 ```
@@ -54,9 +54,10 @@ and step-by-step tours. Try the inline candidate popup, three-lane task board, c
 snippet picker, object catalog, text composer, streaming search, original graph
 explorer, or layout playground. Each works in a fresh Emacs.
 
-These new showcases are on `main`; the fixed `release/0.1.0-beta1` branch is
-unchanged. The straight.el runtime recipe excludes examples. Use this checkout
-for the gallery so examples and toolkit come from the same revision.
+The beta2 checkout includes these showcases; `main` tracks later development.
+The older `release/0.1.0-beta1` branch remains unchanged. The straight.el runtime
+recipe excludes examples. Use the matching checkout for the gallery so examples
+and toolkit come from the same revision.
 
 ## Graph explorer (original demo)
 
@@ -141,7 +142,7 @@ validation; native terminal behavior has a separate interactive CI scenario.
 
 ## Native completion providers
 
-On current `main`, the optional adapter uses your buffer's existing
+In beta2, the optional adapter uses your buffer's existing
 `completion-at-point-functions` and Emacs completion styles:
 
 ```elisp
@@ -170,7 +171,11 @@ the exit function or insert a common prefix, even with a sole candidate.
 
 Initial provider dispatch is explicit. Once active, native source edits update
 the captured table until its context expires. Completion tables run
-synchronously and must return promptly. `emacs-tui-completion-limit` defaults
+synchronously and must return promptly.
+Tables and metadata callbacks compute candidates without editing the source or
+switching its current buffer/window; effects belong in explicit exit callbacks.
+Stale source or ownership changes reject display/acceptance and preserve user
+edits and focus choices. `emacs-tui-completion-limit` defaults
 to 200 displayed rows; all matches are computed and sorted, then only the
 displayed subset is decorated. This limits display work, not provider work.
 Grouping, documentation panes, automatic initial CAPF dispatch and asynchronous
