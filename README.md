@@ -140,6 +140,35 @@ coincide or overlap the anchor near an edge. Use a central word to inspect all
 eight placements. Graphical window-manager/font variants still need community
 validation; native terminal behavior has a separate interactive CI scenario.
 
+## Floating object inspector
+
+`make inspector-demo` opens an equipment note with a read-only object preview
+anchored to `pump`. `M-n`/`M-p` scroll details without taking source focus;
+`C-c C-p` moves the popup and `C-c C-a` explicitly toggles acknowledgement.
+The popup stays open and the document is unchanged by that action. `C-g`
+dismisses and restores source bindings. Put point on `valve` and run
+`M-x emacs-tui-inspector-demo-at-point` to inspect another object.
+
+This application supplies objects and actions directly, with no completion
+provider, query field or source insertion. Acknowledgements belong to the source
+buffer, survive popup dismissal and disappear on major-mode change or buffer death.
+The chosen object remains fixed while ordinary source edits continue. The
+gallery launches the same self-contained demonstration; native child frames
+are required.
+
+Long read-only previews can also be scrolled in any visible owned pane:
+
+```elisp
+(emacs-tui-scroll-view my-popup 'details 3)  ; forward three lines
+(emacs-tui-scroll-view my-popup 'details -3) ; backward
+(emacs-tui-scroll-view my-popup 'details)    ; nearly one window
+```
+
+Scrolling preserves selected source window/buffer and logical view focus. It
+does not run actions, alter selection or reveal hidden panes. Hidden, list and
+editable input views are rejected. Native beginning/end-of-buffer errors are
+preserved. Use ordinary navigation for lists and native editing in input views.
+
 ## Native completion providers
 
 In beta2, the optional adapter uses your buffer's existing
@@ -547,6 +576,7 @@ and continue exploration; commitment is a separate command.
 | `emacs-tui-reposition-popup` | Choose or cycle eight compass positions |
 | `emacs-tui-layout-popup` | Compute a clamped anchor-relative rectangle without display effects |
 | `emacs-tui-completion-mode` | Optional buffer-local frontend for existing completion-at-point providers |
+| `emacs-tui-scroll-view` | Scroll a visible read-only preview without taking input focus |
 | `emacs-tui-completion-next` / `emacs-tui-completion-previous` | Browse candidates while retaining source input focus |
 | `emacs-tui-completion-accept` / `emacs-tui-completion-dismiss` | Explicitly insert the selected completion or close unchanged |
 | `emacs-tui-completion-move` | Cycle the active completion popup's compass position |

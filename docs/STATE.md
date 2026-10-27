@@ -1,5 +1,38 @@
 # Project state
 
+## Object inspector and focus-preserving preview scrolling — 2026-10-27
+
+Added `emacs-tui-scroll-view` for visible owned read-only text views. It retains
+source selection and logical focus, uses native scrolling/boundary errors, and
+records reading position even when scrolling signals. Hidden, editable, list,
+closed and repurposed views are rejected without revealing or changing them.
+
+The new equipment inspector is a distinct non-completion gallery application:
+inspect pump/valve, scroll with M-n/M-p, cycle eight positions with C-c C-p,
+acknowledge explicitly with C-c C-a, and dismiss with C-g. Acknowledgement is
+source-buffer-local demo state, retained across dismissal and discarded on mode
+change or buffer death. Source text, undo and typing focus are preserved.
+Creation and publication validate ownership across callback reentry. Independent
+review caught dismissal reentry that could orphan a newer popup; a unique token
+claimed before dismissal plus immediate revalidation fixes it, with regression.
+
+Local Emacs 29.3: all 378 ERT, strict compilation and checkdoc pass. Fourteen new
+behavior tests cover scrolling, state retention, rejected targets, independent
+objects/buffers, failures, reentry and disposal. Independent reviewer reran all
+14 plus native-scroll-error, revoked-ownership and close-reentry probes. Local
+PTY checks pass the unsupported-popup branch only; actual Emacs 31.1 scrolling,
+reversal, eight moves, acknowledgement and dismissal remain hosted CI gates.
+No new release or fixed beta ref was changed. Next: finish exact-head review and
+native Linux/macOS validation, then continue application/display testing and
+beta feedback. MELPA maintenance-history and human-review gates remain external.
+
+PR #62 merged at fef7bfd4e3e1fc71bdd2d4eac0c0412d5804b931 after independent
+review 5665680410 and all eight CI 40489633305 jobs passed. Reviewed head
+13396bd044cd461fc3ce3c28f3689c83918ebd51 and tested merge
+af3b30c9ec285d22ac014fabb62fa6f985a637db share tree
+8d75469d96817786a83f176345585c4881662184. Its durable paired completion reports
+show mixed latency; they support shorter snapshot lifetime, not uniform speedup.
+
 ## Completion fixes integrated and paired evidence retained — 2026-10-27
 
 PR #61 merged at 0673be3d75dc9aa25b5b024eeca393212e3b8fe1 after exact-head

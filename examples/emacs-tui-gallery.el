@@ -24,6 +24,10 @@
      :available emacs-tui-popup-supported-p
      :feature emacs-tui-popup-demo :command emacs-tui-popup-demo
      :tour "Candidates float around the word being typed. The source stays in place.\n\n1. Launch to enable the demo in your original buffer. Type map.\n2. M-n / M-p selects; TAB explicitly replaces the word.\n3. C-c C-p cycles N, NE, E, SE, S, SW, W and NW.\n4. Keep typing to filter candidates; normal undo still works.\n5. C-g dismisses; C-c C-q disables the demo and restores bindings.\n\nNative TTY child frames (feature tty-child-frames) or a graphical display are required. Near edges placement is clamped. make popup-demo opens a centered sample document instead.")
+    (:id inspector :label "Equipment inspector (floating text)" :kind "Inline"
+     :available emacs-tui-popup-supported-p
+     :feature emacs-tui-inspector-demo :command emacs-tui-inspector-demo
+     :tour "Inspect application objects referenced by an editable document. No completion table.\n\n1. Launch a disposable equipment note with the pump inspector open.\n2. M-n / M-p scroll its details while source typing focus stays put.\n3. C-c C-p moves the preview around the reference.\n4. C-c C-a toggles acknowledgement without closing or editing the source.\n5. C-g dismisses. Place point on valve and run M-x emacs-tui-inspector-demo-at-point.\n\nAcknowledgements are private to this source buffer, survive popup dismissal and disappear when it is killed. No external equipment or files are touched. Native child frames are required.")
     (:id board :label "Task board" :kind "Persistent"
      :feature emacs-tui-board-demo :command emacs-tui-board-demo
      :tour "Three independent task lanes. No search field or preview pane.\n\n1. > moves the selected task forward and follows it to the next lane.\n2. < moves it back. TAB switches lanes without changing tasks.\n3. C-c C-m marks several tasks; > or a moves the marked batch.\n4. Inspect the counts in each lane; completed tasks stay visible.\n5. Close and reopen: each board has its own fresh task state.\n\nSession memory only. No project files or Emacs buffers are changed.")

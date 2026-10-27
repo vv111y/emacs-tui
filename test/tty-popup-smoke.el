@@ -9,6 +9,9 @@
                                                    (file-name-directory (or load-file-name (bound-and-true-p byte-compile-current-file) buffer-file-name))))
 (require 'emacs-tui-popup-demo (expand-file-name "../examples/emacs-tui-popup-demo.el"
                                                       (file-name-directory (or load-file-name (bound-and-true-p byte-compile-current-file) buffer-file-name))))
+(require 'emacs-tui-inspector-demo
+         (expand-file-name "../examples/emacs-tui-inspector-demo.el"
+                           (file-name-directory (or load-file-name (bound-and-true-p byte-compile-current-file) buffer-file-name))))
 
 (defvar emacs-tui-popup-smoke--source nil)
 (defvar emacs-tui-popup-smoke--window nil)
@@ -200,6 +203,57 @@
       (cl-assert (equal "max" (emacs-tui-input-value modal 'draft))))
     (emacs-tui-close modal)))
 
+(defun emacs-tui-popup-smoke--inspector ()
+  "Read and explicitly act on a source-anchored object through native keys."
+  (let (source app)
+    (unwind-protect
+        (progn
+          (emacs-tui-inspector-demo)
+          (setq source (current-buffer) app emacs-tui-inspector-demo--session)
+          (let* ((text (buffer-string)) (point (point))
+                 (child (emacs-tui--workspace-frame app))
+                 (view (emacs-tui--resolve-view app 'details))
+                 (window (emacs-tui--view-window view))
+                 (start (window-start window)))
+            (execute-kbd-macro (kbd "M-n M-n"))
+            (redisplay t)
+            (cl-assert (> (window-start window) start))
+            (let ((middle (window-start window)))
+              (execute-kbd-macro (kbd "M-p"))
+              (redisplay t)
+              (cl-assert (< (window-start window) middle)))
+            (let ((reading (list (window-start window) (window-point window)))
+                  (tick (with-current-buffer (emacs-tui--view-buffer view)
+                          (buffer-chars-modified-tick))))
+              (dotimes (_ 8)
+                (execute-kbd-macro (kbd "C-c C-p"))
+                (redisplay t)
+                (cl-assert (equal reading (list (window-start window) (window-point window))))
+                (cl-assert (= tick (with-current-buffer (emacs-tui--view-buffer view)
+                                     (buffer-chars-modified-tick))))))
+            (execute-kbd-macro (kbd "C-c C-a"))
+            (cl-assert (gethash "pump" emacs-tui-inspector-demo--acknowledged))
+            (cl-assert (emacs-tui-live-p app))
+            (cl-assert (eq child (emacs-tui--workspace-frame app)))
+            (cl-assert (eq source (current-buffer)))
+            (cl-assert (eq (selected-window) emacs-tui-popup-smoke--window))
+            (cl-assert (eq (selected-frame) emacs-tui-popup-smoke--parent))
+            (cl-assert (equal text (buffer-string)))
+            (cl-assert (= point (point)))
+            (cl-assert (null (cl-remove nil buffer-undo-list)))
+            (execute-kbd-macro (kbd "C-g"))
+            (cl-assert (not (emacs-tui-live-p app)))
+            (cl-assert (not emacs-tui-inspector-demo--active))
+            (emacs-tui-inspector-demo-at-point)
+            (cl-assert (gethash "pump" emacs-tui-inspector-demo--acknowledged))
+            (setq app emacs-tui-inspector-demo--session)
+            (text-mode)
+            (cl-assert (not (emacs-tui-live-p app)))
+            (cl-assert (not emacs-tui-inspector-demo--active))))
+      (when app (emacs-tui-close app))
+      (when (buffer-live-p source) (kill-buffer source))
+      (switch-to-buffer emacs-tui-popup-smoke--source))))
+
 (defun emacs-tui-popup-smoke--finish ()
   (when emacs-tui-popup-smoke--supported
     (let ((app emacs-tui-popup-smoke--app))
@@ -209,6 +263,7 @@
     (emacs-tui-popup-smoke--host)
     (emacs-tui-popup-smoke--retained-scroll)
     (emacs-tui-popup-smoke--coexistence)
+    (emacs-tui-popup-smoke--inspector)
     (emacs-tui-popup-smoke--host)
     ;; Repurposing the host is a user choice; disposal must not reclaim it.
     (let* ((replacement (generate-new-buffer " *popup alternative*"))
@@ -238,7 +293,7 @@
   (cancel-timer emacs-tui-popup-smoke--timer)
   (with-temp-file (getenv "EMACS_TUI_SMOKE_REPORT")
     (insert (if emacs-tui-popup-smoke--supported
-                (format "PASS Emacs %s; native TTY popup; host typing/focus/layout preserved; terminal paint marker required; 8 distinct word-relative positions; retained rows/scroll/marks; resized viewport and explicit refresh; fitting-failure cleanup; candidate navigation/filter/accept/undo; Unicode; resize=120->90->140; modal coexistence; source/frame disposal; cleanup\n" emacs-version)
+                (format "PASS Emacs %s; native TTY popup; host typing/focus/layout preserved; terminal paint marker required; 8 distinct word-relative positions; retained rows/scroll/marks; resized viewport and explicit refresh; fitting-failure cleanup; candidate navigation/filter/accept/undo; Unicode; resize=120->90->140; modal coexistence; inspector scroll/reposition/acknowledge/dismiss; source/frame disposal; cleanup\n" emacs-version)
               (format "PASS Emacs %s; native wide/combining glyph bounds; unsupported popup rejected without changing host; no split fallback; resize=120->90->140; native presentation NOT exercised\n" emacs-version))))
   (kill-emacs 0))
 
