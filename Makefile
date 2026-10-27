@@ -1,6 +1,6 @@
 EMACS ?= emacs
 
-.PHONY: test compile checkdoc check clean demo graph-demo gallery board-demo reader-demo snippet-demo catalog-demo stream-demo layout-demo async-demo dashboard panel composer tree filter-demo package-check tty-smoke benchmark benchmark-smoke
+.PHONY: test compile checkdoc check clean demo graph-demo gallery popup-demo board-demo reader-demo snippet-demo catalog-demo stream-demo layout-demo async-demo dashboard panel composer tree filter-demo package-check tty-smoke benchmark benchmark-smoke
 test:
 	$(EMACS) -Q --batch -L . -L test -l test/run-tests.el
 compile:
@@ -18,6 +18,7 @@ tty-smoke:
 	EMACS=$(EMACS) python3 test/run-tty-smoke.py test/tty-lifecycle-smoke.el
 	EMACS=$(EMACS) python3 test/run-tty-smoke.py test/tty-demo-smoke.el
 	EMACS=$(EMACS) python3 test/run-tty-smoke.py test/tty-showcase-smoke.el
+	EMACS=$(EMACS) python3 test/run-tty-smoke.py test/tty-popup-smoke.el
 	EMACS=$(EMACS) python3 test/check-reflow-smoke.py
 	EMACS=$(EMACS) python3 test/run-clients-smoke.py
 	EMACS=$(EMACS) python3 test/run-hangup-smoke.py
@@ -25,6 +26,8 @@ clean:
 	rm -f emacs-tui*.elc examples/*.elc bench/*.elc
 demo graph-demo:
 	$(EMACS) -Q -nw -L . -l examples/emacs-tui-demo.el -f emacs-tui-demo
+popup-demo:
+	$(EMACS) -Q -nw -L . -l examples/emacs-tui-popup-demo.el -f emacs-tui-popup-demo-sample
 gallery:
 	$(EMACS) -Q -nw -L . -l examples/emacs-tui-gallery.el -f emacs-tui-gallery
 board-demo:

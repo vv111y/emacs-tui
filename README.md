@@ -39,7 +39,7 @@ emulators and graphical display variants still need broader community use.
 
 ## Demo gallery
 
-Browse eight distinct applications and capability showcases with guided tours:
+Browse nine applications and capability showcases with guided tours:
 
 ```sh
 git clone https://github.com/vv111y/emacs-tui.git
@@ -50,7 +50,7 @@ make gallery
 In the gallery, `RET` shows a tour and `C-c C-o` launches the selected demo.
 Close it with `C-c C-q`, then `M-x emacs-tui-gallery` to choose another.
 See [the demo guide](docs/DEMOS.md) for individual commands, feature coverage,
-and step-by-step tours. Try the three-lane task board, chapter reader, embedded
+and step-by-step tours. Try the inline candidate popup, three-lane task board, chapter reader, embedded
 snippet picker, object catalog, text composer, streaming search, original graph
 explorer, or layout playground. Each works in a fresh Emacs.
 
@@ -89,6 +89,55 @@ Requires Emacs 28.1 or later. Native terminal child frames require an Emacs buil
 advertising `tty-child-frames` (introduced in 31.1). Older terminal builds use
 ordinary windows. Graphical builds can also use native child frames. There are
 no third-party runtime dependencies.
+
+## Anchored candidate popups
+
+`make popup-demo` opens a disposable sample document with point near the center.
+Type `map`, `buffer`, `window`, `café` or `日本語`. The popup floats above the
+source; the original window remains the typing target and is never split.
+`C-c C-p` cycles clockwise through north, northeast, east, southeast, south,
+southwest, west and northwest around the word. `M-n`/`M-p` select candidates,
+`TAB` explicitly replaces the word, `C-g` dismisses, and `C-c C-q` disables the
+demo. Undo and ordinary source editing remain native.
+
+From the gallery, this entry enables the demo in your original buffer without
+inserting sample text. It requires graphical child frames or native terminal
+child frames (`tty-child-frames`, available in supporting Emacs 31.1 builds).
+Older terminal Emacs signals a capability error and leaves the host intact;
+there is no window-splitting fallback for this presentation.
+
+The general API reuses ordinary view descriptions and explicit session APIs:
+
+```elisp
+(setq my-popup
+      (emacs-tui-popup
+       :begin (car (bounds-of-thing-at-point 'symbol)) :end (point)
+       :position 'south-west :width 30 :height 8
+       :view (emacs-tui-view :id 'candidates :items '("mapcar" "mapconcat")
+                             :on-select (lambda (_app item)
+                                          (message "Chosen: %s" item)))))
+(emacs-tui-update my-popup 'candidates :items '("mapcar" "mapcan"))
+(emacs-tui-next-item my-popup)
+(emacs-tui-reposition-popup my-popup 'north-east) ; omit position to cycle
+(emacs-tui-select my-popup)                       ; application action only
+(emacs-tui-close my-popup)
+```
+
+The popup owns one child frame and one read-only view buffer. It borrows no host
+windows and installs no host keymap or completion policy. Applications supply
+their own data, typing hooks and explicit actions; the example minor mode owns
+its completion transaction. Always pass the popup handle while typing in the
+source, since that buffer retains its own application context. Editable popup
+views are rejected. View-focus/layout commands retain source input focus and a
+single popup view. Closing, killing or repurposing the source releases the popup;
+leaving its input window dismisses it after the command.
+
+Anchors use native glyph coordinates, including wide text. A range on one visual
+line surrounds the entire word; wrapped or partly hidden ranges anchor at the
+visible point glyph. Placement is clamped to the parent frame, so positions can
+coincide or overlap the anchor near an edge. Use a central word to inspect all
+eight placements. Graphical window-manager/font variants still need community
+validation; native terminal behavior has a separate interactive CI scenario.
 
 ## Embedded panels
 
@@ -442,6 +491,10 @@ and continue exploration; commitment is a separate command.
 | `emacs-tui-input` | Describe an editable input view |
 | `emacs-tui-input-value` | Read the full input string |
 | `emacs-tui-open` | Open an ephemeral query workspace |
+| `emacs-tui-popup` | Show a read-only view around a source word while retaining typing focus |
+| `emacs-tui-popup-supported-p` | Check native popup capability without allocating a surface |
+| `emacs-tui-reposition-popup` | Choose or cycle eight compass positions |
+| `emacs-tui-layout-popup` | Compute a clamped anchor-relative rectangle without display effects |
 | `emacs-tui-embed` | Borrow an application window for one panel; restore it on close |
 | `emacs-tui-column` | Describe a table column and its item projection |
 | `emacs-tui-sort` | Sort table rows without changing source order or item identity |
@@ -470,8 +523,9 @@ and continue exploration; commitment is a separate command.
 | `emacs-tui-commit` | Invoke the application's explicit commit callback |
 | `emacs-tui-close` | Dispose the session without committing |
 
-Both openers return an opaque session handle. Pass it to update/read/action
-functions; interactive commands infer it from the workspace buffer. Internal
+The creation functions return an opaque session handle. Pass it to update/read/
+action functions; interactive commands infer it from a TUI buffer. Popup callers
+pass it explicitly while typing in their unchanged source buffer. Internal
 `emacs-tui--*` structures are not an application API.
 
 ## Interaction
@@ -667,8 +721,8 @@ are preserved. Reflow does not rerun search providers. A modified or unusable
 workspace surface closes safely; unrelated windows and application buffers are
 preserved. `emacs-tui-refresh` is also available for an explicit reflow.
 
-The four-sided around-point layout, multiple floating surfaces,
-broader application history, per-view asynchronous providers and richer form controls are planned in
+Multi-panel floating workspaces, broader application history, per-view
+asynchronous providers and richer form controls are planned in
 [ROADMAP.md](ROADMAP.md). Source/filter updates render full view content;
 selection movement reuses rendered rows. The first interpreted-source
 [navigation baseline](bench/results/2026-10-24-navigation/README.md) records
