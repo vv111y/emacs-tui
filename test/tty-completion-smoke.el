@@ -48,12 +48,23 @@
           (setq-local completion-at-point-functions
                       (list (lambda ()
                               (list 1 (point-max) #'read-file-name-internal
+                                    :affixation-function
+                                    (lambda (all)
+                                      (mapcar (lambda (raw)
+                                                (list (propertize raw 'face 'bold)
+                                                      "[" "]")) all))
                                     :exit-function
                                     (lambda (text status)
                                       (push (list text status) emacs-tui-completion-smoke--exits))))))
           (execute-kbd-macro (kbd "C-M-i"))
           (let ((app (emacs-tui-completion--session)))
             (emacs-tui-set-selection app 'candidates "alpha/")
+            (with-current-buffer
+                (emacs-tui--view-buffer (emacs-tui--resolve-view app 'candidates))
+              (save-excursion
+                (goto-char (point-min))
+                (search-forward "[alpha/]")
+                (cl-assert (eq 'bold (get-text-property (- (point) 2) 'face)))))
             (let ((buffer-read-only t) (before (buffer-string)))
               (cl-assert (eq 'buffer-read-only
                              (condition-case err (emacs-tui-completion-accept)
@@ -62,6 +73,7 @@
               (cl-assert (emacs-tui-live-p app)))
             (execute-kbd-macro (kbd "TAB"))
             (cl-assert (equal (concat prefix "alpha/keep.txt") (buffer-string)))
+            (cl-assert (not (text-property-not-all (point-min) (point-max) 'face nil)))
             (cl-assert (equal (list (list (concat prefix "alpha/") 'exact))
                               emacs-tui-completion-smoke--exits))
             (cl-assert (not (emacs-tui-live-p app)))

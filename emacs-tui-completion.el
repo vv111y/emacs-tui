@@ -171,7 +171,7 @@ Honor completion styles, predicates, base size and the suffix boundary."
        (let ((value (substring-no-properties raw)))
          (list :id value :value value
                :label (emacs-tui-completion--display-string
-                       (concat (nth 1 parts) raw (nth 2 parts))))))
+                       (concat (nth 1 parts) (car parts) (nth 2 parts))))))
      shown decorated)))
 
 (defun emacs-tui-completion--refresh (context)

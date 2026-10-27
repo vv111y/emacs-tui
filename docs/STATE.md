@@ -1,5 +1,33 @@
 # Project state
 
+## Affixation presentation preserved — 2026-10-27
+
+The completion adapter now uses the validated candidate returned by the
+affixation callback when building its display label. Previously the prefix and
+suffix were retained but styling added to the candidate itself was discarded.
+The returned candidate must still match the raw value; IDs, accepted source text
+and exit arguments stay property-free. No API changes or provider mutation.
+
+Local Emacs 29.3: 364 ERT, strict byte compilation and checkdoc pass. Both new
+regressions fail on the old implementation; they cover replacement/in-place
+candidate styling, unchanged raw projection, prefix/suffix faces and plain-text
+acceptance. The native file CAPF fixture now checks the rendered candidate face
+and plain accepted source alongside its existing file boundaries, undo, exit
+callback and read-only retry checks. Exact-head review and fresh hosted native
+checks remain required before integration; local tests model popup presentation.
+
+PR #60 merged at db8bfd9b2d2cf5cb0d3e8d09d8921de00ff53ec4 after exact-head
+review 5665491072, all eight jobs in CI 40487652957 and all four paired jobs in
+40487652908 passed. Reviewed head 9f1e6611311633a07168d6e0a206c539111d339e and
+tested merge c48d4f6127afec64633855f203d47a0d679cda3e share tree
+d391d587a2f354410728dabb900ebae9fe8f4871. The revised GC fixture passes on both
+28.1 and 28.2; initial failed CI was not waived. Native Linux/macOS behavior,
+source/bytecode protocols and clean package installs pass. Paired timing results
+are mixed; shorter snapshot lifetime is verified, not a uniform latency win.
+
+Next: retain/audit the 16 paired reports, broaden application/display testing,
+and collect beta feedback. Fixed beta refs and MELPA external gates are unchanged.
+
 ## Completion snapshot lifetime — 2026-10-27
 
 After publication, the completion context retains replacement bounds and

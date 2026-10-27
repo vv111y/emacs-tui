@@ -160,6 +160,44 @@
       (dolist (candidate raw)
         (should-not (text-properties-at 0 candidate))))))
 
+(ert-deftest emacs-tui-completion-affixation-retains-candidate-display-properties ()
+  (dolist (replace '(nil t))
+    (let* ((raw (propertize "alpha" 'face 'underline))
+           (projection (list :candidates (list raw) :metadata nil))
+           (context (emacs-tui--make-completion
+                     :extra
+                     (list :affixation-function
+                           (lambda (all)
+                             (let ((candidate (if replace (copy-sequence (car all))
+                                                (car all))))
+                               (put-text-property 0 1 'face 'bold candidate)
+                               (list (list candidate (propertize "<" 'face 'shadow)
+                                           (propertize ">" 'face 'italic)))))))))
+      (let* ((item (car (emacs-tui-completion--items context projection)))
+             (label (plist-get item :label)))
+        (should (equal "<alpha>" label))
+        (should (eq 'shadow (get-text-property 0 'face label)))
+        (should (eq 'bold (get-text-property 1 'face label)))
+        (should (eq 'underline (get-text-property 2 'face label)))
+        (should (eq 'italic (get-text-property 6 'face label)))
+        (should (equal-including-properties raw (propertize "alpha" 'face 'underline)))
+        (should (equal-including-properties (plist-get item :value) "alpha"))))))
+
+(ert-deftest emacs-tui-completion-affixation-properties-never-enter-source ()
+  (emacs-tui-completion-test--source
+    (let ((completion-extra-properties
+           (list :affixation-function
+                 (lambda (all)
+                   (mapcar (lambda (raw)
+                             (list (propertize raw 'face 'bold 'help-echo "Details")
+                                   "[" "]")) all)))))
+      (insert "a")
+      (completion-in-region 1 (point) '("alpha"))
+      (should (eq 'bold (get-text-property
+                        1 'face (plist-get (car (emacs-tui-completion-test--items)) :label))))
+      (emacs-tui-completion-accept)
+      (should (equal-including-properties "alpha" (buffer-string))))))
+
 (ert-deftest emacs-tui-completion-destructive-sorter-cannot-change-projection ()
   (let* ((raw (list (copy-sequence "alpha") (copy-sequence "alpine")))
          (projection (list :candidates raw :metadata nil))
