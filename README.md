@@ -39,7 +39,10 @@ emulators and graphical display variants still need broader community use.
 
 ## Demo gallery
 
-Beta3 includes ten applications and capability showcases with guided tours:
+Beta3 includes ten applications and capability showcases with guided tours.
+Development main adds a validated settings form (`make form-demo`): native
+fields, checkbox-style choices, live errors and explicit Apply/Revert. Use a
+matching main checkout for that example; the fixed beta3 stays unchanged.
 
 ```sh
 git clone --branch release/0.1.0-beta3 https://github.com/vv111y/emacs-tui.git

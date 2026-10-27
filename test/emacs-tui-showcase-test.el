@@ -67,7 +67,7 @@
         ;; Catch accidental dispatch to the same application for different rows.
         (should (eq (emacs-tui-current-view example)
                     (alist-get (plist-get entry :id)
-                               '((board . todo) (catalog . search) (layout . controls)
+                               '((form . name) (board . todo) (catalog . search) (layout . controls)
                                  (stream . jobs) (graph . nodes) (composer . prefix)
                                  (reader . contents) (snippet . snippets)))))
         (should (= 1 (length emacs-tui--sessions)))

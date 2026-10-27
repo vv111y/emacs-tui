@@ -1,5 +1,22 @@
 # Project state
 
+## Settings form candidate — 2026-10-27
+
+A separate application demo composes native Name/Retry fields, a table of
+checkbox-style options and live validation with explicit Apply/Revert. It owns
+its draft and applied record in session memory; no core form API or external
+persistence is introduced. Invalid drafts and drafts changed by native render
+hooks during Apply cannot replace the saved record. Eight focused ERT tests
+cover boundaries, undo, session isolation, failed and stale publication, and
+Revert. The gallery gains a distinct eleventh development entry; fixed beta3
+keeps its ten-entry snapshot. Native showcase commands exercise invalid then
+valid Apply, option toggling and Revert. Final review and exact-head hosted
+checks remain required; this candidate depends on the input fix in PR #72.
+Local Emacs29.3 passes404 ERT, strict compilation/checkdoc and the real-PTY
+showcase (windows backend), including form validation/options/apply/revert.
+The local extracted runtime disables unavailable JIT compilation. Native TTY
+child-frame behavior remains a hosted Linux/macOS responsibility.
+
 ## Beta3 input preservation follow-up — 2026-10-27
 
 Publication remains blocked pending renewed review and all exact-head checks.

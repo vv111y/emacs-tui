@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased
+
+- A distinct persistent settings-form demo combines native fields, checkbox-style
+  options, live validation and explicit Apply/Revert. Invalid or changed-during-
+  publication drafts cannot replace the saved session record. No external settings
+  are written; `make form-demo` and the development gallery launch it.
+
 ## 0.1.0-beta3 — 2026-10-27
 
 - Floating equipment inspector with source-preserving scrolling, explicit
