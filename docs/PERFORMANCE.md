@@ -292,3 +292,34 @@ exact filtered/unfiltered candidate validation and required terminal paint.
 Six measured commands validate the protocol; they are not a latency baseline.
 For a full unsorted profile, use 200 samples, 10 warmups and 100/1,000/10,000 rows.
 No before/after unsorted performance claim is established by this addition.
+
+## Opt-in completion stage attribution
+
+Add `--completion-stages` to a popup workload containing `filter-completion`.
+This installs benchmark-only around advice after loaded-library verification;
+package code is unchanged. Reports mark `completion_stages: true`. Do not treat
+instrumented and uninstrumented runs as directly comparable latency pairs.
+Advice, clock and counter overhead contributes to total command and PTY time
+and allocation counters.
+
+Each native completion edit records inclusive `projection_ms`,
+`native_matching_ms` (the native completion-all-completions call),
+`decoration_ms` and `publication_ms` (the existing-popup update), plus each
+stage's call count. Matching is nested inside projection; actual table callbacks
+are nested inside matching/projection too. Do not sum these overlapping clocks.
+Projection includes metadata, boundaries, copying and deduplication; decoration
+includes optional sorting, bounded copies, decoration and validation. Publication
+includes toolkit update/render work. Final forced redisplay remains a separate,
+possibly overlapping observation. These are wall times, including any GC.
+
+Startup, initial popup creation and post-timing validation do not count as stage
+calls. Every measured completion command must call each stage exactly once;
+other cases record zero. Missing/nonfinite/negative timings, missing calls or
+matching time larger than inclusive projection reject the report. Error paths
+preserve the original exception and cannot produce a successful benchmark.
+
+The full native profile now runs both identity and absent display sorters on
+Linux/macOS, with stage attribution in source/bytecode modes. Each job retains
+its own raw reports for 90 days. These are current profiles, not a matched
+before/after proof for the earlier bounded-copy change. The published original
+baseline remains uninstrumented and immutable.

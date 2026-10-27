@@ -69,6 +69,36 @@
 (defvar emacs-tui-bench--table-calls 0)
 (defvar emacs-tui-bench--last-position nil)
 
+(defvar emacs-tui-bench--stages-p
+  (equal (getenv "EMACS_TUI_BENCH_COMPLETION_STAGES") "1"))
+(defvar emacs-tui-bench--stage-times (make-hash-table))
+(defvar emacs-tui-bench--stage-calls (make-hash-table))
+(defconst emacs-tui-bench--stages
+  '((projection . emacs-tui-completion--projection)
+    (native_matching . completion-all-completions)
+    (decoration . emacs-tui-completion--items)
+    (publication . emacs-tui-update)))
+
+(defun emacs-tui-bench--measure-stage (stage original &rest arguments)
+  "Measure inclusive STAGE time around ORIGINAL with ARGUMENTS.
+Only measured completion commands are instrumented; startup is excluded."
+  (if (not (and emacs-tui-bench--start
+                (equal (alist-get 'kind emacs-tui-bench--case) "filter-completion")))
+      (apply original arguments)
+    (let ((start (current-time)))
+      (unwind-protect (apply original arguments)
+        (puthash stage (+ (gethash stage emacs-tui-bench--stage-times 0.0)
+                          (emacs-tui-bench--elapsed start))
+                 emacs-tui-bench--stage-times)
+        (puthash stage (1+ (gethash stage emacs-tui-bench--stage-calls 0))
+                 emacs-tui-bench--stage-calls)))))
+
+;; Install only after verifying loaded source/bytecode definitions above.
+(when emacs-tui-bench--stages-p
+  (dolist (stage emacs-tui-bench--stages)
+    (advice-add (cdr stage) :around
+                (apply-partially #'emacs-tui-bench--measure-stage (car stage)))))
+
 (defun emacs-tui-bench--next ()
   "Navigate the floating view without leaving its source window."
   (interactive)
@@ -163,6 +193,9 @@ Measure the actual synchronous table callback, including matching its data."
         (progn
           (cl-assert (eq emacs-tui-bench--session (emacs-tui-completion--session)))
           (cl-assert (> emacs-tui-bench--table-calls 0))
+          (when emacs-tui-bench--stages-p
+            (dolist (stage emacs-tui-bench--stages)
+              (cl-assert (= 1 (gethash (car stage) emacs-tui-bench--stage-calls 0)))))
           (cl-assert
            (eq (completion-metadata-get
                 (plist-get (emacs-tui--completion-projection
@@ -361,6 +394,8 @@ The deliberate timer delay is recorded separately from publishing/redisplay."
                                                  self-insert-command backward-delete-char-untabify
                                                  delete-backward-char emacs-tui-bench--next
                                                  emacs-tui-bench--move))
+    (clrhash emacs-tui-bench--stage-times)
+    (clrhash emacs-tui-bench--stage-calls)
     (setq emacs-tui-bench--table-ms 0.0 emacs-tui-bench--table-calls 0
           emacs-tui-bench--counts (memory-use-counts)
           emacs-tui-bench--gc (cons gcs-done gc-elapsed)
@@ -391,6 +426,15 @@ The deliberate timer delay is recorded separately from publishing/redisplay."
                             (table_callback_calls . ,emacs-tui-bench--table-calls)
                             (command_without_table_ms . ,(- elapsed emacs-tui-bench--table-ms))
                             (final_redisplay_ms . ,redisplay-ms)))))
+          (when emacs-tui-bench--stages-p
+            (dolist (stage emacs-tui-bench--stages)
+              (let ((name (symbol-name (car stage))))
+                (push (cons (intern (concat name "_ms"))
+                            (gethash (car stage) emacs-tui-bench--stage-times 0.0))
+                      emacs-tui-bench--sample)
+                (push (cons (intern (concat name "_calls"))
+                            (gethash (car stage) emacs-tui-bench--stage-calls 0))
+                      emacs-tui-bench--sample))))
           (unless (equal (alist-get 'kind emacs-tui-bench--case) "provider-list")
             (emacs-tui-bench--ack)
             (setq emacs-tui-bench--start nil)))
