@@ -20,7 +20,7 @@ branch remains unchanged. Do not mix new examples with an older installed toolki
 | --- | --- | --- |
 | gallery | Nine beta2 showcases; ten on current main, with tours and cleanup | Launches your choice |
 | popup-demo | Typing in the unchanged source, floating candidates, eight compass positions, native undo | TAB explicitly replaces the current word |
-| inspector-demo (main) | Scrollable floating equipment details, eight positions, explicit acknowledgement, source focus | Changes buffer-local demo state only |
+| inspector-demo (main) | Scrollable floating equipment details, eight positions, related objects, Back/Forward, acknowledgement, source focus | Changes buffer-local demo state only |
 | completion-demo | Emacs's actual Lisp completion provider, styles and source-preserving popup | TAB explicitly accepts a native completion |
 | board-demo | Three task lanes, independent list state, batch moves and explicit application actions | Changes tasks in session memory |
 | reader-demo | Chapter tree, ancestor search paths, formatted pages, wrapping and reading position | Reads self-contained sample text |
@@ -91,6 +91,12 @@ inspector in its gallery. The fixed beta2 does not include this newer example.
 A disposable document opens with pump details floating around the reference.
 M-n and M-p scroll three lines while typing focus stays in the source document.
 C-c C-p cycles eight positions and retains the preview's reading position.
+
+C-c C-l follows the related object: pump → valve → sensor → pump. C-c C-b
+and C-c C-f travel Back/Forward without moving source point or replacing the
+popup. Each changed preview starts at the beginning. Navigation stores up to
+32 object identities in each direction; a new Follow after Back clears Forward.
+Dismissal clears this trail, while acknowledgements remain attached to objects.
 
 C-c C-a toggles acknowledgement without closing the popup or editing source
 text. C-g dismisses and restores ordinary source bindings. Put point on pump

@@ -1,5 +1,40 @@
 # Project state
 
+## Related-object browsing in the floating inspector — 2026-10-27
+
+The inspector now demonstrates application-owned navigation inside one popup:
+C-c C-l follows pump → valve → sensor → pump, while C-c C-b / C-c C-f travel
+Back/Forward. Source point, text and window remain unchanged. Each direction
+stores at most 32 object records; following after Back discards Forward.
+Acknowledgements stay with each object. Dismissal clears navigation but retains
+the source buffer's acknowledgement table. No core API or XOB dependency added.
+
+Independent review identified a reentrant publication ordering issue: a nested
+navigation before the outer render completed could leave the shown object and
+application state inconsistent. Same-session nested publication now rejects
+before rendering; a dynamic session guard unwinds on errors. Generation and
+ownership checks still reject obsolete work after session replacement. Eight
+new ERT cover traversal, bounded branching, action separation, failed renders,
+reentry before/after rendering, real before-change-hook rollback,
+close/replacement and recovery. Local Emacs29.3
+passes all 391 ERT, strict package/example and changed-native-fixture compilation,
+checkdoc and the unsupported-popup PTY probe. GUI and TTY fixtures now drive the
+new commands through native keys; their hosted checks remain required.
+
+PR #69 merged at 8c4d4bc08799a4a90e85a4cbd316d054282fd74e after independent
+review 5670374124 and all eleven exact-head jobs passed: CI 40537634660 (eight),
+GTK/Xvfb 40537634310 (one), and tmux 40537634637 (two). Reviewed head
+9c2320f4ccbc0e5d8b1c88886ea351b686abf02f and tested merge
+5ba237f4c001c87050c5a9d9b9314c5070adab8d share tree
+f2709964fac5cdaf52711dce617257a42277ee9e. GTK job122307078359 and both tmux
+jobs122307079305/122307079885 explicitly report twenty command-loop lifetimes
+passed, in addition to existing interaction checks.
+
+Next: complete independent review and native integration checks for this
+inspector change, then continue concrete application improvements. Fixed beta
+refs remain unchanged. MELPA maintenance-history and human-review gates remain
+external; no stable/mature or accepted-package claim is made.
+
 ## Command-loop popup lifetime validation — 2026-10-27
 
 PR #68 merged at 44ce8da73c63b7f1676e2464d6494f23d5a53f66 after exact-head

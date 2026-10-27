@@ -160,8 +160,11 @@ validation; native terminal behavior has a separate interactive CI scenario.
 `make inspector-demo` opens an equipment note with a read-only object preview
 anchored to `pump`. `M-n`/`M-p` scroll details without taking source focus;
 `C-c C-p` moves the popup and `C-c C-a` explicitly toggles acknowledgement.
-The popup stays open and the document is unchanged by that action. `C-g`
-dismisses and restores source bindings. Put point on `valve` and run
+The popup stays open and the document is unchanged by that action.
+`C-c C-l` follows related equipment (pump → valve → sensor → pump); `C-c C-b`
+and `C-c C-f` go back and forward within the same popup. Source point stays put.
+`C-g` dismisses, clears navigation history and restores source bindings.
+Put point on `valve` and run
 `M-x emacs-tui-inspector-demo-at-point` to inspect another object.
 
 This application supplies objects and actions directly, with no completion

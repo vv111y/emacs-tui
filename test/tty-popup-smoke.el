@@ -246,6 +246,11 @@
                                      (buffer-chars-modified-tick))))))
             (execute-kbd-macro (kbd "C-c C-a"))
             (cl-assert (gethash "pump" emacs-tui-inspector-demo--acknowledged))
+            (dolist (step '(("C-c C-l" . "valve") ("C-c C-l" . "sensor")
+                            ("C-c C-b" . "valve") ("C-c C-b" . "pump")
+                            ("C-c C-f" . "valve") ("C-c C-b" . "pump")))
+              (execute-kbd-macro (kbd (car step)))
+              (cl-assert (equal (cdr step) (car emacs-tui-inspector-demo--object))))
             (cl-assert (emacs-tui-live-p app))
             (cl-assert (eq child (emacs-tui--workspace-frame app)))
             (cl-assert (eq source (current-buffer)))
@@ -308,7 +313,7 @@
   (cancel-timer emacs-tui-popup-smoke--timer)
   (with-temp-file (getenv "EMACS_TUI_SMOKE_REPORT")
     (insert (if emacs-tui-popup-smoke--supported
-                (format "PASS Emacs %s; native TTY popup; host typing/focus/layout preserved; terminal paint marker required; 8 distinct word-relative positions; retained rows/scroll/marks; resized viewport and explicit refresh; fitting-failure cleanup; candidate navigation/filter/accept/undo; Unicode; resize=120->90->140; modal coexistence; inspector gallery-launch/scroll/reposition/acknowledge/dismiss; source/frame disposal; twenty command-loop lifetimes; cleanup\n" emacs-version)
+                (format "PASS Emacs %s; native TTY popup; host typing/focus/layout preserved; terminal paint marker required; 8 distinct word-relative positions; retained rows/scroll/marks; resized viewport and explicit refresh; fitting-failure cleanup; candidate navigation/filter/accept/undo; Unicode; resize=120->90->140; modal coexistence; inspector gallery-launch/scroll/reposition/acknowledge/related/history/dismiss; source/frame disposal; twenty command-loop lifetimes; cleanup\n" emacs-version)
               (format "PASS Emacs %s; native wide/combining glyph bounds; unsupported popup rejected without changing host; no split fallback; resize=120->90->140; native presentation NOT exercised\n" emacs-version))))
   (kill-emacs 0))
 

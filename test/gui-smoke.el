@@ -51,7 +51,7 @@
   (let ((coding-system-for-write 'utf-8-unix))
     (with-temp-file (or (getenv "EMACS_TUI_GUI_REPORT") "gui-result.txt")
       (insert (if error (format "FAIL %S\n" error)
-                (format "PASS Emacs %s; graphical %S; child input; inspector scroll/action; eight moves; resize; source preservation; twenty command-loop lifetimes; cleanup\n"
+                (format "PASS Emacs %s; graphical %S; child input; inspector scroll/action/related/history; eight moves; resize; source preservation; twenty command-loop lifetimes; cleanup\n"
                         emacs-version window-system)))
       (when (and error (get-buffer "*Messages*"))
         (insert (with-current-buffer "*Messages*" (buffer-string))))
@@ -130,6 +130,11 @@
                   (cl-assert (> (window-start window) start)))
                 (emacs-tui-inspector-demo-acknowledge)
                 (cl-assert (gethash "pump" emacs-tui-inspector-demo--acknowledged))
+                (dolist (step '(("C-c C-l" . "valve") ("C-c C-l" . "sensor")
+                                ("C-c C-b" . "valve") ("C-c C-b" . "pump")
+                                ("C-c C-f" . "valve") ("C-c C-b" . "pump")))
+                  (execute-kbd-macro (kbd (car step)))
+                  (cl-assert (equal (cdr step) (car emacs-tui-inspector-demo--object))))
                 (set-frame-size emacs-tui-gui--parent 90 30))
              (2 (set-frame-size emacs-tui-gui--parent 140 45))
              (3 (let ((child (emacs-tui--workspace-frame emacs-tui-gui--app)))
