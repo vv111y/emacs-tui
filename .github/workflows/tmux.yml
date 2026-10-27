@@ -14,7 +14,11 @@ concurrency:
   cancel-in-progress: true
 jobs:
   smoke:
-    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
@@ -23,10 +27,16 @@ jobs:
       - uses: purcell/setup-emacs@34c6ded44899fd1bf74d2889558befd1750e61a7
         with:
           version: '31.1'
-      - name: Install tmux
+      - name: Install tmux (Linux)
+        if: runner.os == 'Linux'
         run: |
           sudo apt-get update
           sudo apt-get install --yes tmux
+      - name: Install tmux (macOS)
+        if: runner.os == 'macOS'
+        run: command -v tmux || brew install tmux
+      - name: Require native runtime
+        run: |
           tmux -V
           emacs --version
           emacs -Q --batch --eval "(unless (featurep 'tty-child-frames) (error \"Native TTY child frames required\"))"

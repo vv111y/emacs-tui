@@ -268,7 +268,7 @@ python3 test/run-tty-smoke.py --tmux test/tty-input-smoke.el
 
 The driver creates a private tmux server/socket with a minimal configuration,
 disables its status line, and checks resize delivery and required popup paint on
-the outer PTY. It terminates only that private server on exit. The separate Linux
+the outer PTY. It terminates only that private server on exit. The separate Linux/macOS
 CI workflow exercises this configuration on Emacs 31.1. This does not validate
 personal tmux configurations, zellij, physical terminal emulators or GUI displays.
 A missing tmux executable is an error, not a skipped success.

@@ -8,7 +8,7 @@ the existing outer-PTY resize and paint checks, and kills only its own server.
 A tmux client does not reliably propagate pane exit status, so reports must now
 explicitly start with PASS; failure reports cannot pass via a zero client exit.
 Three real-PTY Python protocol tests cover success, failure-report/zero-exit and
-missing paint. A separate Ubuntu Emacs 31.1 workflow requires tty-child-frames
+missing paint. A separate Linux/macOS Emacs 31.1 workflow requires tty-child-frames
 and exercises popup/gallery/inspector, completion and native input inside tmux.
 
 Local: Python compilation and all three protocol tests pass; missing tmux fails
@@ -24,6 +24,13 @@ review 5666805861 and CI 40501521928 passed. Reviewed head
 0b0ec59c0cf4167c8207369cd079bceb4cbacd9b share tree
 4bf4a0cfe3c0d1bb5dbc39a5d0ef65d8c3f06a91. Both native31 logs explicitly confirm
 379 ERT and inspector gallery-launch/scroll/reposition/acknowledge/dismiss.
+
+Initial Ubuntu hosted tmux run 40509543564 passed on reviewed head
+f4cfbd362aa5d981c3fd4fb170e19449722af528, with tmux 3.4 / Emacs 31.1. Logs
+explicitly pass native popup paint/eight positions/inspector, CAPF acceptance
+and undo, and multiline input with outer-PTY resize/paint assertions. All three
+protocol tests pass there too. The workflow now also includes macOS; fresh
+exact-head Linux/macOS multiplexer checks and compatibility CI remain required.
 
 Next: resolve any hosted multiplexer findings, expand display coverage and
 collect actual beta feedback. Fixed beta refs and MELPA external gates remain.
