@@ -11,9 +11,7 @@
 ;;; Code:
 (require 'cl-lib)
 (require 'emacs-tui)
-(require 'emacs-tui-inspector-demo
-         (expand-file-name "../examples/emacs-tui-inspector-demo.el"
-                           (file-name-directory (or load-file-name buffer-file-name))))
+(require 'emacs-tui-inspector-demo)
 
 (defvar emacs-tui-gui--parent nil)
 (defvar emacs-tui-gui--source nil)

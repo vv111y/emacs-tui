@@ -2,6 +2,15 @@
 
 ## Graphical child-frame validation — 2026-10-27
 
+Initial PR #67 head da6cddc3ac01d09dc4b21719a2d165917fc4ffa8 passed
+all eight compatibility jobs (40518540981) and both tmux jobs (40518541258).
+Graphical job 122238734562 in run 40518541259 failed strict compilation on
+Emacs 29.3: the demo require used load-file-name/buffer-file-name, both nil
+in that compiler context. The fixture now uses a normal require and both
+workflow commands explicitly add examples to load-path. Independent review
+found no substantive issue in that correction. Graphical runtime behavior is
+still unverified; fresh exact-head checks are required before integration.
+
 Added a bounded interactive GTK/Xvfb fixture and separate workflow, using the
 runner distribution's graphical Emacs with its actual version logged. It requires
 a graphical display, types into a mounted child-frame input, opens a source-
