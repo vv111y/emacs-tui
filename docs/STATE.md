@@ -5,7 +5,18 @@ initial beta3 preparation are preserved byte-for-byte in
 [STATE-HISTORY.md](STATE-HISTORY.md). Their pending checks describe their own
 dates, not current blockers; later intermediate edits remain in Git history.
 
-## Linked floating Details scrolling candidate — 2026-10-27
+## Reentrant popup movement correction — 2026-10-27
+
+A callback trying to reposition a popup during rendering previously changed its
+requested placement, then raised an error because nested reflow cannot execute.
+The correction rejects before mutation, preserving placement and session life.
+A regression fails on the original code and covers explicit and cycling moves.
+Local Emacs 29.3 passes 420 ERT, strict compilation/checkdoc and diffcheck.
+The original regression fails specifically on changed placement (south-west to
+north), not an unrelated surface error. Independent review and fresh hosted
+native checks remain required before integration.
+
+## Integrated linked floating Details scrolling — 2026-10-27
 
 The three-popup demo adds C-c [ / ] to read longer per-object Details while
 source typing focus and sibling panels remain unchanged. This composes the
@@ -17,7 +28,10 @@ fixture compilation and diffcheck pass. Review caught a vacuous busy-guard test:
 it now asserts rejection while Details is live, before hiding it. The shared
 real GTK/TTY journey checks forward/back reading, reading-position preservation
 across movement, sibling isolation and the existing full source-state checks.
-Fresh exact-head review and native checks are required before integration.
+PR #82 merged at 4a6c82696794af6680e3b788257de0ff2ff488ab after exact-head
+review 5674395969 and all eleven checks passed: CI 40584520344, GTK 40584520796,
+and Linux/macOS tmux 40584520282. Reviewed 3680b632 and tested merge ff0ff7ac
+share tree 4fc6675aeefc0ee65cc68831fd7161f2328819e6. Fixed beta refs unchanged.
 
 ## Integrated graphical form coverage — 2026-10-27
 

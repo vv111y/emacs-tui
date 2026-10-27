@@ -177,6 +177,18 @@
         (set-marker (emacs-tui--popup-begin popup) nil)
         (set-marker (emacs-tui--popup-end popup) nil)))))
 
+(ert-deftest emacs-tui-popup-reentrant-movement-preserves-requested-placement ()
+  (let* ((popup (emacs-tui--make-popup :position 'south-west))
+         (app (emacs-tui--make-workspace :active t :popup popup))
+         (emacs-tui--refreshing t))
+    ;; Reflow cannot execute within rendering.  Both explicit and cycling
+    ;; requests must reject without silently changing the later placement.
+    (cl-letf (((symbol-function 'emacs-tui--subtree) (lambda (_) t)))
+      (dolist (position '(north nil))
+        (should-error (emacs-tui-reposition-popup app position) :type 'user-error)
+        (should (eq 'south-west (emacs-tui--popup-position popup)))
+        (should (emacs-tui-live-p app))))))
+
 (ert-deftest emacs-tui-popup-movement-invalidates-changed-content-viewport ()
   ;; Use real windows/rendering; model only unavailable native frame fitting.
   (save-window-excursion
