@@ -27,7 +27,7 @@
     (:id multi-popup :label "Independent floating panels" :kind "Source-anchored"
      :feature emacs-tui-multi-popup-demo :command emacs-tui-multi-popup-demo
      :available emacs-tui-popup-supported-p
-     :tour "Three simultaneous child frames over an unchanged editable source.\n\n1. C-c 1/2/3 toggles Objects, Details and Keys independently.\n2. C-c 0 hides all if any are visible; press again to show all.\n3. M-n/M-p browses objects; hidden panels reopen with the current selection.\n4. C-c p 1/2/3 moves each panel through eight positions; siblings stay put.\n5. Type and undo in the source. C-g hides panels; C-c C-q disables bindings.\n\nRequires graphical or native TTY child frames. Hiding/reopening retains selection and panel positions while recreating surfaces. Disabling resets positions. Source text and window layout stay intact.")
+     :tour "Three simultaneous child frames over an unchanged editable source.\n\n1. C-c 1/2/3 toggles Objects, Details and Keys independently.\n2. C-c 0 hides all if any are visible; press again to show all.\n3. M-n/M-p browses objects; hidden panels reopen with the current selection.\n4. C-c p 1/2/3 moves each panel through eight positions; siblings stay put.\n5. C-c [ / ] scrolls Details without taking typing focus.\n6. Type and undo in the source. C-g hides panels; C-c C-q disables bindings.\n\nRequires graphical or native TTY child frames. Hiding/reopening retains selection and panel positions while recreating surfaces. Disabling resets positions. Source text and window layout stay intact.")
     (:id inspector :label "Equipment inspector (floating text)" :kind "Inline"
      :available emacs-tui-popup-supported-p
      :feature emacs-tui-inspector-demo :command emacs-tui-inspector-demo

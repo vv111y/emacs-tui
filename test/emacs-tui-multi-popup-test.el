@@ -57,6 +57,28 @@
            (dolist (app created) (emacs-tui-close app))
            (when (buffer-live-p source) (kill-buffer source)))))))
 
+(ert-deftest emacs-tui-multi-scroll-targets-only-visible-details ()
+  (emacs-tui-multi-test--source
+    (emacs-tui-multi-popup-demo-mode 1)
+    (let ((apps (copy-sequence emacs-tui-multi-popup-demo--sessions)) calls)
+      (cl-letf (((symbol-function 'emacs-tui-scroll-view)
+                 (lambda (app id lines) (push (list app id lines) calls))))
+        (execute-kbd-macro (kbd "C-c ] C-c ["))
+        (should (equal calls
+                       (list (list (alist-get 'details apps) 'details -3)
+                             (list (alist-get 'details apps) 'details 3))))
+        (should (equal apps emacs-tui-multi-popup-demo--sessions))
+        (should (= 0 emacs-tui-multi-popup-demo--index))
+        (let ((emacs-tui-multi-popup-demo--busy t))
+          (should-error (emacs-tui-multi-popup-demo-scroll-backward) :type 'user-error))
+        (should (= 2 (length calls)))
+        (emacs-tui-multi-popup-demo-toggle-details)
+        (should-error (emacs-tui-multi-popup-demo-scroll-forward) :type 'user-error)
+        (should-not (emacs-tui-multi-popup-demo--session 'details))
+        (should (= 2 (length calls)))
+        (emacs-tui-multi-popup-demo-mode -1)
+        (should-error (emacs-tui-multi-popup-demo-scroll-forward) :type 'user-error)))))
+
 (ert-deftest emacs-tui-multi-individual-and-all-toggles-preserve-siblings-and-source ()
   (emacs-tui-multi-test--source
     (let ((text (buffer-string)) (point (point)) (undo (copy-tree buffer-undo-list)))
