@@ -280,5 +280,12 @@ its version. It runs `test/gui-smoke.el` interactively under Xvfb, requires a re
 graphical display, and checks child-frame input, anchored inspector scrolling and
 actions, parent-relative bounds through eight positions, resizing and cleanup.
 Its execution is bounded by an external timeout and requires a PASS report.
+The same workflow also runs the completion fixture with `EMACS_TUI_GUI_SMOKE=1`.
+It shares the terminal assertions for a real Elisp provider, typing/filtering in
+the same popup, acceptance/native undo, file completion suffixes, affixation,
+read-only retries and mode-change cleanup. In graphical mode, resize requests
+change the parent frame directly instead of waiting for an outer PTY driver.
+The graphical display is mandatory and the report distinguishes native GUI
+state from terminal paint checks; this does not claim pixel-level inspection.
 This verifies native graphical state and interaction; it does not inspect rendered
 pixels, fonts, desktop window managers, macOS GUI Emacs or physical displays.

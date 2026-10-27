@@ -1,5 +1,40 @@
 # Project state
 
+## Shared graphical completion validation — 2026-10-27
+
+The real CAPF integration fixture now supports a graphical transport selected
+explicitly with EMACS_TUI_GUI_SMOKE=1. It retains the same provider, filtering,
+acceptance/undo, file suffix/affixation, read-only retry and cleanup assertions
+used on terminals. GUI mode requires a graphical parent and child, verifies
+120x40 startup and 90x30/140x45 resizes, and changes the parent directly instead
+of waiting for an outer PTY driver. The separate GUI workflow compiles and runs
+both fixtures under bounded Xvfb sessions. Reports distinguish GUI state from
+terminal painting; no pixel-level display claim is made.
+
+Local Emacs 29.3: strict fixture compilation passes; the existing PTY completion
+probe still passes its unsupported-display branch. The explicit GUI-mode batch
+probe exits 1 with a graphical-display assertion report, preventing a silent
+unsupported fallback. Native graphical completion remains a hosted gate because
+local Xvfb cannot open Unix sockets. No package API or beta refs changed.
+
+PR #67 merged at 94e25b63cc630d886eb48d8ee3bdd7e78ad10cbc after review
+5669812156 and all 13 jobs passed: CI 40531598358 (eight), tmux 40531598216
+(two), movement comparison 40531598280 (two), graphical smoke 40531598104 (one).
+Reviewed head af4322a19c95a904bace773d067e4b11deabb246 and tested merge
+1ed8189f49d553f91c44371cc4a78bae5c6c08e0 share tree
+37faf6a062b86c3d5c88a14d267ad666620ef3e2. Linux/macOS 31.1 logs explicitly
+confirm 383 ERT and native popup/inspector/completion/input behavior. GTK/Xvfb
+job 122285588506 confirms input, inspector actions, all eight positions, both
+resizes, source preservation and advice cleanup on Emacs 29.3.
+
+PR #68 initial head 1f1760b06ac3ea46aebf4281d1792789a9f4b3bf, tree
+fcf72d57cbb4a3824fda5bae3e48156ce6de228a, received independent review
+5669927709. Graphical run 40532940313 / job 122290382626 passed both native
+fixtures, explicitly including the complete real CAPF sequence on GTK 29.3;
+both tmux jobs 40532940470 also passed. The branch is rebased onto merged #67
+without runtime/test changes, with this evidence update. Fresh exact-head checks
+remain the final integration gate. Fixed beta refs and MELPA external gates remain.
+
 ## Graphical child-frame validation — 2026-10-27
 
 Native trace from job 122279615142 (run 40529824267) identifies the unexpected

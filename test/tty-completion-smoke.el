@@ -20,6 +20,14 @@
 (defvar emacs-tui-completion-smoke--attempts 0)
 (defvar emacs-tui-completion-smoke--timer nil)
 (defvar emacs-tui-completion-smoke--exits nil)
+(defvar emacs-tui-completion-smoke--graphical (getenv "EMACS_TUI_GUI_SMOKE"))
+
+(defun emacs-tui-completion-smoke--request-resize (phase)
+  "Request resize PHASE through the graphical or outer-PTY transport."
+  (if emacs-tui-completion-smoke--graphical
+      (set-frame-size emacs-tui-completion-smoke--parent
+                      (if (= phase 1) 90 140) (if (= phase 1) 30 45))
+    (with-temp-file (getenv "EMACS_TUI_SMOKE_READY") (insert (number-to-string phase)))))
 
 (defun emacs-tui-completion-smoke--host ()
   (cl-assert (eq (current-buffer) emacs-tui-completion-smoke--source))
@@ -29,10 +37,11 @@
   (cl-assert (= 1 (length (window-list emacs-tui-completion-smoke--parent 'no-minibuffer)))))
 
 (defun emacs-tui-completion-smoke--fail (err)
-  (with-temp-file (getenv "EMACS_TUI_SMOKE_REPORT")
-    (insert (format "FAIL completion phase %s: %S\n" emacs-tui-completion-smoke--phase err))
-    (when (get-buffer "*Messages*")
-      (insert (with-current-buffer "*Messages*" (buffer-string)))))
+  (let ((coding-system-for-write 'utf-8-unix))
+    (with-temp-file (getenv "EMACS_TUI_SMOKE_REPORT")
+      (insert (format "FAIL completion phase %s: %S\n" emacs-tui-completion-smoke--phase err))
+      (when (get-buffer "*Messages*")
+        (insert (with-current-buffer "*Messages*" (buffer-string))))))
   (kill-emacs 1))
 
 (defun emacs-tui-completion-smoke--files ()
@@ -104,7 +113,8 @@
   (cancel-timer emacs-tui-completion-smoke--timer)
   (with-temp-file (getenv "EMACS_TUI_SMOKE_REPORT")
     (insert (if emacs-tui-completion-smoke--supported
-                (format "PASS Emacs %s; native CAPF popup paint; real elisp provider/styles; host typing/focus/layout; same-child filtering; selection/move; accept/native undo; file base/suffix; exact exit once; read-only retry; resize=120->90->140; major-mode cleanup\n" emacs-version)
+                (format "PASS Emacs %s; native CAPF popup %s; real elisp provider/styles; host typing/focus/layout; same-child filtering; selection/move; accept/native undo; file base/suffix; exact exit once; read-only retry; resize=120->90->140; major-mode cleanup\n"
+                        emacs-version (if emacs-tui-completion-smoke--graphical "graphical state" "paint"))
               (format "PASS Emacs %s; unsupported CAPF presentation rejected atomically; resize=120->90->140; positive native presentation NOT exercised\n" emacs-version))))
   (kill-emacs 0))
 
@@ -116,6 +126,9 @@
         (redisplay t)
         (when (and (= (frame-width emacs-tui-completion-smoke--parent)
                       (if (= 1 emacs-tui-completion-smoke--phase) 90 140))
+                   (or (not emacs-tui-completion-smoke--graphical)
+                       (= (frame-height emacs-tui-completion-smoke--parent)
+                          (if (= 1 emacs-tui-completion-smoke--phase) 30 45)))
                    (or (not emacs-tui-completion-smoke--supported)
                        (equal (emacs-tui--geometry emacs-tui-completion-smoke--app)
                               (emacs-tui--workspace-geometry emacs-tui-completion-smoke--app))))
@@ -127,13 +140,17 @@
               (cl-assert (emacs-tui-live-p emacs-tui-completion-smoke--app))))
           (if (= 1 emacs-tui-completion-smoke--phase)
               (progn (setq emacs-tui-completion-smoke--phase 2 emacs-tui-completion-smoke--attempts 0)
-                     (with-temp-file (getenv "EMACS_TUI_SMOKE_READY") (insert "2")))
+                     (emacs-tui-completion-smoke--request-resize 2))
             (emacs-tui-completion-smoke--finish))))
     ((error quit) (emacs-tui-completion-smoke--fail err))))
 
 (defun emacs-tui-completion-smoke--start ()
   (condition-case err
       (progn
+        (when emacs-tui-completion-smoke--graphical
+          (cl-assert (display-graphic-p))
+          (cl-assert (= (frame-width) 120))
+          (cl-assert (= (frame-height) 40)))
         (switch-to-buffer (get-buffer-create "*CAPF host*"))
         (emacs-lisp-mode)
         (insert (make-string 35 ?\n))
@@ -163,6 +180,8 @@
           (let* ((app (emacs-tui-completion--session))
                  (child (emacs-tui--workspace-frame app))
                  (selected (emacs-tui-current-item app)))
+            (when emacs-tui-completion-smoke--graphical
+              (cl-assert (display-graphic-p child)))
             (execute-kbd-macro (kbd "M-n"))
             (cl-assert (not (equal selected (emacs-tui-current-item app))))
             (execute-kbd-macro (kbd "M-p"))
@@ -187,9 +206,20 @@
         (emacs-tui-completion-smoke--host)
         (setq emacs-tui-completion-smoke--text (buffer-string)
               emacs-tui-completion-smoke--point (point))
-        (with-temp-file (getenv "EMACS_TUI_SMOKE_READY") (insert "1"))
+        (emacs-tui-completion-smoke--request-resize 1)
         (setq emacs-tui-completion-smoke--timer
               (run-at-time 0.05 0.05 #'emacs-tui-completion-smoke--poll)))
     ((error quit) (emacs-tui-completion-smoke--fail err))))
 
-(add-hook 'emacs-startup-hook (lambda () (run-at-time 0.1 nil #'emacs-tui-completion-smoke--start)))
+(defun emacs-tui-completion-smoke--initialize ()
+  "Prepare the selected display before running shared completion assertions."
+  (condition-case err
+      (progn
+        (when emacs-tui-completion-smoke--graphical
+          (cl-assert (display-graphic-p))
+          (set-frame-size nil 120 40))
+        (run-at-time (if emacs-tui-completion-smoke--graphical 0.3 0.1)
+                     nil #'emacs-tui-completion-smoke--start))
+    ((error quit) (emacs-tui-completion-smoke--fail err))))
+
+(add-hook 'emacs-startup-hook #'emacs-tui-completion-smoke--initialize)

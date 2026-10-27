@@ -26,7 +26,7 @@ jobs:
           sudo apt-get install --yes emacs-gtk xvfb xauth
           emacs --version
       - name: Compile graphical fixture strictly
-        run: emacs -Q --batch -L . -L examples --eval '(setq byte-compile-error-on-warn t)' -f batch-byte-compile test/gui-smoke.el
+        run: emacs -Q --batch -L . -L examples --eval '(setq byte-compile-error-on-warn t)' -f batch-byte-compile test/gui-smoke.el test/tty-completion-smoke.el
       - name: Exercise native graphical frames
         env:
           EMACS_TUI_GUI_REPORT: gui-result.txt
@@ -34,6 +34,17 @@ jobs:
           xvfb-run -a -s '-screen 0 1600x1200x24' timeout 60s emacs -Q -L . -L examples -l test/gui-smoke.el
           cat gui-result.txt
           grep -q '^PASS ' gui-result.txt
+      - name: Exercise native graphical completion
+        env:
+          EMACS_TUI_GUI_SMOKE: '1'
+          EMACS_TUI_SMOKE_REPORT: gui-completion-result.txt
+          EMACS_TUI_SMOKE_PAINT: gui-completion-paint.txt
+        run: |
+          xvfb-run -a -s '-screen 0 1600x1200x24' timeout 60s emacs -Q -L . -l test/tty-completion-smoke.el
+          cat gui-completion-result.txt
+          grep -q '^PASS .*graphical state' gui-completion-result.txt
       - name: Report on failure
         if: failure()
-        run: cat gui-result.txt || true
+        run: |
+          cat gui-result.txt || true
+          cat gui-completion-result.txt || true
