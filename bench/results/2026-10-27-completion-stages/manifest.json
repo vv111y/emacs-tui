@@ -1,0 +1,96 @@
+{
+  "run": 40477529516,
+  "head": "19ae46168d2232d013e56e20dc03042003b68c5d",
+  "measured_commit": "47313d05aaaa8e9bd7091a5efd27be6e8586568c",
+  "tree": "71a2b90bbaa35b89ee8bc3394a68238866e7df48",
+  "artifacts": [
+    {
+      "id": 12721413367,
+      "name": "native-profile-macos-latest-31.1-none",
+      "sha256": "8e3715f7b0e2fc8504836f6c74eb52298a3b7ee782b76860dcbd2424a52bf621"
+    },
+    {
+      "id": 12721402631,
+      "name": "native-profile-ubuntu-latest-31.1-none",
+      "sha256": "161efd8ae5be67f136ce2c53816beb58a6b2d23ad300b3c7d397d55c1541ba1d"
+    },
+    {
+      "id": 12720923224,
+      "name": "native-profile-ubuntu-latest-31.1-identity",
+      "sha256": "00cba6d2f072c28b84dae07771308f9871586aeb4e58fbda732d1a87bbc0b3ef"
+    },
+    {
+      "id": 12720354624,
+      "name": "native-profile-macos-latest-31.1-identity",
+      "sha256": "993259b58ca8187082c5db288cd1112b945277408dc4ff3fcfd3420236adcab8"
+    }
+  ],
+  "files": {
+    "macos-none-bytecode.json.gz": {
+      "sha256": "5118861ed91b60ade41d62c8d9c38ec458ec514637d877735ec1928ad6deffd8",
+      "uncompressed_sha256": "c8d96eeca78c90b6cf1bed0cec190f60eeee7d6c589a3fb6f6c18b3700c5029a",
+      "records": 1890,
+      "load_mode": "bytecode",
+      "sort": "none"
+    },
+    "macos-none-source.json.gz": {
+      "sha256": "7865e83aca3a62fdc960faccdbe28842ac532c9394e1e30378a0e5f34490e5bc",
+      "uncompressed_sha256": "aef7fe21609b341dd3eea7621bc83822f35788fa6210ae5aa6cc0cb164391a86",
+      "records": 1890,
+      "load_mode": "source",
+      "sort": "none"
+    },
+    "linux-none-bytecode.json.gz": {
+      "sha256": "c26f7191abd1dfa3a3499fc1031a020f93511393b4b6ac7c34b7bbeca17f6ecb",
+      "uncompressed_sha256": "554cf4073358a4229f8504d927df9deb4b04ec49f6f96ffceaabc37af4e43a3b",
+      "records": 1890,
+      "load_mode": "bytecode",
+      "sort": "none"
+    },
+    "linux-none-source.json.gz": {
+      "sha256": "c329c4d56efb9b34174ae2231eef33380f0e23ef7556e8ff2c6dfd80a5981384",
+      "uncompressed_sha256": "7ca11d1ef9bdabf7938fd7d2afd6e38b71e1cc531d203ff7365fb33b9de8e3d8",
+      "records": 1890,
+      "load_mode": "source",
+      "sort": "none"
+    },
+    "linux-identity-bytecode.json.gz": {
+      "sha256": "391333967e62b70880fb41ffb1941de815e3f2256031acf7950bfca62377b4ba",
+      "uncompressed_sha256": "39eeb47e63684b1cf7ef0af9a6087fe367501d5aa493979ff7256e278746ad50",
+      "records": 1890,
+      "load_mode": "bytecode",
+      "sort": "identity"
+    },
+    "linux-identity-source.json.gz": {
+      "sha256": "40c6652771da1f1b958726452accabbd991d73d14b2c5e2cd2e89959dc0100a4",
+      "uncompressed_sha256": "3242e03c2b9f7bb3a17da43f482f75471a608b0be4906ba536a5df280f514c87",
+      "records": 1890,
+      "load_mode": "source",
+      "sort": "identity"
+    },
+    "macos-identity-bytecode.json.gz": {
+      "sha256": "3cf4983f8191f2c6dfc97faeb25e27684f354a7eaf33f87e6a5ce529c9841648",
+      "uncompressed_sha256": "17f1ddfac3a29b6e3fc6f4d283e64c2f7526102b42bc6c540bd30b22eb85138c",
+      "records": 1890,
+      "load_mode": "bytecode",
+      "sort": "identity"
+    },
+    "macos-identity-source.json.gz": {
+      "sha256": "203234bd6913f77aee316de3dd8672fe93d700a942e2819942fdaaea666dbf08",
+      "uncompressed_sha256": "f14551dc5e4844fad87c6c30cd37dca4b73eb28ca773d2504e4879a0af4b6804",
+      "records": 1890,
+      "load_mode": "source",
+      "sort": "identity"
+    }
+  },
+  "source_sha256": {
+    "emacs-tui-action.el": "dc42fb41436195b228017b2fab2a823a1080c81645549fa9df4902af7e9672c0",
+    "emacs-tui-completion.el": "279c75945243699f1452ad82e3a1473a08207a28a2a3fe150c05c97c1665344e",
+    "emacs-tui-layout.el": "09dfdf06451e4c15bfe5b1dbef6edb616897531c9bcb950c14afe78cf5e87cbf",
+    "emacs-tui-table.el": "7528f5e609e307388d3f88e08c4c690e34390d2ceb68a89ac469552680597044",
+    "emacs-tui-tree.el": "e246f7ad6a0f41fbbf9fa3dbaf5ff5cf2284dce8c6743652459321602084bcf6",
+    "emacs-tui.el": "0335a455da5a2846bc117d06d3e83a64ff0701da4644608e4b4e7c6701ccaa8d",
+    "bench/run.py": "a22f1681f14f037933b3b664f18dda1bd1d7d389b0725ba53561a708103eb308",
+    "bench/interactive.el": "24491a6078c1293824e505ef579967c52f5633b9bc992816619d573a0ff80c9b"
+  }
+}

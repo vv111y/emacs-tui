@@ -1,29 +1,47 @@
 # Project state
 
-## Completion stage attribution — preparation, 2026-10-27
+## Completion stage profiles published — 2026-10-27
 
-Benchmark-only opt-in instrumentation now separates inclusive projection, native
-matching, decoration and existing-popup publication. Reports include stage call
-counts and instrumentation policy; malformed measurements fail before report
-publication. Timings overlap, include instrumentation/GC, and are not comparable
-to the prior uninstrumented baseline as a speedup pair. Full hosted profiles now
-cover identity and absent sorters in source/bytecode on Linux/macOS. Package
-runtime and API are unchanged. Native smoke exercises the instrumented unsorted
-path; full profiles also check zero stage calls outside completion.
+PR #58 merged at ea3aca27abaacb49710f541d9359a8e133b0f9e3 after exact-head
+independent review 5664519072 and all eight compatibility/package jobs in
+40477529290 plus four native profile jobs in 40477529516 passed. Head
+19ae46168d2232d013e56e20dc03042003b68c5d and tested merge
+47313d05aaaa8e9bd7091a5efd27be6e8586568c share tree
+71a2b90bbaa35b89ee8bc3394a68238866e7df48. All 360 ERT, strict compile/checkdoc,
+package installations and native Linux/macOS lifecycle/CAPF/terminal-loss tests
+passed. Instrumented native smoke passed in source/bytecode; all four full
+profiles passed exact stage-call and candidate/paint/cleanup assertions.
 
-PR #57 merged at 561e91e83306e2f025cb7abd47d37608341b7306 after independent
-review 5663933663, eight CI jobs in 40472111751 and two profile jobs in
-40472111645 passed. Both native platforms passed unsorted source/bytecode smoke.
-The earlier positive-native gates below are now satisfied. Fixed beta refs remain
-unchanged. Local Python: five protocol/report-validation tests pass; driver
-compilation, Lisp parenthesis and diff checks pass. Independent extracted-wrapper
-ERT probes pass return identity, error/quit/throw propagation, excluded setup and
-non-completion work, and inclusive nested timing. These are not native-display
-evidence. New instrumentation still requires exact review and hosted execution.
+Eight raw reports (15,120 records) are retained losslessly under
+[completion stages](../bench/results/2026-10-27-completion-stages/README.md).
+Original ZIP/report digests match; every measured input hash matches the exact
+commit. The auditor recomputes every aggregate/per-command quantile and validates
+record order, call counts, inclusive nesting and clock arithmetic. Local five
+Python report/protocol tests and four independent extracted-wrapper ERT probes
+also pass; the latter establish return/error semantics, not display evidence.
 
-Next: inspect and retain full stage profiles, attribute restoration costs, then
-measure any proposed runtime change with matching fixtures. Broader application
-and display use plus MELPA maintenance/human-review gates remain open.
+The profiles locate substantial restoration cost in projection/native matching.
+For unsorted 10k bytecode deletion, projection median is 90.859 ms Linux and
+80.081 ms macOS; publication medians are 0.407 and 0.358 ms respectively. These
+are inclusive, independently summarized stage clocks, not additive components.
+Instrumentation changes timing/allocation overhead. Sorter policies ran in
+separate jobs, including different Linux CPU models: this is not a controlled
+policy comparison or a before/after speedup result. Detailed tails, GC, hosts and
+all fields remain available. Unsorted 10k bytecode deletion has median 11 GCs
+per command on both hosts, with recorded GC-time medians 92.692/83.491 ms.
+Do not subtract separately summarized medians or assign that GC time to a
+particular stage; inspect allocation pressure and lifetimes before tuning GC. Package runtime/API and fixed beta refs unchanged.
+
+PR #57 merged at 561e91e83306e2f025cb7abd47d37608341b7306 after review
+5663933663, eight CI jobs in 40472111751 and two profile jobs in 40472111645
+passed. Its earlier positive native gates below are satisfied.
+
+Next: investigate projection work while preserving native completion styles,
+provider-owned strings and highlighting; measure any change using matching
+instrumentation/fixtures on the same runner. Do not replace native completion
+semantics based on a synthetic basic-style table. Broaden actual applications
+and display coverage; maintenance history and substantive human review remain
+external MELPA gates. No maturity or acceptance claim is established.
 
 ## Explicit unsorted completion workload — 2026-10-27
 
