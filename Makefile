@@ -1,6 +1,6 @@
 EMACS ?= emacs
 
-.PHONY: test compile checkdoc check clean demo graph-demo gallery popup-demo completion-demo board-demo reader-demo snippet-demo catalog-demo stream-demo layout-demo async-demo dashboard panel composer tree filter-demo package-check tty-smoke benchmark benchmark-smoke benchmark-popup-smoke
+.PHONY: test compile checkdoc check clean demo graph-demo gallery popup-demo completion-demo inspector-demo board-demo reader-demo snippet-demo catalog-demo stream-demo layout-demo async-demo dashboard panel composer tree filter-demo package-check tty-smoke benchmark benchmark-smoke benchmark-popup-smoke
 test:
 	$(EMACS) -Q --batch -L . -L test -l test/run-tests.el
 compile:
@@ -31,6 +31,8 @@ popup-demo:
 	$(EMACS) -Q -nw -L . -l examples/emacs-tui-popup-demo.el -f emacs-tui-popup-demo-sample
 completion-demo:
 	$(EMACS) -Q -nw -L . -l examples/emacs-tui-completion-demo.el -f emacs-tui-completion-demo
+inspector-demo:
+	$(EMACS) -Q -nw -L . -l examples/emacs-tui-inspector-demo.el -f emacs-tui-inspector-demo
 gallery:
 	$(EMACS) -Q -nw -L . -l examples/emacs-tui-gallery.el -f emacs-tui-gallery
 board-demo:

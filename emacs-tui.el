@@ -2095,6 +2095,33 @@ selection, queries or marks, or invoke exploration/commit/action callbacks."
     (emacs-tui-next-view session (- index (emacs-tui--workspace-focus session))))
   session)
 
+(defun emacs-tui-scroll-view (session id &optional lines)
+  "Scroll SESSION's visible text preview ID by LINES without taking focus.
+Nil ID means the logically focused view.  LINES follows `scroll-up': nil
+scrolls nearly one window, and a negative integer scrolls backward.  Native
+end-of-buffer and beginning-of-buffer errors are preserved.  Hidden, list and
+editable input views are rejected; this command never reveals a hidden pane.
+Preserve the selected source window/buffer and logical focus, changing only
+the preview's reading position.  No selection or application action runs.
+Return SESSION."
+  (unless (or (null lines) (integerp lines))
+    (error "Scroll distance must be an integer or nil"))
+  (setq session (emacs-tui--require-session session))
+  (let* ((view (emacs-tui--resolve-view session id))
+         (window (emacs-tui--view-window view)))
+    (unless (and (emacs-tui--view-text view)
+                 (not (emacs-tui--view-editable view)))
+      (user-error "Only read-only text previews can scroll without focus"))
+    (unless (and (emacs-tui--subtree session)
+                 (window-live-p window)
+                 (emacs-tui--owned-window-p session window)
+                 (eq (window-buffer window) (emacs-tui--view-buffer view)))
+      (user-error "Preview is not visible in an owned window"))
+    (unwind-protect
+        (with-selected-window window (scroll-up lines))
+      (emacs-tui--remember-view view)))
+  session)
+
 (defun emacs-tui--selection-cached-p (view)
   "Whether the current buffer has valid rendered positions for VIEW."
   (and (not (emacs-tui--view-text view))
