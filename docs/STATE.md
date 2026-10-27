@@ -13,8 +13,26 @@ terminal input. Package build/clean installs and the older-runtime matrix passed
 The beta2 candidate updates the package header and CI expectation to
 `0.1.0-beta2`, documents the additive popup/completion APIs and distinct demos,
 and pins straight.el plus the matching example checkout to the new fixed
-`release/0.1.0-beta2` ref. The optional frontend remains opt-in; no executable
-Lisp forms change in this release unit. Strict native popup requirements and
+`release/0.1.0-beta2` ref. The optional frontend remains opt-in. A final readiness
+audit also found an interrupted-popup startup could revive bindings after its
+close callback had released the context. The frontend now verifies current
+ownership, source validity, an unchanged source generation and a live popup
+before publishing active state; four regressions cover early closure, a new
+completion started during creation, source edits and callback-driven window
+departure. Source validity is checked again after invoking the provider's
+context predicate. The old code
+returned handled=t with context=nil, active=t and TAB still captured. The new
+guard releases only the obsolete context and preserves a replacement popup.
+The initial published head's eight passing jobs did not cover this new finding;
+fresh final-head review, checks and package installation are required.
+Local 355 ERT, strict compilation/checkdoc and the completion PTY's honest
+unsupported-native branch passed with the guard. Close/reentry regressions fail
+on the old frontend; source-edit and callback-window regressions fail the first
+guard. Independent review also passed update-time close/reentry probes.
+No native-positive claim is inferred
+from modeled presentation. Initial published-head CI passed 351 ERT before this
+new coverage; it is not substituted for final-head results.
+Strict native popup requirements and
 ordinary workspace fallback are distinguished in the compatibility policy.
 
 Local Emacs 29.3/Linux passed 351 ERT, strict compilation/checkdoc, literal
@@ -22,6 +40,9 @@ header/canonical package metadata (`0.1.0beta2`), actual pinned recipe build
 and clean archive installation. The package build tested local source `74906b3`
 before rebasing onto the identical reviewed PR #48 tree; archive SHA256 was
 `f939436dc42bba40247533b4c644227250cb9e85487e4a1311070ba64c7c63cb`.
+After the final startup guard, the actual pinned recipe rebuilt source
+`1e5ff86` and clean-installed on 29.3 with beta2 metadata; archive SHA256 was
+`448618bbe5f12116908b2feed841a3f3fe0d4269e5c9f66cd2723f1fe7bfe410`.
 Independent preliminary release review is clean. Exact published-head review
 and all eight runtime/package CI jobs remain gates before integration. After
 merging, create the fixed beta2 branch at the returned merge SHA and read back

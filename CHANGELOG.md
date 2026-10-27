@@ -10,6 +10,8 @@
 - Distinct task-board, reader and snippet applications replace repetitive
   gallery entries; table fill widths preserve the rightmost terminal glyph.
 - Popup clients dispose before major-mode changes discard their local state.
+- Completion startup interrupted by popup closure or a new completion releases
+  the old context without reviving its bindings or disposing the new popup.
 - Native terminal tests require visible popup paint before abrupt real-client
   loss, complete popup disposal and continuing input on the surviving terminal.
 

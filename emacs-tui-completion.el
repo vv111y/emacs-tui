@@ -63,8 +63,8 @@ Moving a popup changes the buffer-local preference."
     (set-marker (emacs-tui--completion-end context) nil)
     (when (emacs-tui-live-p session) (emacs-tui-close session))))
 
-(defun emacs-tui-completion--valid-p (context)
-  "Whether CONTEXT still owns an accessible field in the input window."
+(defun emacs-tui-completion--source-valid-p (context)
+  "Whether CONTEXT owns an accessible field, without invoking provider code."
   (let ((begin (emacs-tui--completion-begin context))
         (end (emacs-tui--completion-end context))
         (window (emacs-tui--completion-window context)))
@@ -76,9 +76,14 @@ Moving a popup changes the buffer-local preference."
          (eq (window-buffer window) (current-buffer))
          (eq (marker-buffer begin) (current-buffer))
          (eq (marker-buffer end) (current-buffer))
-         (<= (point-min) begin (point) end (point-max))
-         (or (not (emacs-tui--completion-valid context))
-             (funcall (emacs-tui--completion-valid context))))))
+         (<= (point-min) begin (point) end (point-max)))))
+
+(defun emacs-tui-completion--valid-p (context)
+  "Whether CONTEXT's source and provider context remain valid after callbacks."
+  (and (emacs-tui-completion--source-valid-p context)
+       (or (not (emacs-tui--completion-valid context))
+           (funcall (emacs-tui--completion-valid context)))
+       (emacs-tui-completion--source-valid-p context)))
 
 (defun emacs-tui-completion--property (metadata property extra)
   "Read PROPERTY from METADATA, falling back to captured EXTRA on older Emacs."
@@ -194,6 +199,13 @@ Honor completion styles, predicates, base size and the suffix boundary."
                              (when (buffer-live-p source)
                                (with-current-buffer source
                                  (emacs-tui-completion--release context))))))))
+      ;; Frame/render hooks may close this popup or start another completion
+      ;; before the public creation/update call returns.  Do not revive its map.
+      (unless (and (emacs-tui-completion--valid-p context)
+                   (emacs-tui-live-p (emacs-tui--completion-session context))
+                   (equal stamp (emacs-tui-completion--stamp)))
+        (emacs-tui-completion--release context)
+        (user-error "Completion context changed during display"))
       (setf (emacs-tui--completion-projection context) projection
             (emacs-tui--completion-stamp context) stamp)
       (setq emacs-tui-completion--active t)
