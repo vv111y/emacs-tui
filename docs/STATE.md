@@ -5,18 +5,44 @@ initial beta3 preparation are preserved byte-for-byte in
 [STATE-HISTORY.md](STATE-HISTORY.md). Their pending checks describe their own
 dates, not current blockers; later intermediate edits remain in Git history.
 
-## Native multi-popup gallery-launch candidate — 2026-10-27
+## Native sibling-popup departure candidate — 2026-10-27
 
-The shared native journey now selects the multi-popup entry, reads its tour
-through RET and launches with C-c C-o before testing all three real sibling
-frames. It asserts that the chooser is disposed, then retains every existing
-source/keyboard/lifecycle assertion. Both GTK and Linux/macOS terminal fixtures
-use this path. Unsupported displays retain their batch chooser-preservation
-checks. A real-chooser failure regression verifies that a failed tour command
-releases the chooser before any source is launched. Local Emacs29.3 passes415
-ERT, strict compile/checkdoc and strict
-shared/GUI/TTY fixture compilation. Exact-head review and positive hosted
-native checks gate integration.
+PR #78 extends the shared real-frame journey through both buffer and window
+commands. It checks that all three old frames/view buffers/anchor markers are
+released and popup command routing is removed, edits the destination, then
+returns and explicitly recreates the panels with retained selection. Source
+text, point and undo are checked. This adds no production API.
+
+The initial GTK journey failed its final complete window-state comparison.
+Diagnostic run40567170801, job122411438165, at head9ebb209 printed both states:
+only prev-buffers differed, gaining the source buffer itself after the fixture's
+intentional switch-away/return commands. Dimensions, selected buffer, point,
+start and other fields were unchanged. Linux/macOS tmux had passed the preceding
+b0264c3 head in40566268666; those results do not validate the correction.
+
+The correction retains the original complete-state assertion around popup
+operations before navigation, and adds a new complete-state assertion around
+reopening after each return. It does not filter history fields or relax equality.
+Source and resource assertions still cover the deliberate navigation. Local
+Emacs29.3 passes415 ERT, strict compile/checkdoc and strict shared/GUI/TTY fixture
+compilation. Independent review of4f5036c found no structural issue; final
+review and fresh positive hosted results remain integration gates. The local29.3
+runtime cannot prove native terminal child-frame behavior. Do not merge the
+failing diagnostic head or reuse its checks for the correction.
+
+## Integrated native multi-popup gallery launch — 2026-10-27
+
+PR #77 merged at a32e3f64b8ada0007a71fc8b131f7f9b33095fec after independent
+exact-head review5672728137 and all eleven checks passed. Reviewed head a53067a
+and tested merge26a5c04 share treefebd48d4d8cbd2257028ebb716a7b6b29ca92d71.
+The shared journey selects the gallery entry, reads its tour with RET and
+launches with C-c C-o, then asserts chooser disposal and the three real sibling
+frames. A failed tour command releases the chooser; the regression uses a real
+ordinary-window gallery. Local/hosted415 ERT and strict compile/checkdoc pass.
+CI40565040105 has eight successful jobs; GTK40565039863 and Linux/macOS tmux
+40565039877 explicitly report gallery launch. Package job122403958392 installs
+the same archive on31.1/28.1; SHA256
+c3047a0ce4a8c1feb1ab8a2b034836a80dd7c96714e62fb2d3522fede2600ece.
 
 ## Integrated multi-popup demo — 2026-10-27
 
@@ -51,7 +77,7 @@ unsupported branch does not establish native composition. Physical display,
 Ghostty/iTerm2 and broader input-method coverage remain open. Fixed beta1/2/3
 refs are unchanged. Current main has twelve gallery entries; fixed beta3 has ten.
 
-Next: finish the native gallery-launch candidate above, then prioritize
+Next: finish the native sibling-popup departure candidate above, then prioritize
 concrete beta feedback and measured application costs. Keep one independently
 owned session per floating panel; no speculative group/window-manager API.
 
@@ -132,7 +158,7 @@ support Emacs 28.1+; floating popups require native child-frame capability.
 2. PR #74 integrated a distinct settings form at
    42d2217b23c8e1823982f6b525293f7c30d9b140: native fields, checkbox-style
    options, live validation and explicit Apply/Revert with session-only storage.
-   Run make form-demo from current main. Main has eleven gallery entries;
+   Run make form-demo from current main. At that checkpoint main had eleven gallery entries;
    fixed beta3 keeps ten. Reviews 5671472509/5671539213 cover final head
    25010393 and tree 00e57ee0158176fc8059dcf7b3e5cbfbd992a969. All eleven
    exact-head jobs passed: CI 40550730712, GUI 40550730612 and tmux 40550730589.
