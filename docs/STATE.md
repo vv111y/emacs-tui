@@ -1,5 +1,30 @@
 # Project state
 
+## Native popup measurement fixture — in progress, 2026-10-27
+
+The next focused change adds `--presentation popup` to the real PTY benchmark:
+source-preserving navigation, all eight compass positions and actual native
+completion filtering. It rejects unsupported runtimes without fallback. Reports
+retain source/fresh-bytecode provenance, actual terminal paint proof, host and
+child identity checks, separate synchronous table callback clocks and raw
+per-command samples. The provider fixture is a finite synchronous table, not
+an external-provider estimate; final redisplay and command-minus-table clocks
+are explicitly not pure rendering time. CI31 native smoke will retain raw
+artifacts, with no performance threshold or baseline inferred from six samples.
+
+Local Emacs 29.3 passed 357 ERT, strict package/fixture compilation and checkdoc.
+The native-only run correctly failed as unsupported with no result JSON;
+actual native positive evidence requires hosted Linux/macOS 31.1. Independent
+preliminary review caught a repaint-proof gap for identical successive cases;
+setup now forces a full redraw outside timing. All five existing window workloads passed in source/bytecode modes, including
+the multi-term filter cases; four Python driver regressions passed. Exact
+published-head review and hosted native CI remain required before integration. Neither fixed
+beta release branch is changed. Current MELPA policy blobs were rechecked on
+2026-10-27 and are unchanged; maintenance and substantive human review remain
+external gates. Next after integrating the fixture: collect a full native
+profile with >=100 samples per individual command, then optimize demonstrated
+bottlenecks and broaden real GUI/emulator/multiplexer/application use.
+
 ## Verified release and handoff — 2026-10-27
 
 Beta2 is available from the fixed `release/0.1.0-beta2` branch at

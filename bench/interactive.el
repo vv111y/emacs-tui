@@ -18,13 +18,18 @@
 (when (boundp 'native-comp-jit-compilation)
   (setq native-comp-jit-compilation nil))
 (require 'emacs-tui)
+(require 'emacs-tui-completion)
+
+(defvar emacs-tui-bench--popup-p
+  (equal (getenv "EMACS_TUI_BENCH_PRESENTATION") "popup"))
 
 (defvar emacs-tui-bench--libraries nil)
 (let* ((mode (getenv "EMACS_TUI_BENCH_LOAD_MODE"))
        (suffix (if (equal mode "bytecode") ".elc" ".el"))
        (root (file-name-as-directory (file-truename (getenv "EMACS_TUI_BENCH_LIBRARY_ROOT")))))
   (dolist (symbol '(emacs-tui-next-item emacs-tui-layout-compute emacs-tui-column
-                                      emacs-tui--tree-project emacs-tui-action))
+                                        emacs-tui--tree-project emacs-tui-action
+                                        emacs-tui-completion-next))
     (let ((file (symbol-file symbol 'defun))
           (definition (symbol-function symbol)))
       (unless (and file (string-prefix-p root (file-truename file))
@@ -53,6 +58,132 @@
   (or (getenv "EMACS_TUI_BENCH_FILTER_PREFIX") "")
   "Initial text in filter workloads, outside measured native edits.")
 
+
+(defvar emacs-tui-bench--source nil)
+(defvar emacs-tui-bench--window nil)
+(defvar emacs-tui-bench--parent nil)
+(defvar emacs-tui-bench--child nil)
+(defvar emacs-tui-bench--anchor nil)
+(defvar emacs-tui-bench--text nil)
+(defvar emacs-tui-bench--table-ms 0.0)
+(defvar emacs-tui-bench--table-calls 0)
+(defvar emacs-tui-bench--last-position nil)
+
+(defun emacs-tui-bench--next ()
+  "Navigate the floating view without leaving its source window."
+  (interactive)
+  (emacs-tui-next-item emacs-tui-bench--session))
+
+(defun emacs-tui-bench--move ()
+  "Move the floating view clockwise without leaving its source window."
+  (interactive)
+  (emacs-tui-reposition-popup emacs-tui-bench--session))
+
+(defun emacs-tui-bench--table (string predicate action)
+  "Complete STRING against the fixture table with PREDICATE and ACTION.
+Measure the actual synchronous table callback, including matching its data."
+  (let ((start (current-time)))
+    (unwind-protect
+        (if (eq action 'metadata)
+            '(metadata (display-sort-function . identity))
+          (complete-with-action action emacs-tui-bench--rows string predicate))
+      (when emacs-tui-bench--start
+        (cl-incf emacs-tui-bench--table-ms (emacs-tui-bench--elapsed start))
+        (cl-incf emacs-tui-bench--table-calls)))))
+
+(defun emacs-tui-bench--capf ()
+  "Return a real native completion source for the current fixture field."
+  (list emacs-tui-bench--anchor (point) #'emacs-tui-bench--table))
+
+(defun emacs-tui-bench--open-popup (kind size)
+  "Prepare native popup workload KIND with SIZE rows outside timing."
+  (unless (and (not (display-graphic-p)) (emacs-tui-popup-supported-p))
+    (error "Native TTY popup benchmark unavailable; no window fallback measured"))
+  (switch-to-buffer (get-buffer-create "*Popup benchmark source*"))
+  (fundamental-mode)
+  (erase-buffer)
+  (insert (make-string 35 ?\n))
+  (goto-char (point-min)) (forward-line 17)
+  (insert (make-string 54 ?\s))
+  (setq emacs-tui-bench--anchor (point))
+  (insert "row ")
+  (setq emacs-tui-bench--source (current-buffer)
+        emacs-tui-bench--window (selected-window)
+        emacs-tui-bench--parent (selected-frame)
+        emacs-tui-bench--text (buffer-string)
+        emacs-tui-bench--rows
+        (cl-loop for i below size collect
+                 (format "row %s%05d POPUP-BENCH-PAINT 日本語 é"
+                         (if (zerop (% i 10)) "x" "y") i)))
+  (buffer-disable-undo)
+  (use-local-map (make-sparse-keymap))
+  (local-set-key (kbd "M-n") #'emacs-tui-bench--next)
+  (local-set-key (kbd "C-c C-p") #'emacs-tui-bench--move)
+  (if (equal kind "filter-completion")
+      (progn
+        (setq-local completion-at-point-functions '(emacs-tui-bench--capf))
+        (setq-local completion-styles '(basic))
+        (setq-local completion-category-overrides nil)
+        (setq-local completion-category-defaults nil)
+        (setq-local emacs-tui-completion-limit 200)
+        (setq-local emacs-tui-completion-position 'north)
+        (emacs-tui-completion-mode 1)
+        (completion-at-point)
+        (setq emacs-tui-bench--session (emacs-tui-completion--session)))
+    (setq emacs-tui-bench--session
+          (emacs-tui-popup
+           :view (emacs-tui-view :id 'rows
+                                 :items (cl-loop for row in emacs-tui-bench--rows
+                                                 for i from 0 collect (list :id i :label row)))
+           :begin emacs-tui-bench--anchor :end (point)
+           :position 'north :width 48 :height 8)))
+  (setq emacs-tui-bench--child (emacs-tui--workspace-frame emacs-tui-bench--session)
+        emacs-tui-bench--last-position (frame-position emacs-tui-bench--child)))
+
+(defun emacs-tui-bench--check-popup ()
+  "Validate actual native state after timing and before acknowledging output."
+  (cl-assert (eq (selected-frame) emacs-tui-bench--parent))
+  (cl-assert (eq (selected-window) emacs-tui-bench--window))
+  (cl-assert (eq (current-buffer) emacs-tui-bench--source))
+  (cl-assert (eq (window-buffer emacs-tui-bench--window) emacs-tui-bench--source))
+  (cl-assert (= 1 (length (window-list emacs-tui-bench--parent 'no-minibuffer))))
+  (cl-assert (emacs-tui-live-p emacs-tui-bench--session))
+  (cl-assert (eq emacs-tui-bench--child (emacs-tui--workspace-frame emacs-tui-bench--session)))
+  (cl-assert (eq (frame-parent emacs-tui-bench--child) emacs-tui-bench--parent))
+  (let* ((kind (alist-get 'kind emacs-tui-bench--case))
+         (size (alist-get 'size emacs-tui-bench--case))
+         (filtering (equal kind "filter-completion"))
+         (filtered (and filtering (zerop (% emacs-tui-bench--sequence 2))))
+         (view (emacs-tui--resolve-view emacs-tui-bench--session
+                                        (if filtering 'candidates 'rows)))
+         (visible (length (emacs-tui--view-visible-items view))))
+    (if filtering
+        (progn
+          (cl-assert (eq emacs-tui-bench--session (emacs-tui-completion--session)))
+          (cl-assert (> emacs-tui-bench--table-calls 0))
+          (cl-assert (= visible (min 200 (if filtered (/ (+ size 9) 10) size))))
+          (cl-assert (= (point) (+ emacs-tui-bench--anchor (if filtered 5 4))))
+          (cl-assert (equal (buffer-substring-no-properties emacs-tui-bench--anchor (point))
+                            (if filtered "row x" "row ")))
+          (cl-assert (equal emacs-tui-bench--text
+                            (concat (buffer-substring-no-properties (point-min)
+                                                                    (+ emacs-tui-bench--anchor 4))
+                                    (buffer-substring-no-properties (point) (point-max))))))
+      (cl-assert (equal emacs-tui-bench--text (buffer-string)))
+      (cl-assert (= (point) (+ emacs-tui-bench--anchor 4)))
+      (cl-assert (= visible size))
+      (if (equal kind "navigate-popup")
+          (cl-assert (= (plist-get (emacs-tui-current-item emacs-tui-bench--session) :id)
+                        (mod (1+ emacs-tui-bench--sequence) size)))
+        (cl-assert (eq (emacs-tui--popup-position
+                        (emacs-tui--workspace-popup emacs-tui-bench--session))
+                       (nth (mod (1+ emacs-tui-bench--sequence) 8)
+                            emacs-tui-layout-popup-positions)))
+        (cl-assert (not (equal emacs-tui-bench--last-position
+                               (frame-position emacs-tui-bench--child))))
+        (setq emacs-tui-bench--last-position (frame-position emacs-tui-bench--child))))
+    (push `(visible_rows . ,visible) emacs-tui-bench--sample)))
+
 (defun emacs-tui-bench--marker (kind)
   "Emit a KIND acknowledgement after display output, tagged with sample index."
   (send-string-to-terminal
@@ -71,16 +202,18 @@
 
 (defun emacs-tui-bench--ack ()
   "Save the current sample and acknowledge completed terminal output."
-  (let* ((view (emacs-tui--resolve-view emacs-tui-bench--session 'rows))
-         (kind (alist-get 'kind emacs-tui-bench--case))
-         (size (alist-get 'size emacs-tui-bench--case))
-         (visible (length (emacs-tui--view-visible-items view))))
-    (if (string-prefix-p "navigate-" kind)
-        (cl-assert (= (plist-get (emacs-tui-current-item emacs-tui-bench--session) :id)
-                      (mod (1+ emacs-tui-bench--sequence) size)))
-      (cl-assert (= visible (if (zerop (% emacs-tui-bench--sequence 2))
-                               (length emacs-tui-bench--matches) size))))
-    (push `(visible_rows . ,visible) emacs-tui-bench--sample))
+  (if emacs-tui-bench--popup-p
+      (emacs-tui-bench--check-popup)
+    (let* ((view (emacs-tui--resolve-view emacs-tui-bench--session 'rows))
+           (kind (alist-get 'kind emacs-tui-bench--case))
+           (size (alist-get 'size emacs-tui-bench--case))
+           (visible (length (emacs-tui--view-visible-items view))))
+      (if (string-prefix-p "navigate-" kind)
+          (cl-assert (= (plist-get (emacs-tui-current-item emacs-tui-bench--session) :id)
+                        (mod (1+ emacs-tui-bench--sequence) size)))
+        (cl-assert (= visible (if (zerop (% emacs-tui-bench--sequence 2))
+                                  (length emacs-tui-bench--matches) size))))
+      (push `(visible_rows . ,visible) emacs-tui-bench--sample)))
   (push emacs-tui-bench--sample emacs-tui-bench--records)
   (emacs-tui-bench--marker "sample")
   (cl-incf emacs-tui-bench--sequence)
@@ -123,7 +256,7 @@ The deliberate timer delay is recorded separately from publishing/redisplay."
       `((emacs . ,emacs-version)
         (system_configuration . ,system-configuration)
         (features . ,system-configuration-features)
-        (backend . "windows")
+        (backend . ,(if emacs-tui-bench--popup-p "native-tty-popup" "windows"))
         (terminal . ,(tty-type))
         (frame_columns . ,(frame-width)) (frame_rows . ,(frame-height))
         (gc_cons_threshold . ,gc-cons-threshold)
@@ -139,8 +272,13 @@ The deliberate timer delay is recorded separately from publishing/redisplay."
   (condition-case err
       (progn
         (setq emacs-tui-bench--advancing t emacs-tui-bench--start nil)
+        (when emacs-tui-completion-mode (emacs-tui-completion-mode -1))
         (when emacs-tui-bench--session
-          (emacs-tui-close emacs-tui-bench--session))
+          (emacs-tui-close emacs-tui-bench--session)
+          (when emacs-tui-bench--popup-p
+            (cl-assert (not (frame-live-p emacs-tui-bench--child)))
+            (cl-assert (not emacs-tui-completion--context))
+            (cl-assert (null emacs-tui--sessions))))
         (cl-incf emacs-tui-bench--index)
         (setq emacs-tui-bench--case (pop emacs-tui-bench--cases)
               emacs-tui-bench--sequence 0)
@@ -153,42 +291,46 @@ The deliberate timer delay is recorded separately from publishing/redisplay."
                  (filtering (string-prefix-p "filter-" kind))
                  (table (string-suffix-p "table" kind))
                  (map (make-sparse-keymap)))
-            (define-key map (kbd "C-c C-b") #'emacs-tui-bench--advance)
-            (setq emacs-tui-bench--rows
-                  (cl-loop for i below size collect
-                           (list :id i :label (format "%s row %05d 日本語 é"
-                                                      (if (zerop (% i 10)) "x" "item") i)
-                                 :bytes (* i 17)))
-                  emacs-tui-bench--matches
-                  (cl-remove-if-not (lambda (item) (zerop (% (plist-get item :id) 10)))
-                                    emacs-tui-bench--rows))
-            (let* ((view (emacs-tui-view
-                          :id 'rows :items (unless provider emacs-tui-bench--rows)
-                          :columns (when table
-                                     (list (emacs-tui-column :id 'name :title "Name"
-                                                             :width 35 :value :label)
-                                           (emacs-tui-column :id 'bytes :title "Bytes"
-                                                             :width 12 :value :bytes :align 'right)))))
-                   (views (if filtering
-                              (list (emacs-tui-input
-                                     :id 'query
-                                     :value emacs-tui-bench--filter-prefix
-                                     :on-change (lambda (session _id value)
-                                                  (emacs-tui-set-query session 'rows value))) view)
-                            (list view))))
-              (setq emacs-tui-bench--session
-                    (if provider
-                        (emacs-tui-open :views views :backend 'windows :keymap map
-                                        :provider #'emacs-tui-bench--provider :debounce 0.01)
-                      (emacs-tui-mount :views views :backend 'windows :keymap map))))
-            (when filtering
-              (emacs-tui-set-query emacs-tui-bench--session 'rows emacs-tui-bench--filter-prefix)
-              (cl-assert (= size (length (emacs-tui--view-visible-items
-                                         (emacs-tui--resolve-view emacs-tui-bench--session 'rows)))))
-              ;; Type after the initial terms, as an actual user would.
-              (goto-char (point-max)))
+            (if emacs-tui-bench--popup-p
+                (emacs-tui-bench--open-popup kind size)
+              (define-key map (kbd "C-c C-b") #'emacs-tui-bench--advance)
+              (setq emacs-tui-bench--rows
+                    (cl-loop for i below size collect
+                             (list :id i :label (format "%s row %05d 日本語 é"
+                                                        (if (zerop (% i 10)) "x" "item") i)
+                                   :bytes (* i 17)))
+                    emacs-tui-bench--matches
+                    (cl-remove-if-not (lambda (item) (zerop (% (plist-get item :id) 10)))
+                                      emacs-tui-bench--rows))
+              (let* ((view (emacs-tui-view
+                            :id 'rows :items (unless provider emacs-tui-bench--rows)
+                            :columns (when table
+                                       (list (emacs-tui-column :id 'name :title "Name"
+                                                               :width 35 :value :label)
+                                             (emacs-tui-column :id 'bytes :title "Bytes"
+                                                               :width 12 :value :bytes :align 'right)))))
+                     (views (if filtering
+                                (list (emacs-tui-input
+                                       :id 'query
+                                       :value emacs-tui-bench--filter-prefix
+                                       :on-change (lambda (session _id value)
+                                                    (emacs-tui-set-query session 'rows value))) view)
+                              (list view))))
+                (setq emacs-tui-bench--session
+                      (if provider
+                          (emacs-tui-open :views views :backend 'windows :keymap map
+                                          :provider #'emacs-tui-bench--provider :debounce 0.01)
+                        (emacs-tui-mount :views views :backend 'windows :keymap map))))
+              (when filtering
+                (emacs-tui-set-query emacs-tui-bench--session 'rows emacs-tui-bench--filter-prefix)
+                (cl-assert (= size (length (emacs-tui--view-visible-items
+                                            (emacs-tui--resolve-view emacs-tui-bench--session 'rows)))))
+                ;; Type after the initial terms, as an actual user would.
+                (goto-char (point-max))))
             ;; Start each workload with ordinary GC settings but no old fixture garbage.
             (garbage-collect)
+            ;; Force fresh paint outside timing, even for identical case data.
+            (when emacs-tui-bench--popup-p (redraw-display))
             (redisplay t)
             (unless provider (emacs-tui-bench--marker "ready")))))
     ((error quit) (emacs-tui-bench--fail err))))
@@ -197,9 +339,11 @@ The deliberate timer delay is recorded separately from publishing/redisplay."
   "Begin a measured native keyboard command."
   (setq emacs-tui-bench--advancing nil)
   (when (memq this-command '(emacs-tui-next-item emacs-tui-previous-item
-                            self-insert-command backward-delete-char-untabify
-                            delete-backward-char))
-    (setq emacs-tui-bench--counts (memory-use-counts)
+                                                 self-insert-command backward-delete-char-untabify
+                                                 delete-backward-char emacs-tui-bench--next
+                                                 emacs-tui-bench--move))
+    (setq emacs-tui-bench--table-ms 0.0 emacs-tui-bench--table-calls 0
+          emacs-tui-bench--counts (memory-use-counts)
           emacs-tui-bench--gc (cons gcs-done gc-elapsed)
           emacs-tui-bench--start (current-time))))
 
@@ -207,7 +351,9 @@ The deliberate timer delay is recorded separately from publishing/redisplay."
   "Force redisplay and measure the completed native command."
   (when (and emacs-tui-bench--start (not emacs-tui-bench--advancing))
     (condition-case err
-        (let* ((_ (redisplay t))
+        (let* ((redisplay-start (current-time))
+               (_ (redisplay t))
+               (redisplay-ms (emacs-tui-bench--elapsed redisplay-start))
                (elapsed (emacs-tui-bench--elapsed emacs-tui-bench--start))
                (counts (memory-use-counts)))
           (setq emacs-tui-bench--sample
@@ -219,6 +365,13 @@ The deliberate timer delay is recorded separately from publishing/redisplay."
                   (string_chars . ,(- (nth 4 counts) (nth 4 emacs-tui-bench--counts)))
                   (gc_count . ,(- gcs-done (car emacs-tui-bench--gc)))
                   (gc_ms . ,(* 1000.0 (- gc-elapsed (cdr emacs-tui-bench--gc))))))
+          (when emacs-tui-bench--popup-p
+            (setq emacs-tui-bench--sample
+                  (append emacs-tui-bench--sample
+                          `((table_callback_ms . ,emacs-tui-bench--table-ms)
+                            (table_callback_calls . ,emacs-tui-bench--table-calls)
+                            (command_without_table_ms . ,(- elapsed emacs-tui-bench--table-ms))
+                            (final_redisplay_ms . ,redisplay-ms)))))
           (unless (equal (alist-get 'kind emacs-tui-bench--case) "provider-list")
             (emacs-tui-bench--ack)
             (setq emacs-tui-bench--start nil)))

@@ -30,7 +30,10 @@ import time
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 MARKER = re.compile(rb"\x1b\]777;TUIBENCH;(ready|sample|done);(\d+);(\d+)\x07")
-KINDS = ("navigate-list", "navigate-table", "filter-list", "filter-table", "provider-list")
+WINDOW_KINDS = ("navigate-list", "navigate-table", "filter-list", "filter-table", "provider-list")
+POPUP_KINDS = ("navigate-popup", "move-popup", "filter-completion")
+KINDS = WINDOW_KINDS + POPUP_KINDS
+PAINT = b"POPUP-BENCH-PAINT"
 LAUNCHER = """import fcntl, os, sys, termios
 fcntl.ioctl(0, termios.TIOCSCTTY, 0)
 os.execvp(sys.argv[1], sys.argv[1:])
@@ -181,7 +184,8 @@ def run(args):
         report = directory / "report.json"
         env = dict(os.environ, TERM="xterm-256color", EMACS_TUI_BENCH_REPORT=str(report),
                    EMACS_TUI_BENCH_CASES=json.dumps(cases), EMACS_TUI_BENCH_LOAD_MODE=args.load_mode,
-                   EMACS_TUI_BENCH_FILTER_PREFIX=args.filter_prefix)
+                   EMACS_TUI_BENCH_FILTER_PREFIX=args.filter_prefix,
+                   EMACS_TUI_BENCH_PRESENTATION=args.presentation)
         env.pop("EMACSLOADPATH", None)
         executable = os.environ.get("EMACS", "emacs")
         library_root, compiled = prepare_libraries(directory, args.load_mode, executable, env)
@@ -207,6 +211,7 @@ def run(args):
             os.close(slave)
         pending = bytearray()
         roundtrips = []
+        painted = False
         group_retired = False
 
         def retire_group():
@@ -220,11 +225,13 @@ def run(args):
                 group_retired = True
 
         def receive(kind, case, sequence):
+            nonlocal painted
             deadline = time.monotonic() + 30
             while time.monotonic() < deadline:
                 match = MARKER.search(pending)
                 if match:
                     actual = (match[1].decode(), int(match[2]), int(match[3]))
+                    painted = painted or PAINT in pending[:match.start()]
                     del pending[:match.end()]
                     if actual != (kind, case, sequence):
                         raise RuntimeError(f"unexpected acknowledgement {actual}")
@@ -248,13 +255,14 @@ def run(args):
         try:
             print(f"benchmark: subprocess started pid={process.pid}", flush=True)
             for index, case in enumerate(cases):
+                painted = False
                 receive("ready", index, 0)
+                if args.presentation == "popup" and not painted:
+                    raise RuntimeError("native popup candidate absent from terminal output")
                 print(f'benchmark: ready {index + 1}/{len(cases)} {case["kind"]} {case["size"]} rows',
                       flush=True)
                 for sequence in range(args.warmup + args.samples):
-                    navigation = case["kind"].startswith("navigate-")
-                    key = b"n" if navigation else (
-                        b"x" if sequence % 2 == 0 else b"\x7f")
+                    key = sample_key(case["kind"], sequence)
                     start = time.perf_counter_ns()
                     if os.write(master, key) != len(key):
                         raise RuntimeError("partial PTY key write")
@@ -289,7 +297,7 @@ def run(args):
                     subset = [r for r in measured if r["command"] == name]
                     by_command.append({"command": name, "samples": len(subset), "metrics": metrics(subset)})
                 summaries.append(dict(case, metrics=metrics(measured), by_command=by_command))
-            result.update(schema=1, label=args.label, source=identity, cases=cases,
+            result.update(schema=1, label=args.label, presentation=args.presentation, source=identity, cases=cases,
                           load_mode=args.load_mode, bytecode_sha256=compiled,
                           wall_timeout_s=args.timeout, pty_launcher="fresh-python-session",
                           command=command, samples=args.samples, warmup=args.warmup,
@@ -298,7 +306,10 @@ def run(args):
                                 "processor": cpu_model(), "logical_cpus": os.cpu_count(),
                                 "python": platform.python_version()},
                           pty={"columns": 120, "rows": 40},
-                          provider_fixture={"debounce_ms": 10, "timer_delay_ms": 20},
+                          provider_fixture=({"debounce_ms": 10, "timer_delay_ms": 20}
+                                            if args.presentation == "windows" else
+                                            {"type": "synchronous-completion-table",
+                                             "artificial_delay_ms": 0, "display_limit": 200}),
                           filter_fixture={"prefix": args.filter_prefix},
                           quantile_method="nearest-rank", summaries=summaries, records=records)
             args.output.parent.mkdir(parents=True, exist_ok=True)
@@ -315,12 +326,25 @@ def run(args):
                 os.close(master)
 
 
+def sample_key(kind, sequence):
+    """Drive ordinary bindings; popup navigation retains source-buffer focus."""
+    if kind == "navigate-popup":
+        return b"\x1bn"  # M-n in the host buffer.
+    if kind == "move-popup":
+        return b"\x03\x10"  # C-c C-p.
+    if kind.startswith("navigate-"):
+        return b"n"
+    return b"x" if sequence % 2 == 0 else b"\x7f"
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--sizes", type=int, nargs="+", default=[100, 1000, 10000])
     parser.add_argument("--samples", type=int, default=100)
     parser.add_argument("--warmup", type=int, default=10)
-    parser.add_argument("--kinds", nargs="+", choices=KINDS, default=list(KINDS))
+    parser.add_argument("--kinds", nargs="+", choices=KINDS)
+    parser.add_argument("--presentation", choices=("windows", "popup"), default="windows",
+                        help="popup requires actual native TTY child frames; no fallback")
     parser.add_argument("--output", type=pathlib.Path, required=True)
     parser.add_argument("--label", default="")
     parser.add_argument("--load-mode", choices=("source", "bytecode"), default="source")
@@ -329,6 +353,13 @@ def main():
     parser.add_argument("--timeout", type=float, default=1800,
                         help="whole-run seconds, including startup and metadata (default: 1800)")
     args = parser.parse_args()
+    allowed = POPUP_KINDS if args.presentation == "popup" else WINDOW_KINDS
+    if args.kinds is None:
+        args.kinds = list(allowed)
+    if any(kind not in allowed for kind in args.kinds):
+        parser.error("kinds must match the requested presentation")
+    if args.presentation == "popup" and args.filter_prefix:
+        parser.error("popup completion uses its own fixed native completion prefix")
     if min(args.sizes) < 10 or args.samples < 1 or args.warmup < 0:
         parser.error("sizes must be >=10, samples >=1 and warmup >=0")
     if not math.isfinite(args.timeout) or args.timeout <= 0:
