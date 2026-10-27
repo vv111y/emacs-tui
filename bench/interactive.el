@@ -85,7 +85,9 @@ Measure the actual synchronous table callback, including matching its data."
   (let ((start (current-time)))
     (unwind-protect
         (if (eq action 'metadata)
-            '(metadata (display-sort-function . identity))
+            (if (equal (getenv "EMACS_TUI_BENCH_COMPLETION_SORT") "none")
+                '(metadata)
+              '(metadata (display-sort-function . identity)))
           (complete-with-action action emacs-tui-bench--rows string predicate))
       (when emacs-tui-bench--start
         (cl-incf emacs-tui-bench--table-ms (emacs-tui-bench--elapsed start))
@@ -161,6 +163,13 @@ Measure the actual synchronous table callback, including matching its data."
         (progn
           (cl-assert (eq emacs-tui-bench--session (emacs-tui-completion--session)))
           (cl-assert (> emacs-tui-bench--table-calls 0))
+          (cl-assert
+           (eq (completion-metadata-get
+                (plist-get (emacs-tui--completion-projection
+                            emacs-tui-completion--context) :metadata)
+                'display-sort-function)
+               (unless (equal (getenv "EMACS_TUI_BENCH_COMPLETION_SORT") "none")
+                 #'identity)))
           (cl-assert (= visible (min 200 (if filtered (/ (+ size 9) 10) size))))
           ;; Counts alone cannot detect stale contents when both sets hit the cap.
           (cl-assert

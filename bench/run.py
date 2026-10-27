@@ -185,7 +185,8 @@ def run(args):
         env = dict(os.environ, TERM="xterm-256color", EMACS_TUI_BENCH_REPORT=str(report),
                    EMACS_TUI_BENCH_CASES=json.dumps(cases), EMACS_TUI_BENCH_LOAD_MODE=args.load_mode,
                    EMACS_TUI_BENCH_FILTER_PREFIX=args.filter_prefix,
-                   EMACS_TUI_BENCH_PRESENTATION=args.presentation)
+                   EMACS_TUI_BENCH_PRESENTATION=args.presentation,
+                   EMACS_TUI_BENCH_COMPLETION_SORT=args.completion_sort)
         env.pop("EMACSLOADPATH", None)
         executable = os.environ.get("EMACS", "emacs")
         library_root, compiled = prepare_libraries(directory, args.load_mode, executable, env)
@@ -310,7 +311,8 @@ def run(args):
                                             if args.presentation == "windows" else
                                             {"type": "synchronous-completion-table",
                                              "artificial_delay_ms": 0, "display_limit": 200,
-                                             "applies_to": "filter-completion", "style": "basic"}),
+                                             "applies_to": "filter-completion", "style": "basic",
+                                             "display_sort": args.completion_sort}),
                           filter_fixture={"prefix": "row " if args.presentation == "popup"
                                           else args.filter_prefix},
                           quantile_method="nearest-rank", summaries=summaries, records=records)
@@ -347,6 +349,8 @@ def main():
     parser.add_argument("--kinds", nargs="+", choices=KINDS)
     parser.add_argument("--presentation", choices=("windows", "popup"), default="windows",
                         help="popup requires actual native TTY child frames; no fallback")
+    parser.add_argument("--completion-sort", choices=("identity", "none"), default="identity",
+                        help="popup completion metadata sorter (default: identity)")
     parser.add_argument("--output", type=pathlib.Path, required=True)
     parser.add_argument("--label", default="")
     parser.add_argument("--load-mode", choices=("source", "bytecode"), default="source")
@@ -360,6 +364,8 @@ def main():
         args.kinds = list(allowed)
     if any(kind not in allowed for kind in args.kinds):
         parser.error("kinds must match the requested presentation")
+    if args.completion_sort != "identity" and "filter-completion" not in args.kinds:
+        parser.error("completion-sort requires a popup completion workload")
     if args.presentation == "popup" and args.filter_prefix:
         parser.error("popup completion uses its own fixed native completion prefix")
     if min(args.sizes) < 10 or args.samples < 1 or args.warmup < 0:
