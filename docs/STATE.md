@@ -1,5 +1,19 @@
 # Project state
 
+## Full native profile collection — preparation, 2026-10-27
+
+A separate benchmark workflow prepares reproducible Linux/macOS Emacs31.1
+profiles for 100/1,000/10,000 rows, 200 measured commands and 10 warmups. Source
+and freshly compiled libraries run sequentially on each runner; raw JSON plus
+provenance is retained for 90 days. This supplies >=100 samples per alternating
+completion command. The workflow is manually runnable and triggered by changes
+to benchmark code, rather than adding full profiling cost to every runtime PR.
+There is no timing threshold. Shared-host scheduling is uncontrolled; do not
+infer universal platform ratios or before/after improvements from separate
+machines. Native protocol smoke and ordinary package/runtime CI remain gates.
+Next: inspect actual full-run artifacts, retain selected raw profiles and
+publish a qualified baseline; optimize only a demonstrated bottleneck.
+
 ## Native popup measurement fixture — in progress, 2026-10-27
 
 The next focused change adds `--presentation popup` to the real PTY benchmark:
