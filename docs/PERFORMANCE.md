@@ -9,6 +9,12 @@ native insertion from deletion and measures skipping predicates for empty terms.
 Both retain every sample. The [fresh-bytecode profile](../bench/results/2026-10-24-bytecode/README.md)
 adds all five workloads on one compiled-library configuration; native-code
 performance remains unmeasured.
+These workloads explicitly use ordinary windows. Native floating-popup and
+completion-at-point latency require a separate fixture that verifies source
+focus, actual popup paint and reuse while separating provider computation from
+redisplay. Retain raw samples and source/bytecode provenance before reporting
+those numbers; the beta2 native terminal checks establish behavior, not a new
+latency baseline.
 The [multi-term pair](../bench/results/2026-10-24-multiterm/README.md)
 measures list/table searches after removing per-term projection work.
 

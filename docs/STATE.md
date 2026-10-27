@@ -1,6 +1,57 @@
 # Project state
 
-## Current continuation — second community-testing beta
+## Verified release and handoff — 2026-10-27
+
+Beta2 is available from the fixed `release/0.1.0-beta2` branch at
+`c120d9f09612f29674fc0c08f90c39ecc61967da`, the merge of
+[PR #49](https://github.com/vv111y/emacs-tui/pull/49). Its tree is the exact
+reviewed `e85b494cfc89cd9a69bebeca0ac56cb427ffd7c6`. The branch SHA, source
+version header and pinned README recipe were read back through GitHub after
+creation; independent review repeated the integrity check. Never move it.
+Beta1 remains unchanged at `fd976f725c2bbb111d9fe6700bcabccfab1f3774`.
+
+Final release run
+[40452784379](https://github.com/vv111y/emacs-tui/actions/runs/40452784379)
+passed all eight jobs. Seven runtime jobs passed 357 ERT, strict compilation/
+checkdoc, eleven terminal scenarios, reflow/client/hangup checks and benchmark
+protocol smokes. Linux/macOS 31.1 each explicitly verified popup terminal paint,
+eight positions, native CAPF filtering/selection/acceptance/undo, file boundaries/
+exit callbacks and abrupt real-client loss with `floating-popup=painted/disposed`
+plus surviving terminal input. Package CI verified canonical `0.1.0beta2`, built
+the identical reviewed tree and clean-installed its archive on 31.1 and 28.1.
+Local 29.3 also passed 357 tests and final recipe installation; its Unix socket
+restriction remains a local limitation, covered by hosted client tests.
+
+Recent integrated work: [PR #47](https://github.com/vv111y/emacs-tui/pull/47)
+adds the optional buffer-local native completion frontend; [PR #48](https://github.com/vv111y/emacs-tui/pull/48)
+proves painted floating-popup disposal after abrupt client loss; PR #49 adds
+release metadata/instructions and hardens completion ownership across display,
+provider and editing callbacks. `make popup-demo` shows automatic literal-word
+completion; `make completion-demo` uses Emacs's actual Lisp provider. The
+matching beta2 checkout includes the distinct gallery examples; straight.el
+installs the runtime only. Start a fresh Emacs when changing installed versions.
+
+This remains an experimental beta. Native floating popups require graphical or
+advertised TTY child frames; ordinary workspace fallback remains available.
+GUI/font/physical-terminal/multiplexer use and broader application feedback are
+incomplete. The optional completion table is synchronous, with a display-only
+candidate cap. Existing benchmark numbers cover ordinary windows, so native
+popup/CAPF latency needs its own fixture and provider/redisplay clocks.
+
+MELPA policy/name availability and latest package-lint were checked on
+2026-10-27: the public-maintenance month, substantive human review and maintainer
+acceptance remain external gates. Earliest known time eligibility is roughly
+2026-11-23; elapsed time alone is not maturity. The package-name advisory remains
+disclosed. GitHub tags/prereleases are unpublished because authenticated release
+access is unavailable; fixed-branch straight installation is the delivery path.
+
+Next: collect real application/API feedback, add a dedicated native-popup
+latency fixture with separate provider work and raw source/bytecode provenance,
+broaden actual GUI/emulator/multiplexer validation, then optimize measured
+large-result rebuilding. Do not infer stable/MELPA status or native latency
+from the release, hosted PTYs or protocol smoke checks.
+
+## Beta2 preparation — historical validation record
 
 PR #48 merged at `63faea9182421f1f68ee659aefd8c83a67845cc5` after independent
 exact-head coding-agent review and all eight jobs in
