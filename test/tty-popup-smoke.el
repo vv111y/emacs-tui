@@ -135,12 +135,10 @@
         (progn
           (emacs-tui-next-item app 30)
           (emacs-tui-toggle-mark app)
-          ;; Like interactive scroll-left, retain a minimum while point is at
-          ;; column zero; redisplay may undo a bare set-window-hscroll.
-          (with-selected-window window (scroll-left 3 t))
-          (redisplay t)
-          ;; Settle the changed native viewport before testing pure movement.
+          ;; Settle layout first: a full buffer reinstallation can reset the
+          ;; native minimum horizontal scroll.  Then use interactive semantics.
           (emacs-tui-refresh app)
+          (with-selected-window window (scroll-left 3 t))
           (redisplay t)
           (cl-assert (equal (emacs-tui--workspace-geometry app) (emacs-tui--geometry app)))
           (let ((start (window-start window)) (point (window-point window))
