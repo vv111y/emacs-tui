@@ -1,0 +1,39 @@
+name: Graphical smoke
+on:
+  pull_request:
+    paths:
+      - '*.el'
+      - 'examples/**'
+      - 'test/**'
+      - '.github/workflows/gui.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: gui-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - name: Install graphical runtime
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes emacs-gtk xvfb xauth
+          emacs --version
+      - name: Compile graphical fixture strictly
+        run: emacs -Q --batch -L . -L examples --eval '(setq byte-compile-error-on-warn t)' -f batch-byte-compile test/gui-smoke.el
+      - name: Exercise native graphical frames
+        env:
+          EMACS_TUI_GUI_REPORT: gui-result.txt
+        run: |
+          xvfb-run -a -s '-screen 0 1600x1200x24' timeout 60s emacs -Q -L . -L examples -l test/gui-smoke.el
+          cat gui-result.txt
+          grep -q '^PASS ' gui-result.txt
+      - name: Report on failure
+        if: failure()
+        run: cat gui-result.txt || true

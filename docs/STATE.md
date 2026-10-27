@@ -1,5 +1,90 @@
 # Project state
 
+## Graphical child-frame validation — 2026-10-27
+
+Native trace from job 122279615142 (run 40529824267) identifies the unexpected
+close: handle-switch-frame selected the inspector child, then popup post-command
+cleanup correctly noticed that selection had left the source. The source and
+layout were not invalidated by a geometry error. A narrow graphical-only event
+filter now routes an exact owned, active popup target to its source frame while
+the source window is still selected. Foreign, malformed, terminal, stale and
+invalidated events keep normal routing; explicit source departure still closes
+the popup. The filter is installed only while graphical popups exist and removed
+independently of terminal routing and unrelated advice.
+
+The candidate runtime fix passes all 383 local ERT plus strict compilation and
+checkdoc on extracted Emacs 29.3. Four new event/ownership/lifetime tests cover
+the routing boundary. The graphical fixture retains every interaction, resize,
+source-preservation assertion and now also checks advice disposal. Independent
+review and fresh hosted GUI, terminal/multiplexer and compatibility checks are
+still required before claiming the native focus bug fixed or integrating #67.
+
+Initial PR #67 head da6cddc3ac01d09dc4b21719a2d165917fc4ffa8 passed
+all eight compatibility jobs (40518540981) and both tmux jobs (40518541258).
+Graphical job 122238734562 in run 40518541259 failed strict compilation on
+Emacs 29.3: the demo require used load-file-name/buffer-file-name, both nil
+in that compiler context. The fixture now uses a normal require and both
+workflow commands explicitly add examples to load-path. Independent review
+found no substantive issue in that correction. Graphical runtime behavior is
+still unverified; fresh exact-head checks are required before integration.
+
+The corrected fixture compiled in run 40526621073 but failed its current-buffer
+assertion during native execution. Timer callbacks do not establish the selected
+window's buffer as current. Each step now explicitly uses that window's buffer
+without selecting a window or frame; the source/focus assertions remain intact.
+Failure reports include phase and selected/current-buffer diagnostics. This
+correction still requires independent review and a successful native GUI run.
+
+Head 7a33d485a2a42130c1a293923ee77638f36828d6 passed strict compilation
+and the initial interaction/position phase, then failed because the inspector
+child was gone after shrinking the parent to 90x30 (phase 2). Diagnostics confirm
+the selected parent and source buffer were correct. The failure report now
+includes Emacs messages to identify disposal causes. This is an unresolved
+native GUI resize finding, not a waived failure or an integration-ready PR.
+
+Local validation was restored using an extracted Ubuntu Emacs 29.3 runtime:
+379 ERT, strict package/example and graphical-fixture compilation, checkdoc,
+and the popup PTY fixture pass. The latter exercises only unsupported-popup
+rejection and native glyph bounds on 29.3, not native popup presentation.
+Native compiler trampoline generation is disabled for this extracted runtime;
+it emits a known missing system Lisp-directory warning. Local Xvfb could not
+open its required Unix sockets, so no local graphical execution is claimed.
+The GUI fixture's negative batch probe rejects non-graphical execution with a
+FAIL report and exit 1. Reports explicitly use UTF-8 so non-ASCII diagnostics
+cannot prompt for a coding system and hide the original failure.
+
+The next diagnostic head records the first unexpected inspector-close stack,
+without changing close behavior; finish cleanup removes that advice first.
+Hosted run 40528135285 was still installing its runtime at this checkpoint.
+No runtime fix is claimed: the previous report contained no reflow error, so
+the exact close path must be established before changing popup lifecycle code.
+
+Added a bounded interactive GTK/Xvfb fixture and separate workflow, using the
+runner distribution's graphical Emacs with its actual version logged. It requires
+a graphical display, types into a mounted child-frame input, opens a source-
+anchored inspector, scrolls and acknowledges explicitly, checks all eight popup
+positions stay within parent bounds, resizes the parent twice and checks source
+text/point/undo and disposal. The workflow strictly compiles the fixture and
+requires a PASS report; timeout or failure cannot become a skipped success.
+
+Local source structure/diff checks pass, but no Emacs/X server is available here.
+Independent review and hosted graphical behavior plus existing compatibility and
+tmux checks remain gates. This tests native GUI state/input, not pixel appearance,
+fonts, desktop window managers, macOS GUI or physical displays. No runtime API
+changes or fixed beta ref movement.
+
+PR #66 merged at 35c6339b96e75ac95f41121be2787930d18035ef after independent
+review 5667583093, all eight CI 40510012489 jobs and both Linux/macOS tmux jobs
+in 40510012473 passed. Reviewed head db111629c62205f02ecad02ef191a13868aab27d
+and tested merge 1de59c72bde204e4d48d5dd341de693615a99764 share tree
+891a2a9783d6c39e9b3115a761e094aa7ce4405b. Both tmux logs explicitly verify
+popup/inspector, completion and multiline input behavior. Main remains at 379
+ERT; new checks add native display coverage rather than an ERT count increase.
+
+Next: fix any graphical findings before broadening features; continue beta use
+and display validation. MELPA's month-of-public-maintenance requirement was
+rechecked on October 27; substantive human review and name advisory remain.
+
 ## Isolated tmux validation path — 2026-10-27
 
 Added optional --tmux transport to the interactive smoke driver. Each run owns a
