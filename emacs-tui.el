@@ -1412,10 +1412,10 @@ required; unsupported terminals signal an error without changing the host."
   "Move SESSION's popup to POSITION, or cycle clockwise when omitted.
 Retain source input, candidate selection and marks.  Return the requested
 position symbol.  Near edges native viewport clamping can limit movement.
-Reject calls made during rendering before changing the requested position."
+Reject calls made during reflow before changing the requested position."
   (setq session (emacs-tui--require-session session))
   (when emacs-tui--refreshing
-    (user-error "Cannot move a popup during rendering"))
+    (user-error "Cannot move a popup during reflow"))
   (let ((popup (emacs-tui--workspace-popup session)))
     (unless popup (user-error "This session is not an anchored popup"))
     (setq position

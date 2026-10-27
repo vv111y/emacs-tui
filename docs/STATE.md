@@ -7,14 +7,16 @@ dates, not current blockers; later intermediate edits remain in Git history.
 
 ## Reentrant popup movement correction — 2026-10-27
 
-A callback trying to reposition a popup during rendering previously changed its
+A callback trying to reposition a popup during reflow previously changed its
 requested placement, then raised an error because nested reflow cannot execute.
 The correction rejects before mutation, preserving placement and session life.
 A regression fails on the original code and covers explicit and cycling moves.
 Local Emacs 29.3 passes 420 ERT, strict compilation/checkdoc and diffcheck.
 The original regression fails specifically on changed placement (south-west to
-north), not an unrelated surface error. Independent review and fresh hosted
-native checks remain required before integration.
+north), not an unrelated surface error. PR #83's independent review narrowed
+the documented rejection to reflow: ordinary view updates use a separate
+rendering guard and are outside this correction. Fresh final-head hosted native
+checks remain required before integration.
 
 ## Integrated linked floating Details scrolling — 2026-10-27
 

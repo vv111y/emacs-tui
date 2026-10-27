@@ -181,7 +181,7 @@
   (let* ((popup (emacs-tui--make-popup :position 'south-west))
          (app (emacs-tui--make-workspace :active t :popup popup))
          (emacs-tui--refreshing t))
-    ;; Reflow cannot execute within rendering.  Both explicit and cycling
+    ;; Reflow cannot execute within another reflow.  Both explicit and cycling
     ;; requests must reject without silently changing the later placement.
     (cl-letf (((symbol-function 'emacs-tui--subtree) (lambda (_) t)))
       (dolist (position '(north nil))
