@@ -14,7 +14,9 @@ then returns and explicitly recreates the panels with retained selection. Source
 text, point and undo are checked. This tests existing lifecycle behavior and adds
 no production API. Local Emacs29.3 passes415 ERT, strict compile/checkdoc and
 strict shared/GUI/TTY fixture compilation; positive native hosted checks and
-independent review remain integration gates. The local29.3 runtime cannot prove
+independent review remain integration gates. Coding-agent review5672793089
+covers the unchanged departure test code with no findings; the newly opened
+PR #78 still requires positive hosted results. The local29.3 runtime cannot prove
 native terminal child-frame behavior.
 
 ## Integrated native multi-popup gallery launch — 2026-10-27
