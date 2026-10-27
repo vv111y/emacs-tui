@@ -7,17 +7,28 @@ dates, not current blockers; later intermediate edits remain in Git history.
 
 ## Native sibling-popup departure candidate — 2026-10-27
 
-The shared real-frame journey now leaves the source through both buffer and
-window commands, checks that all three old frames/view buffers/anchor markers
-are released and that popup command routing is removed, edits the destination,
-then returns and explicitly recreates the panels with retained selection. Source
-text, point and undo are checked. This tests existing lifecycle behavior and adds
-no production API. Local Emacs29.3 passes415 ERT, strict compile/checkdoc and
-strict shared/GUI/TTY fixture compilation; positive native hosted checks and
-independent review remain integration gates. Coding-agent review5672793089
-covers the unchanged departure test code with no findings; the newly opened
-PR #78 still requires positive hosted results. The local29.3 runtime cannot prove
-native terminal child-frame behavior.
+PR #78 extends the shared real-frame journey through both buffer and window
+commands. It checks that all three old frames/view buffers/anchor markers are
+released and popup command routing is removed, edits the destination, then
+returns and explicitly recreates the panels with retained selection. Source
+text, point and undo are checked. This adds no production API.
+
+The initial GTK journey failed its final complete window-state comparison.
+Diagnostic run40567170801, job122411438165, at head9ebb209 printed both states:
+only prev-buffers differed, gaining the source buffer itself after the fixture's
+intentional switch-away/return commands. Dimensions, selected buffer, point,
+start and other fields were unchanged. Linux/macOS tmux had passed the preceding
+b0264c3 head in40566268666; those results do not validate the correction.
+
+The correction retains the original complete-state assertion around popup
+operations before navigation, and adds a new complete-state assertion around
+reopening after each return. It does not filter history fields or relax equality.
+Source and resource assertions still cover the deliberate navigation. Local
+Emacs29.3 passes415 ERT, strict compile/checkdoc and strict shared/GUI/TTY fixture
+compilation. Independent review of4f5036c found no structural issue; final
+review and fresh positive hosted results remain integration gates. The local29.3
+runtime cannot prove native terminal child-frame behavior. Do not merge the
+failing diagnostic head or reuse its checks for the correction.
 
 ## Integrated native multi-popup gallery launch — 2026-10-27
 

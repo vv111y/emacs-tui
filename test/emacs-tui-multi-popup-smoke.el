@@ -93,8 +93,11 @@ No explicit close is used before checking the old resources."
               (cl-assert (= position (point)))
               (cl-assert (equal undo buffer-undo-list))
               (when other (delete-window other))
-              (execute-kbd-macro (kbd "C-c 0"))
-              (emacs-tui-multi-popup-smoke--frames parent)
+              (redisplay t)
+              (let ((windows (window-state-get (frame-root-window parent))))
+                (execute-kbd-macro (kbd "C-c 0"))
+                (emacs-tui-multi-popup-smoke--frames parent)
+                (cl-assert (equal windows (window-state-get (frame-root-window parent)))))
               (cl-assert (eq (plist-get (nth index emacs-tui-multi-popup-demo--objects) :id)
                              (plist-get (emacs-tui-current-item
                                          (emacs-tui-multi-popup-demo--session 'objects)) :id)))))
@@ -161,13 +164,16 @@ No explicit close is used before checking the old resources."
               (cl-assert (not (emacs-tui-multi-popup-demo--session 'keys)))
               (cl-assert (emacs-tui-multi-popup-demo--session 'objects))
               (execute-kbd-macro (kbd "C-c 3"))
-              (emacs-tui-multi-popup-smoke--departures source parent)
               (cl-assert (equal windows (window-state-get (frame-root-window parent))) nil
                          "Source window state changed: before=%S after=%S"
                          windows (window-state-get (frame-root-window parent)))
               (cl-assert (equal text (buffer-string)))
               (cl-assert (= position (point)))
               (cl-assert (null buffer-undo-list))
+              ;; Navigation intentionally updates native window buffer history.
+              ;; Keep the original exact-state check above around popup actions;
+              ;; the departure helper checks reopening against its new baseline.
+              (emacs-tui-multi-popup-smoke--departures source parent)
               (execute-kbd-macro "x")
               (undo-boundary)
               (undo-only 1)
