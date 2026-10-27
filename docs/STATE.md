@@ -17,6 +17,11 @@ unsupported presentation, not native positive behavior. Actual Linux/macOS 31.1
 gates add unchanged candidate text over eight moves, resize/public-refresh
 rendering, scrolled/marked row and native window-position preservation, plus
 fitting-failure disposal of captured child/buffer/markers and exact-once cleanup.
+The first native run failed the fixture's nonzero-hscroll precondition before
+moving: Emacs auto-hscroll reset a bare set-window-hscroll with point at column
+zero. Setup now uses normal scroll-left with its persistent minimum, retaining
+the nonzero assertion. This failing behavior check is not waived; fresh native
+CI and exact-head review remain required.
 
 The comparison workflow uses PR-base/candidate checkouts with identical fixture
 bytes on each runner, 100/10,000 rows and 200 measured commands per case in

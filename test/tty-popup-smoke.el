@@ -135,7 +135,9 @@
         (progn
           (emacs-tui-next-item app 30)
           (emacs-tui-toggle-mark app)
-          (set-window-hscroll window 3)
+          ;; Like interactive scroll-left, retain a minimum while point is at
+          ;; column zero; redisplay may undo a bare set-window-hscroll.
+          (with-selected-window window (scroll-left 3 t))
           (redisplay t)
           ;; Settle the changed native viewport before testing pure movement.
           (emacs-tui-refresh app)
