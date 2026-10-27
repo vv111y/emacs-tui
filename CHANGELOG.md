@@ -1,5 +1,29 @@
 # Changelog
 
+## Unreleased — development after beta2
+
+- Floating equipment inspector with source-preserving scrolling, explicit
+  acknowledgements, related-object exploration and bounded Back/Forward history.
+  Try `make inspector-demo` in a matching main checkout. These commands update
+  application state without editing the source document or moving its point.
+- Public `emacs-tui-scroll-view` scrolls a visible read-only text preview without
+  taking source focus; hidden, editable and list views reject this operation.
+- Repositioning an unchanged popup retains rendered rows, marks and reading
+  position. Native movement measurements and reproducible evidence are in
+  [PERFORMANCE.md](docs/PERFORMANCE.md).
+- Completion projection avoids copying undisplayed candidates on the unsorted
+  path; provider/candidate lifetime checks and affixation handling are hardened.
+  Stage profiles distinguish provider, projection, update and redisplay costs.
+- Graphical popup focus events preserve the selected source instead of
+  unexpectedly selecting and closing a read-only popup after preview operations.
+- Native GTK/Xvfb completion and inspector checks complement Linux/macOS TTY
+  and tmux tests. Repeated command-loop disposal checks verify that leaving or
+  replacing a source preserves ordinary navigation and releases owned resources.
+
+This development section is not a new beta release. The fixed beta1/beta2 refs
+remain unchanged; main retains an experimental API. Physical display variants,
+substantive application use and the external MELPA gates remain outstanding.
+
 ## 0.1.0-beta2 — 2026-10-27
 
 - Source-preserving native candidate popups with eight compass positions,
