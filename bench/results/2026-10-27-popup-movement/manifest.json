@@ -1,0 +1,85 @@
+{
+  "run": 40463828773,
+  "head": "05f72bcb823c18ad4227b9e54b93772a70513ba2",
+  "commits": {
+    "baseline": "e76da73b8935c6a199bedceb86f6b12f171b3736",
+    "candidate": "e2c990014e4ce339ead3dcb17c8743138b22d9bb"
+  },
+  "candidate_tree": "69f224fdad859cf8bf12de2f03133358db0fe04c",
+  "artifacts": {
+    "linux": {
+      "id": 12715971059,
+      "sha256": "fb6cbc92c61f0da62af78580755a4e5d8a791ea5e842e8ec3118def2568e31a1"
+    },
+    "macos": {
+      "id": 12715497716,
+      "sha256": "7b65c85641d48e52fe282763229ddead7117a4a02821a79052302d4b6dc71a68"
+    }
+  },
+  "files": {
+    "linux-baseline-bytecode.json.gz": {
+      "sha256": "f2ce9aafeb6beb4ca450a8d2cfdc74a63b85d3b0e9eeaf8006775788803e1b11",
+      "uncompressed_sha256": "dba46c8e16cb4ac15bdc9c2a4d679046558815560de597ca110c98cc07546500",
+      "records": 840,
+      "platform": "linux",
+      "role": "baseline",
+      "load_mode": "bytecode"
+    },
+    "linux-baseline-source.json.gz": {
+      "sha256": "4edf61270deb4b95f2402e28a82f185a02f73b7373e3399e4ab0a84963beb8b0",
+      "uncompressed_sha256": "d65e197b4ba7ddd0c7fbf56abdf8b680da1469e26eb65461d0dc90212d40ec2d",
+      "records": 840,
+      "platform": "linux",
+      "role": "baseline",
+      "load_mode": "source"
+    },
+    "linux-candidate-bytecode.json.gz": {
+      "sha256": "5da9777f407cc4ea3ebfb0e8b0b61f900063e94dc2f132cf5bf5f8512197eece",
+      "uncompressed_sha256": "dabb7a0c254a4e134ed645569da2c2fd62d7aa129e2201ca7d8b61990743c4a5",
+      "records": 840,
+      "platform": "linux",
+      "role": "candidate",
+      "load_mode": "bytecode"
+    },
+    "linux-candidate-source.json.gz": {
+      "sha256": "da9b6f6c03ecb2a875547b6ff4bbfd20e0632c794edc120bd10142375f97e092",
+      "uncompressed_sha256": "9e340385abe07b486b61526fae0887806129baf7b6ba5d8aa71f71b2ffa8084c",
+      "records": 840,
+      "platform": "linux",
+      "role": "candidate",
+      "load_mode": "source"
+    },
+    "macos-baseline-bytecode.json.gz": {
+      "sha256": "7cf1ee0510873cfa1e8718d6c7dbb8f2b2ec9bd2c5000652b09c3b747d918bdf",
+      "uncompressed_sha256": "10c39cd5fedd96aec680e0a9289aeccf4c0a975c05894ec1378e70b502a23540",
+      "records": 840,
+      "platform": "macos",
+      "role": "baseline",
+      "load_mode": "bytecode"
+    },
+    "macos-baseline-source.json.gz": {
+      "sha256": "59c1bebd8f9d76d2849a5e6b83a4b81390f133c5f5703237e21f6a8ff196130f",
+      "uncompressed_sha256": "b6aa131e353feb78d9364b552abb3c9be57d6cd4fb14dd62a0ace5785e718f93",
+      "records": 840,
+      "platform": "macos",
+      "role": "baseline",
+      "load_mode": "source"
+    },
+    "macos-candidate-bytecode.json.gz": {
+      "sha256": "f92d3aa205d8e222933a9eafc8e385c14c96f509972e306fe00e1494a7ae048a",
+      "uncompressed_sha256": "0487e9dda5f9df4c2dc57ade3b62654ec5a8af909837d1b0684a1d0b230f8da7",
+      "records": 840,
+      "platform": "macos",
+      "role": "candidate",
+      "load_mode": "bytecode"
+    },
+    "macos-candidate-source.json.gz": {
+      "sha256": "070298ce20b41bac1d762c16fbfe636b76deffc778c9973441d277414c5b256f",
+      "uncompressed_sha256": "5895874ac226b9b5d096e855cc88958d7ed6c3296fd62dcbd67f269a45967050",
+      "records": 840,
+      "platform": "macos",
+      "role": "candidate",
+      "load_mode": "source"
+    }
+  }
+}
