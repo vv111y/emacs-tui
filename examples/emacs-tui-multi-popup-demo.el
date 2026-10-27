@@ -21,12 +21,13 @@
   "Sample objects owned by this application.")
 
 (defconst emacs-tui-multi-popup-demo--panels
-  '((objects south-west 26 6) (details east 34 7) (keys north-west 40 7))
+  '((objects south-west 26 6) (details east 34 7) (keys north-west 40 8))
   "Panel identifiers, initial positions and requested dimensions.")
 
 (defvar-local emacs-tui-multi-popup-demo--sessions nil)
 (defvar-local emacs-tui-multi-popup-demo--index 0)
 (defvar-local emacs-tui-multi-popup-demo--positions nil)
+(defvar-local emacs-tui-multi-popup-demo--expanded nil)
 (defvar-local emacs-tui-multi-popup-demo--generation nil)
 (defvar emacs-tui-multi-popup-demo--busy nil)
 (defvar emacs-tui-multi-popup-demo-mode nil)
@@ -71,7 +72,7 @@
                                     emacs-tui-multi-popup-demo--objects) :text)))
     ('keys (emacs-tui-view
             :id id :title "Independent floating panels"
-            :text "C-c 1 / 2 / 3: toggle each panel\nC-c 0: hide all / show all\nC-c p 1 / 2 / 3: move each panel\nM-n / M-p: browse objects\nC-c [ / ]: scroll details\nC-g: hide | C-c C-q: disable"))))
+            :text "C-c 1 / 2 / 3: toggle each panel\nC-c 0: hide all / show all\nC-c p 1 / 2 / 3: move each panel\nM-n / M-p: browse objects\nC-c [ / ]: scroll details\nC-c C-e: expand / shrink details\nC-g: hide | C-c C-q: disable"))))
 
 (defun emacs-tui-multi-popup-demo--check-context (source window generation)
   "Reject publication after SOURCE, WINDOW or GENERATION changed."
@@ -93,7 +94,10 @@
                    :view (emacs-tui-multi-popup-demo--view id)
                    :position (or (alist-get id emacs-tui-multi-popup-demo--positions)
                                  (nth 1 spec))
-                   :width (nth 2 spec) :height (nth 3 spec)
+                   :width (if (and (eq id 'details) emacs-tui-multi-popup-demo--expanded)
+                              50 (nth 2 spec))
+                   :height (if (and (eq id 'details) emacs-tui-multi-popup-demo--expanded)
+                               12 (nth 3 spec))
                    :on-close
                    (lambda (closed)
                      (when (buffer-live-p source)
@@ -208,6 +212,24 @@ panels so reopening shows coherent application state."
   "Read three lines earlier in Details while typing focus stays in the source."
   (interactive) (emacs-tui-multi-popup-demo--scroll -3))
 
+(defun emacs-tui-multi-popup-demo-toggle-size ()
+  "Toggle visible Details between compact and expanded requested dimensions.
+Retain the choice across hide/show; native viewport bounds still apply."
+  (interactive)
+  (unless emacs-tui-multi-popup-demo-mode (user-error "Enable the multi-popup demo first"))
+  (when emacs-tui-multi-popup-demo--busy (user-error "A panel operation is in progress"))
+  (let ((app (emacs-tui-multi-popup-demo--session 'details))
+        (source (current-buffer)) (window (selected-window))
+        (generation emacs-tui-multi-popup-demo--generation)
+        (expanded (not emacs-tui-multi-popup-demo--expanded))
+        (emacs-tui-multi-popup-demo--busy t))
+    (unless app (user-error "Show the details panel first"))
+    (emacs-tui-resize-popup app (if expanded 50 34) (if expanded 12 7))
+    (emacs-tui-multi-popup-demo--check-context source window generation)
+    (unless (eq app (emacs-tui-multi-popup-demo--session 'details))
+      (user-error "Panel changed during resizing"))
+    (setq emacs-tui-multi-popup-demo--expanded expanded)))
+
 (defun emacs-tui-multi-popup-demo--move (id)
   "Cycle panel ID through eight positions and remember its placement."
   (unless emacs-tui-multi-popup-demo-mode (user-error "Enable the multi-popup demo first"))
@@ -261,8 +283,9 @@ Use \\[emacs-tui-multi-popup-demo-move],
 Each cycles through eight positions.
 Use \\[emacs-tui-multi-popup-demo-scroll-forward] and
 \\[emacs-tui-multi-popup-demo-scroll-backward] to read Details without focusing it.
-Scrolling requires Details to be visible.  Hiding and reopening resets its
-reading position.
+Use \\[emacs-tui-multi-popup-demo-toggle-size] to expand or shrink Details.
+Scrolling and resizing require Details to be visible.  Hiding and reopening
+retains its size choice but resets its reading position.
 Typing and undo stay in the source.
 Positions are clamped and may overlap."
   :lighter " MultiPop"
@@ -278,6 +301,7 @@ Positions are clamped and may overlap."
             (define-key map (kbd "C-c p 2") #'emacs-tui-multi-popup-demo-move-details)
             (define-key map (kbd "C-c ]") #'emacs-tui-multi-popup-demo-scroll-forward)
             (define-key map (kbd "C-c [") #'emacs-tui-multi-popup-demo-scroll-backward)
+            (define-key map (kbd "C-c C-e") #'emacs-tui-multi-popup-demo-toggle-size)
             (define-key map (kbd "C-c p 3") #'emacs-tui-multi-popup-demo-move-keys)
             (define-key map (kbd "C-g") #'emacs-tui-multi-popup-demo-dismiss)
             (define-key map (kbd "C-c C-q") #'emacs-tui-multi-popup-demo-disable)
@@ -293,6 +317,7 @@ Positions are clamped and may overlap."
             emacs-tui-multi-popup-demo-mode t
             emacs-tui-multi-popup-demo--index 0
             emacs-tui-multi-popup-demo--positions nil
+            emacs-tui-multi-popup-demo--expanded nil
             emacs-tui-multi-popup-demo--generation generation)
       (add-hook 'kill-buffer-hook #'emacs-tui-multi-popup-demo--stop nil t)
       (add-hook 'change-major-mode-hook #'emacs-tui-multi-popup-demo--stop nil t)

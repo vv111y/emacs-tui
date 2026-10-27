@@ -5,7 +5,24 @@ initial beta3 preparation are preserved byte-for-byte in
 [STATE-HISTORY.md](STATE-HISTORY.md). Their pending checks describe their own
 dates, not current blockers; later intermediate edits remain in Git history.
 
-## Reentrant popup movement correction — 2026-10-27
+## Floating Details resize candidate — 2026-10-27
+
+The public `emacs-tui-resize-popup` requests new dimensions on the same child
+frame, using existing native clamping/reflow and cleanup. Invalid dimensions,
+non-popup sessions and nested reflow reject before mutation. The three-panel
+demo uses C-c C-e to expand/shrink visible Details between requested 34×7 and
+50×12; it remembers that choice across hide/show without resizing siblings.
+Local Emacs 29.3 passes 424 ERT, strict library/example compilation/checkdoc,
+strict shared/TTY fixture compilation and diffcheck. Independent review asked
+for stronger native coverage: the TTY long-list journey now checks the public
+API's return value, same child, requested placement, selection and marks on
+grow/shrink. Shared GTK/TTY checks actual growth, same-child shrink, reopened
+size, sibling isolation and exact-once cleanup after a failed native resize.
+These new native journeys still require fresh hosted execution; local batch
+results are not proof of frame behavior. Final review and CI gate publication
+and integration. Fixed beta refs are unchanged.
+
+## Integrated reentrant popup movement correction — 2026-10-27
 
 A callback trying to reposition a popup during reflow previously changed its
 requested placement, then raised an error because nested reflow cannot execute.
@@ -15,8 +32,12 @@ Local Emacs 29.3 passes 420 ERT, strict compilation/checkdoc and diffcheck.
 The original regression fails specifically on changed placement (south-west to
 north), not an unrelated surface error. PR #83's independent review narrowed
 the documented rejection to reflow: ordinary view updates use a separate
-rendering guard and are outside this correction. Fresh final-head hosted native
-checks remain required before integration.
+rendering guard and are outside this correction. PR #83 merged at
+106d2624232ce99d725f833dbef38a27691f7287 after final-head review 5675159892
+and all thirteen checks: CI 40593354924 (eight jobs), GTK 40593355383,
+Linux/macOS tmux 40593354964 and movement comparison 40593355961 (two jobs).
+Reviewed 81845da9 and tested merge 2a32714c share integrated tree
+8b11977e098fdb24cd5367b713f66802da9dfe87. Earlier-head results were not reused.
 
 ## Integrated linked floating Details scrolling — 2026-10-27
 

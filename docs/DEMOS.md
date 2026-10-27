@@ -101,6 +101,7 @@ The source window is never split or replaced while the panels are shown.
 | C-c 0 | Hide all if any are visible; show all if none are visible |
 | M-n / M-p | Browse sample objects, including while panels are hidden |
 | C-c [ / ] | Scroll Details three lines backward / forward without taking focus |
+| C-c C-e | Expand / shrink visible Details; retain the choice while hidden |
 | C-c p 1 / 2 / 3 | Move Objects / Details / Keys through eight positions independently |
 | C-c C-p | Alias for moving Objects |
 | C-g | Hide all, keeping the toggle bindings active |
@@ -109,7 +110,11 @@ The source window is never split or replaced while the panels are shown.
 Try hiding Details, choosing another object with M-n, and reopening Details.
 Read the longer sample records with C-c [ / ]. Details must be visible;
 hiding and reopening resets its reading position. Moving a visible panel
-preserves its reading position.
+preserves its reading position. C-c C-e toggles Details between requested
+34×7 and 50×12 columns/rows using the same child frame. The source keeps typing
+focus, and sibling panels retain their sizes and positions. Native viewport
+bounds can limit the actual dimensions. Hide/show retains the size choice;
+disabling/re-enabling resets it.
 
 Move each panel with C-c p 1/2/3, then hide/show the group with C-c 0.
 Selection and each requested position survive; hidden panels

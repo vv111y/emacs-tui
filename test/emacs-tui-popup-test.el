@@ -189,6 +189,30 @@
         (should (eq 'south-west (emacs-tui--popup-position popup)))
         (should (emacs-tui-live-p app))))))
 
+(ert-deftest emacs-tui-popup-invalid-or-reentrant-resize-preserves-dimensions ()
+  (let* ((popup (emacs-tui--make-popup :width 32 :height 8))
+         (app (emacs-tui--make-workspace :active t :popup popup)))
+    (cl-letf (((symbol-function 'emacs-tui--subtree) (lambda (_) t)))
+      (dolist (size '((0 8) (32 1) (2.5 8) (32 nil) (nil 8)))
+        (should-error (apply #'emacs-tui-resize-popup app size))
+        (should (equal '(32 8) (list (emacs-tui--popup-width popup)
+                                     (emacs-tui--popup-height popup)))))
+      (let ((emacs-tui--refreshing t))
+        (should-error (emacs-tui-resize-popup app 50 12) :type 'user-error))
+      (should (equal '(32 8) (list (emacs-tui--popup-width popup)
+                                   (emacs-tui--popup-height popup))))
+      (should (emacs-tui-live-p app)))))
+
+(ert-deftest emacs-tui-popup-resize-rejects-ordinary-session-without-window-changes ()
+  (save-window-excursion
+    (let ((app (emacs-tui-mount :views (list (emacs-tui-view :id 'a :text "Preview")))))
+      (unwind-protect
+          (let ((windows (window-state-get)))
+            (should-error (emacs-tui-resize-popup app 50 12) :type 'user-error)
+            (should (emacs-tui-live-p app))
+            (should (equal windows (window-state-get))))
+        (emacs-tui-close app)))))
+
 (ert-deftest emacs-tui-popup-movement-invalidates-changed-content-viewport ()
   ;; Use real windows/rendering; model only unavailable native frame fitting.
   (save-window-excursion
