@@ -15,13 +15,13 @@
 (require 'emacs-tui)
 
 (defconst emacs-tui-multi-popup-demo--objects
-  '((:id pump :label "Cooling pump" :text "Cooling pump\nPressure: 1.8 bar\nTarget: 2.0–2.4 bar\nInspection requested.")
-    (:id valve :label "Return valve" :text "Return valve\nOpening: 45%\nTarget: 40–60%\nOperating normally.")
-    (:id sensor :label "Pressure sensor" :text "Pressure sensor\nReading: 1.8 bar\nCalibration due.\nRelated object: cooling pump."))
+  '((:id pump :label "Cooling pump" :text "Cooling pump\nPressure: 1.8 bar\nTarget: 2.0–2.4 bar\nInspection requested.\n\nRecent readings\n09:00  2.2 bar\n09:05  2.1 bar\n09:10  1.9 bar\n09:15  1.8 bar\n\nOperator note\nCheck the intake filter before restarting.")
+    (:id valve :label "Return valve" :text "Return valve\nOpening: 45%\nTarget: 40–60%\nOperating normally.\n\nRecent settings\n09:00  42%\n09:05  45%\n09:10  45%\n09:15  45%\n\nOperator note\nKeep the return path open during inspection.")
+    (:id sensor :label "Pressure sensor" :text "Pressure sensor\nReading: 1.8 bar\nCalibration due.\nRelated object: cooling pump.\n\nCalibration record\nReference: 2.0 bar\nLast check: 1.9 bar\nTolerance: 0.1 bar\nNext check: pending\n\nOperator note\nCompare against the reference gauge."))
   "Sample objects owned by this application.")
 
 (defconst emacs-tui-multi-popup-demo--panels
-  '((objects south-west 26 6) (details east 34 7) (keys north-west 40 6))
+  '((objects south-west 26 6) (details east 34 7) (keys north-west 40 7))
   "Panel identifiers, initial positions and requested dimensions.")
 
 (defvar-local emacs-tui-multi-popup-demo--sessions nil)
@@ -66,12 +66,12 @@
     ('objects (emacs-tui-view :id id :title "Objects | M-n / M-p"
                               :items emacs-tui-multi-popup-demo--objects))
     ('details (emacs-tui-view
-               :id id :title "Selected object | C-c 2 toggle"
+               :id id :title "Details | C-c [ / ] scroll"
                :text (plist-get (nth emacs-tui-multi-popup-demo--index
                                     emacs-tui-multi-popup-demo--objects) :text)))
     ('keys (emacs-tui-view
             :id id :title "Independent floating panels"
-            :text "C-c 1 / 2 / 3: toggle each panel\nC-c 0: hide all / show all\nC-c p 1 / 2 / 3: move each panel\nM-n / M-p: browse objects\nC-g: hide | C-c C-q: disable"))))
+            :text "C-c 1 / 2 / 3: toggle each panel\nC-c 0: hide all / show all\nC-c p 1 / 2 / 3: move each panel\nM-n / M-p: browse objects\nC-c [ / ]: scroll details\nC-g: hide | C-c C-q: disable"))))
 
 (defun emacs-tui-multi-popup-demo--check-context (source window generation)
   "Reject publication after SOURCE, WINDOW or GENERATION changed."
@@ -191,6 +191,23 @@ panels so reopening shows coherent application state."
   "Inspect the previous sample object."
   (interactive) (emacs-tui-multi-popup-demo--browse -1))
 
+(defun emacs-tui-multi-popup-demo--scroll (lines)
+  "Scroll the visible Details panel by LINES without changing source focus."
+  (unless emacs-tui-multi-popup-demo-mode (user-error "Enable the multi-popup demo first"))
+  (when emacs-tui-multi-popup-demo--busy (user-error "A panel operation is in progress"))
+  (let ((app (emacs-tui-multi-popup-demo--session 'details))
+        (emacs-tui-multi-popup-demo--busy t))
+    (unless app (user-error "Show the details panel first"))
+    (emacs-tui-scroll-view app 'details lines)))
+
+(defun emacs-tui-multi-popup-demo-scroll-forward ()
+  "Read three lines farther in Details while typing focus stays in the source."
+  (interactive) (emacs-tui-multi-popup-demo--scroll 3))
+
+(defun emacs-tui-multi-popup-demo-scroll-backward ()
+  "Read three lines earlier in Details while typing focus stays in the source."
+  (interactive) (emacs-tui-multi-popup-demo--scroll -3))
+
 (defun emacs-tui-multi-popup-demo--move (id)
   "Cycle panel ID through eight positions and remember its placement."
   (unless emacs-tui-multi-popup-demo-mode (user-error "Enable the multi-popup demo first"))
@@ -241,7 +258,12 @@ application selection and each panel's placement, recreating display surfaces.
 Use \\[emacs-tui-multi-popup-demo-move],
 \\[emacs-tui-multi-popup-demo-move-details] and
 \\[emacs-tui-multi-popup-demo-move-keys] to move each panel independently.
-Each cycles through eight positions.  Typing and undo stay in the source.
+Each cycles through eight positions.
+Use \\[emacs-tui-multi-popup-demo-scroll-forward] and
+\\[emacs-tui-multi-popup-demo-scroll-backward] to read Details without focusing it.
+Scrolling requires Details to be visible.  Hiding and reopening resets its
+reading position.
+Typing and undo stay in the source.
 Positions are clamped and may overlap."
   :lighter " MultiPop"
   :keymap (let ((map (make-sparse-keymap)))
@@ -254,6 +276,8 @@ Positions are clamped and may overlap."
             (define-key map (kbd "C-c C-p") #'emacs-tui-multi-popup-demo-move)
             (define-key map (kbd "C-c p 1") #'emacs-tui-multi-popup-demo-move)
             (define-key map (kbd "C-c p 2") #'emacs-tui-multi-popup-demo-move-details)
+            (define-key map (kbd "C-c ]") #'emacs-tui-multi-popup-demo-scroll-forward)
+            (define-key map (kbd "C-c [") #'emacs-tui-multi-popup-demo-scroll-backward)
             (define-key map (kbd "C-c p 3") #'emacs-tui-multi-popup-demo-move-keys)
             (define-key map (kbd "C-g") #'emacs-tui-multi-popup-demo-dismiss)
             (define-key map (kbd "C-c C-q") #'emacs-tui-multi-popup-demo-disable)

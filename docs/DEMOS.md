@@ -100,12 +100,17 @@ The source window is never split or replaced while the panels are shown.
 | C-c 3 | Toggle Keys |
 | C-c 0 | Hide all if any are visible; show all if none are visible |
 | M-n / M-p | Browse sample objects, including while panels are hidden |
+| C-c [ / ] | Scroll Details three lines backward / forward without taking focus |
 | C-c p 1 / 2 / 3 | Move Objects / Details / Keys through eight positions independently |
 | C-c C-p | Alias for moving Objects |
 | C-g | Hide all, keeping the toggle bindings active |
 | C-c C-q | Disable the demo and restore ordinary source bindings |
 
 Try hiding Details, choosing another object with M-n, and reopening Details.
+Read the longer sample records with C-c [ / ]. Details must be visible;
+hiding and reopening resets its reading position. Moving a visible panel
+preserves its reading position.
+
 Move each panel with C-c p 1/2/3, then hide/show the group with C-c 0.
 Selection and each requested position survive; hidden panels
 release their frames and buffers, and reopening creates new surfaces. Type and

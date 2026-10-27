@@ -64,6 +64,34 @@
     (cl-assert (equal positions emacs-tui-multi-popup-demo--positions))
     (emacs-tui-multi-popup-smoke--frames parent)))
 
+(defun emacs-tui-multi-popup-smoke--scroll ()
+  "Read Details without disturbing source focus or sibling panels."
+  (let* ((app (emacs-tui-multi-popup-demo--session 'details))
+         (view (emacs-tui--resolve-view app 'details))
+         (window (emacs-tui--view-window view))
+         (start (window-start window)) (host (selected-window))
+         (siblings
+          (mapcar (lambda (id)
+                    (let* ((sibling (emacs-tui-multi-popup-demo--session id))
+                           (pane (emacs-tui--view-window (emacs-tui--resolve-view sibling id))))
+                      (list sibling pane (window-start pane) (window-point pane))))
+                  '(objects keys))))
+    (execute-kbd-macro (kbd "C-c ]"))
+    (redisplay t)
+    (cl-assert (> (window-start window) start))
+    (let ((scrolled (window-start window)))
+      (execute-kbd-macro (kbd "C-c p 2"))
+      (redisplay t)
+      (cl-assert (= scrolled (window-start window))))
+    (execute-kbd-macro (kbd "C-c ["))
+    (redisplay t)
+    (cl-assert (= start (window-start window)))
+    (cl-assert (eq host (selected-window)))
+    (dolist (sibling siblings)
+      (cl-assert (emacs-tui-live-p (nth 0 sibling)))
+      (cl-assert (= (nth 2 sibling) (window-start (nth 1 sibling))))
+      (cl-assert (= (nth 3 sibling) (window-point (nth 1 sibling)))))))
+
 (defun emacs-tui-multi-popup-smoke--departures (source parent)
   "Leave SOURCE through native commands and recreate its panels on PARENT.
 Verify both another buffer in the same window and another selected window.
@@ -197,6 +225,7 @@ No explicit close is used before checking the old resources."
               (cl-assert (not (emacs-tui-multi-popup-demo--session 'keys)))
               (cl-assert (emacs-tui-multi-popup-demo--session 'objects))
               (execute-kbd-macro (kbd "C-c 3"))
+              (emacs-tui-multi-popup-smoke--scroll)
               (emacs-tui-multi-popup-smoke--placements parent)
               (cl-assert (equal windows (window-state-get (frame-root-window parent))) nil
                          "Source window state changed: before=%S after=%S"

@@ -5,7 +5,30 @@ initial beta3 preparation are preserved byte-for-byte in
 [STATE-HISTORY.md](STATE-HISTORY.md). Their pending checks describe their own
 dates, not current blockers; later intermediate edits remain in Git history.
 
-## Native graphical form candidate — 2026-10-27
+## Linked floating Details scrolling candidate — 2026-10-27
+
+The three-popup demo adds C-c [ / ] to read longer per-object Details while
+source typing focus and sibling panels remain unchanged. This composes the
+existing public scroll API; it adds no core API or external actions. Hidden
+Details rejects scrolling rather than reopening; moving a visible panel retains
+reading position, while hide/reopen recreates it at the beginning.
+Local 419 ERT, strict library/example compilation/checkdoc, strict shared native
+fixture compilation and diffcheck pass. Review caught a vacuous busy-guard test:
+it now asserts rejection while Details is live, before hiding it. The shared
+real GTK/TTY journey checks forward/back reading, reading-position preservation
+across movement, sibling isolation and the existing full source-state checks.
+Fresh exact-head review and native checks are required before integration.
+
+## Integrated graphical form coverage — 2026-10-27
+
+PR #81 merged at 374ba1c1d0a2d3c204ed3ad787b75418b627ff8e after corrected
+exact-head review 5674290580 and all eleven final checks passed: CI 40583445694
+(eight jobs), GTK 40583445561 and Linux/macOS tmux 40583445534. Reviewed c6b7f21b
+and tested merge 88c1cc21 share tree 22568d85f1fd5df265e5e6a82eea12185931c073.
+GTK job 122468626559 explicitly reports form validation/options/apply/revert
+and a separate CAPF PASS. The earlier failure and correction are retained below.
+
+## Graphical form correction evidence — 2026-10-27
 
 The GTK fixture exercises the settings form's native ordinary windows: field
 editing, rejected invalid Apply, option toggling, successful Apply and Revert,
@@ -22,7 +45,7 @@ native editing and cleanup; independent review also injected an editing error
 and verified disposal of all four windows/buffers plus source restoration.
 Local Emacs 29.3 passes 418 ERT, strict library/example compilation/checkdoc,
 strict GUI-fixture compilation and diffcheck. These do not prove GTK behavior.
-Fresh exact-head review and all native checks remain required before integration.
+The fresh exact-head review and native results above supersede this pending gate.
 
 PR #79 integrated at 7a32848159cf65af901fbb4affc41b8020c60474 after exact-head
 review 5673327045 and all eight CI 40572579490 jobs passed. Reviewed a694bc0e

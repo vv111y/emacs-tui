@@ -42,7 +42,8 @@ emulators and graphical display variants still need broader community use.
 Beta3 includes ten applications and capability showcases with guided tours.
 Development main adds a validated settings form (`make form-demo`) and three
 independent floating panels (`make multi-popup-demo`). In the latter, C-c 1/2/3
-toggles Objects/Details/Keys; C-c p 1/2/3 moves each independently and remembers
+toggles Objects/Details/Keys; C-c [ / ] scrolls the visible Details panel without
+moving typing focus. C-c p 1/2/3 moves each independently and remembers
 its placement while hidden. C-c 0 hides all if any are visible, or shows all
 if none are visible. Native typing stays in the source window. Use a matching
 main checkout for these examples; the fixed beta3 stays unchanged.
