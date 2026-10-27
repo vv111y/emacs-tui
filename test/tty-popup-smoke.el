@@ -5,6 +5,11 @@
 ;; SPDX-License-Identifier: GPL-3.0-or-later
 (setq load-prefer-newer t)
 (require 'cl-lib)
+(require 'emacs-tui-popup-lifecycle-smoke
+         (expand-file-name "emacs-tui-popup-lifecycle-smoke.el"
+                           (file-name-directory (or load-file-name
+                                                    (bound-and-true-p byte-compile-current-file)
+                                                    buffer-file-name))))
 (require 'emacs-tui-gallery (expand-file-name "../examples/emacs-tui-gallery.el"
                                                    (file-name-directory (or load-file-name (bound-and-true-p byte-compile-current-file) buffer-file-name))))
 (require 'emacs-tui-popup-demo (expand-file-name "../examples/emacs-tui-popup-demo.el"
@@ -274,6 +279,7 @@
     (emacs-tui-popup-smoke--coexistence)
     (emacs-tui-popup-smoke--inspector)
     (emacs-tui-popup-smoke--host)
+    (emacs-tui-popup-lifecycle-smoke)
     ;; Repurposing the host is a user choice; disposal must not reclaim it.
     (let* ((replacement (generate-new-buffer " *popup alternative*"))
            (popup (emacs-tui-popup
@@ -302,7 +308,7 @@
   (cancel-timer emacs-tui-popup-smoke--timer)
   (with-temp-file (getenv "EMACS_TUI_SMOKE_REPORT")
     (insert (if emacs-tui-popup-smoke--supported
-                (format "PASS Emacs %s; native TTY popup; host typing/focus/layout preserved; terminal paint marker required; 8 distinct word-relative positions; retained rows/scroll/marks; resized viewport and explicit refresh; fitting-failure cleanup; candidate navigation/filter/accept/undo; Unicode; resize=120->90->140; modal coexistence; inspector gallery-launch/scroll/reposition/acknowledge/dismiss; source/frame disposal; cleanup\n" emacs-version)
+                (format "PASS Emacs %s; native TTY popup; host typing/focus/layout preserved; terminal paint marker required; 8 distinct word-relative positions; retained rows/scroll/marks; resized viewport and explicit refresh; fitting-failure cleanup; candidate navigation/filter/accept/undo; Unicode; resize=120->90->140; modal coexistence; inspector gallery-launch/scroll/reposition/acknowledge/dismiss; source/frame disposal; twenty command-loop lifetimes; cleanup\n" emacs-version)
               (format "PASS Emacs %s; native wide/combining glyph bounds; unsupported popup rejected without changing host; no split fallback; resize=120->90->140; native presentation NOT exercised\n" emacs-version))))
   (kill-emacs 0))
 

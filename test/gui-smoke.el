@@ -12,6 +12,7 @@
 (require 'cl-lib)
 (require 'emacs-tui)
 (require 'emacs-tui-inspector-demo)
+(require 'emacs-tui-popup-lifecycle-smoke)
 
 (defvar emacs-tui-gui--parent nil)
 (defvar emacs-tui-gui--source nil)
@@ -50,7 +51,7 @@
   (let ((coding-system-for-write 'utf-8-unix))
     (with-temp-file (or (getenv "EMACS_TUI_GUI_REPORT") "gui-result.txt")
       (insert (if error (format "FAIL %S\n" error)
-                (format "PASS Emacs %s; graphical %S; child input; inspector scroll/action; eight moves; resize; source preservation; cleanup\n"
+                (format "PASS Emacs %s; graphical %S; child input; inspector scroll/action; eight moves; resize; source preservation; twenty command-loop lifetimes; cleanup\n"
                         emacs-version window-system)))
       (when (and error (get-buffer "*Messages*"))
         (insert (with-current-buffer "*Messages*" (buffer-string))))
@@ -139,6 +140,7 @@
                   (cl-assert (not (advice-member-p #'emacs-tui--popup-switch-frame
                                                   #'handle-switch-frame)))
                   (cl-assert (null (cl-set-difference (frame-list) emacs-tui-gui--frames))))
+                (emacs-tui-popup-lifecycle-smoke)
                 (emacs-tui-gui--finish nil)))
            (cl-incf emacs-tui-gui--phase)
            (run-at-time .3 nil #'emacs-tui-gui--step))))
