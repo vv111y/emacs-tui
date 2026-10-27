@@ -178,6 +178,18 @@ The chosen object remains fixed while ordinary source edits continue. The
 gallery launches the same self-contained demonstration; native child frames
 are required.
 
+An existing floating panel can be resized without replacing its child frame:
+
+```elisp
+(emacs-tui-resize-popup my-popup 50 12) ; requested columns/rows, including header
+```
+
+Both dimensions must be integers of at least two. Native viewport bounds clamp
+actual dimensions; source focus, requested placement, selection and marks are
+retained. A failed native fit closes the popup through its normal cleanup policy.
+The multi-popup demo uses `C-c C-e` to expand/shrink Details independently and
+remembers its size choice across hide/show. Ordinary tiled sessions are rejected.
+
 Long read-only previews can also be scrolled in any visible owned pane:
 
 ```elisp
@@ -596,6 +608,7 @@ and continue exploration; commitment is a separate command.
 | `emacs-tui-popup` | Show a read-only view around a source word while retaining typing focus |
 | `emacs-tui-popup-supported-p` | Check native popup capability without allocating a surface |
 | `emacs-tui-reposition-popup` | Choose or cycle eight compass positions |
+| `emacs-tui-resize-popup` | Resize an existing popup within native viewport bounds |
 | `emacs-tui-layout-popup` | Compute a clamped anchor-relative rectangle without display effects |
 | `emacs-tui-completion-mode` | Optional buffer-local frontend for existing completion-at-point providers |
 | `emacs-tui-scroll-view` | Scroll a visible read-only preview without taking input focus |

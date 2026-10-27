@@ -1429,6 +1429,24 @@ Reject calls made during reflow before changing the requested position."
     (unless (emacs-tui--reflow session t) (user-error "Popup is no longer available"))
     position))
 
+(defun emacs-tui-resize-popup (session width height)
+  "Request WIDTH columns and HEIGHT rows for SESSION's existing popup.
+Both dimensions must be integers of at least two, including the header.
+Native viewport clamping may limit the actual size.  Retain source focus,
+placement, selection and marks; refit and reflow the existing child frame.
+Reject nested reflow before changing dimensions.  A failed native fit closes
+the popup using the usual cleanup policy.  Return SESSION on success."
+  (unless (and (integerp width) (>= width 2) (integerp height) (>= height 2))
+    (error "Popup dimensions must be integers of at least two"))
+  (setq session (emacs-tui--require-session session))
+  (when emacs-tui--refreshing (user-error "Cannot resize a popup during reflow"))
+  (let ((popup (emacs-tui--workspace-popup session)))
+    (unless popup (user-error "This session is not an anchored popup"))
+    (setf (emacs-tui--popup-width popup) width
+          (emacs-tui--popup-height popup) height)
+    (unless (emacs-tui--reflow session t) (user-error "Popup is no longer available")))
+  session)
+
 (defun emacs-tui--fit-workspace-child (session)
   "Fit SESSION's existing child frame inside its live parent.
 Dimensions are converted from parent inner pixels to child character

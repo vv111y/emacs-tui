@@ -92,6 +92,69 @@
       (cl-assert (= (nth 2 sibling) (window-start (nth 1 sibling))))
       (cl-assert (= (nth 3 sibling) (window-point (nth 1 sibling)))))))
 
+(defun emacs-tui-multi-popup-smoke--size ()
+  "Resize the same Details child, retaining source focus and sibling geometry."
+  (let* ((host (selected-window))
+         (app (emacs-tui-multi-popup-demo--session 'details))
+         (child (emacs-tui--workspace-frame app))
+         (buffer (emacs-tui--view-buffer (emacs-tui--resolve-view app 'details)))
+         (width (frame-width child)) (height (frame-height child))
+         (text (with-current-buffer buffer (buffer-string)))
+         (siblings
+          (mapcar (lambda (id)
+                    (let ((frame (emacs-tui--workspace-frame
+                                  (emacs-tui-multi-popup-demo--session id))))
+                      (list frame (frame-position frame) (frame-width frame) (frame-height frame))))
+                  '(objects keys))))
+    (execute-kbd-macro (kbd "C-c C-e"))
+    (redisplay t)
+    (cl-assert (eq child (emacs-tui--workspace-frame app)))
+    (cl-assert (eq app (emacs-tui-multi-popup-demo--session 'details)))
+    (cl-assert (> (frame-width child) width))
+    (cl-assert (> (frame-height child) height))
+    (cl-assert (equal text (with-current-buffer buffer (buffer-string))))
+    (let ((expanded (cons (frame-width child) (frame-height child))))
+      (execute-kbd-macro (kbd "C-c 2 C-c 2"))
+      (setq child (emacs-tui--workspace-frame (emacs-tui-multi-popup-demo--session 'details)))
+      (cl-assert (equal expanded (cons (frame-width child) (frame-height child)))))
+    (execute-kbd-macro (kbd "C-c C-e"))
+    (redisplay t)
+    (cl-assert (eq child (emacs-tui--workspace-frame
+                          (emacs-tui-multi-popup-demo--session 'details))))
+    (cl-assert (= width (frame-width child)))
+    (cl-assert (= height (frame-height child)))
+    (cl-assert (eq host (selected-window)))
+    (dolist (sibling siblings)
+      (let ((frame (car sibling)))
+        (cl-assert (frame-live-p frame))
+        (cl-assert (equal (nth 1 sibling) (frame-position frame)))
+        (cl-assert (= (nth 2 sibling) (frame-width frame)))
+        (cl-assert (= (nth 3 sibling) (frame-height frame)))))))
+
+(defun emacs-tui-multi-popup-smoke--resize-failure ()
+  "Verify a failed native resize releases exactly the affected popup once."
+  (let* ((closed 0)
+         (app (emacs-tui-popup :view (emacs-tui-view :id 'failure :text "Temporary")
+                               :on-close (lambda (_) (cl-incf closed))))
+         (child (emacs-tui--workspace-frame app))
+         (buffer (emacs-tui--view-buffer (emacs-tui--resolve-view app 'failure)))
+         (popup (emacs-tui--workspace-popup app)))
+    (unwind-protect
+        (progn
+          (cl-letf (((symbol-function 'emacs-tui--fit-child)
+                     (lambda (_) (error "Injected resize fitting failure"))))
+            (cl-assert (eq 'user-error
+                           (condition-case err (emacs-tui-resize-popup app 50 12)
+                             (user-error (car err))))))
+          (cl-assert (not (emacs-tui-live-p app)))
+          (cl-assert (not (frame-live-p child)))
+          (cl-assert (not (buffer-live-p buffer)))
+          (cl-assert (not (marker-buffer (emacs-tui--popup-begin popup))))
+          (cl-assert (not (marker-buffer (emacs-tui--popup-end popup))))
+          (emacs-tui-close app)
+          (cl-assert (= 1 closed)))
+      (emacs-tui-close app))))
+
 (defun emacs-tui-multi-popup-smoke--departures (source parent)
   "Leave SOURCE through native commands and recreate its panels on PARENT.
 Verify both another buffer in the same window and another selected window.
@@ -226,6 +289,9 @@ No explicit close is used before checking the old resources."
               (cl-assert (emacs-tui-multi-popup-demo--session 'objects))
               (execute-kbd-macro (kbd "C-c 3"))
               (emacs-tui-multi-popup-smoke--scroll)
+              (emacs-tui-multi-popup-smoke--size)
+              (emacs-tui-multi-popup-smoke--resize-failure)
+              (emacs-tui-multi-popup-smoke--frames parent)
               (emacs-tui-multi-popup-smoke--placements parent)
               (cl-assert (equal windows (window-state-get (frame-root-window parent))) nil
                          "Source window state changed: before=%S after=%S"
