@@ -295,5 +295,25 @@
             (should-not emacs-tui--sessions))
           (should (equal "Origin:" (with-current-buffer source (buffer-string)))))))))
 
+(ert-deftest emacs-tui-showcase-native-gallery-rejection-preserves-chooser ()
+  (save-window-excursion
+    (dolist (id '(popup inspector))
+      (let ((gallery (emacs-tui-gallery)))
+        (unwind-protect
+            (progn
+              (emacs-tui-set-selection gallery 'demos id)
+              (let ((window (selected-window)) (buffer (current-buffer))
+                    (windows (window-state-get)) (buffers (buffer-list)))
+                (cl-letf (((symbol-function 'emacs-tui-popup-supported-p)
+                           (lambda (&rest _) nil)))
+                  (should-error (emacs-tui-gallery-launch) :type 'user-error))
+                (should (emacs-tui-live-p gallery))
+                (should (eq window (selected-window)))
+                (should (eq buffer (current-buffer)))
+                (should (equal windows (window-state-get)))
+                (should (equal buffers (buffer-list)))
+                (should (eq id (plist-get (emacs-tui-current-item gallery 'demos) :id)))))
+          (emacs-tui-close gallery))))))
+
 (provide 'emacs-tui-showcase-test)
 ;;; emacs-tui-showcase-test.el ends here
