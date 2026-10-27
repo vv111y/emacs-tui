@@ -162,6 +162,16 @@ Measure the actual synchronous table callback, including matching its data."
           (cl-assert (eq emacs-tui-bench--session (emacs-tui-completion--session)))
           (cl-assert (> emacs-tui-bench--table-calls 0))
           (cl-assert (= visible (min 200 (if filtered (/ (+ size 9) 10) size))))
+          ;; Counts alone cannot detect stale contents when both sets hit the cap.
+          (cl-assert
+           (equal (mapcar (lambda (item) (plist-get item :value))
+                          (emacs-tui--view-visible-items view))
+                  (cl-subseq (if filtered
+                                 (cl-remove-if-not
+                                  (lambda (row) (string-prefix-p "row x" row))
+                                  emacs-tui-bench--rows)
+                               emacs-tui-bench--rows)
+                             0 visible)))
           (cl-assert (= (point) (+ emacs-tui-bench--anchor (if filtered 5 4))))
           (cl-assert (equal (buffer-substring-no-properties emacs-tui-bench--anchor (point))
                             (if filtered "row x" "row ")))

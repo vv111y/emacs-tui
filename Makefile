@@ -70,5 +70,5 @@ benchmark-smoke:
 	EMACS=$(EMACS) python3 bench/run.py --timeout 120 --load-mode bytecode --filter-prefix 'row 日本語 ' --kinds filter-list filter-table --sizes 100 --samples 6 --warmup 2 --output .cache/benchmark-terms-bytecode-smoke.json
 
 benchmark-popup-smoke:
-	EMACS=$(EMACS) python3 bench/run.py --presentation popup --timeout 120 --sizes 100 --samples 6 --warmup 2 --output .cache/benchmark-popup-smoke.json
-	EMACS=$(EMACS) python3 bench/run.py --presentation popup --timeout 120 --load-mode bytecode --sizes 100 --samples 6 --warmup 2 --output .cache/benchmark-popup-bytecode-smoke.json
+	EMACS=$(EMACS) python3 bench/run.py --presentation popup --timeout 120 --sizes 100 2500 --samples 6 --warmup 2 --output .cache/benchmark-popup-smoke.json
+	EMACS=$(EMACS) python3 bench/run.py --presentation popup --timeout 120 --load-mode bytecode --sizes 100 2500 --samples 6 --warmup 2 --output .cache/benchmark-popup-bytecode-smoke.json

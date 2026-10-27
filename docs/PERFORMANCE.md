@@ -197,7 +197,8 @@ samples. The table handles real metadata/boundary/completion requests. The
 200-row display cap does **not** bound matching: every request can scan all
 source rows. Above 2,000 rows, both filtered and unfiltered displays can contain
 200 rows, while the input and provider work still change. Raw records retain
-visible row counts. This is a controlled provider, not an estimate for LSP,
+visible row counts, and every sample verifies the exact displayed candidate
+values and order even when both sets hit the cap. This is a controlled provider, not an estimate for LSP,
 filesystems or arbitrary installed completion packages. It does not benchmark
 popup creation, acceptance, annotation, GUI fonts or async providers.
 
@@ -222,7 +223,8 @@ do not add them as independent latency components.
 Use 200 measured samples for at least 100 samples **per** alternating filter
 command; summaries retain insertion and deletion separately. Eight total
 commands cover a full compass cycle. `make benchmark-popup-smoke` uses only six
-measured samples plus two warmups; its p99 is a protocol diagnostic, not a
+measured samples plus two warmups at 100 and 2,500 source rows (exercising
+the equal-count display-cap boundary); its p99 is a protocol diagnostic, not a
 credible tail-latency estimate. Linux/macOS 31.1 CI executes both load modes
 and retains raw JSON artifacts for 30 days. No timing threshold is enforced,
 and a passing smoke alone does not establish a performance baseline.
