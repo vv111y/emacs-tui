@@ -88,6 +88,15 @@ def main():
             await_phase("both-ready")
             os.write(masters[1], b"\x1b[Ibravo\x03\x05")
             await_phase("hangup-ready")
+            # Native-popup runs must paint the candidate on the client before
+            # killing it; Lisp frame bookkeeping alone is not display proof.
+            if (root / "popup-paint").exists():
+                paint = (root / "popup-paint").read_bytes()
+                paint_deadline = min(deadline, time.monotonic() + 2)
+                while paint and paint not in transcripts[1] and time.monotonic() < paint_deadline:
+                    drain()
+                if not paint or paint not in transcripts[1]:
+                    raise RuntimeError("Floating popup was not painted before client loss")
             os.killpg(processes[1].pid, signal.SIGKILL)
             processes[1].wait(timeout=2)
             (root / "client-killed").write_text("SIGKILL\n")

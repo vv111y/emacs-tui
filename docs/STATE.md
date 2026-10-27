@@ -1,6 +1,41 @@
 # Project state
 
-## Current continuation — native completion adapter
+## Current continuation — abrupt floating-popup client loss
+
+PR #47 merged at `912c7709932826881bc6479c908e607af5eba5f5` after independent
+exact-head coding-agent review and all eight jobs in
+[40449522142](https://github.com/vv111y/emacs-tui/actions/runs/40449522142).
+Main's tree matches reviewed `9656f8a0aed290003a0a35e743285759770351ca`.
+Linux/macOS 31.1 each passed 351 ERT and actual native CAPF popup paint,
+provider/style dispatch, same-child filtering, source focus/layout, navigation,
+movement, accept/native undo, file base/suffix handling, exact-once exit,
+read-only retry, resize and major-mode cleanup. Package build and clean installs
+on 31.1/28.1 passed. Hosted multi-client and abrupt-loss checks also passed,
+covering the local Unix-socket restriction without waiving those checks.
+
+The next focused unit extends the real abrupt-client-loss scenario to a floating
+popup nested in the dying client's persistent input view. The driver requires
+the popup's candidate in that client's actual terminal transcript before
+SIGKILL. Disposal checks retain the concrete child frame, view buffer, tracked
+markers, source/kill-hook identity and exact-once close count. Popup globals
+must be released while the other terminal's persistent session and native input
+survive. Older unsupported terminals retain the original scenario and report
+popup support honestly. Independent preliminary review caught a proof gap where
+a cleared session frame slot could masquerade as disposal; the captured native
+frame handle is now checked directly.
+
+Local 351 ERT, strict compilation/checkdoc, Python compilation, Lisp parsing
+and strict fixture byte compilation passed. Actual local server startup is still blocked by `Operation not
+permitted` on its Unix socket, before either client/popup is created; this is
+not a positive native result. Exact-head independent review and hosted Linux/
+macOS 31.1 painted-popup loss validation plus the full matrix remain required.
+No runtime implementation change or new latency claim is made in this unit.
+
+Next: complete this terminal boundary validation, then broader GUI/physical
+terminal/multiplexer use and concrete consumer needs. The fixed beta1 branch
+is unchanged; main remains experimental and outside that fixed release.
+
+## Native completion adapter — integrated
 
 PR #46 merged at `38891789aae720696fa96c17deaa01feb066326a` after independent
 exact-head coding-agent review and all eight jobs in
@@ -11,7 +46,7 @@ popup-only terminal paint marker, eight distinct central placements, native
 typing/filtering/selection/acceptance/undo, Unicode, resize, modal coexistence
 and cleanup. The failed first-head movement run below remains recorded.
 
-The next focused unit adds optional `emacs-tui-completion-mode`, using existing
+PR #47 adds optional `emacs-tui-completion-mode`, using existing
 completion-at-point providers instead of literal example candidates. Core does
 not require the adapter. Initial native provider dispatch is manual; source
 edits refresh the active captured table. The adapter preserves styles/category
@@ -38,11 +73,11 @@ fixture parse error were corrected. Those failures are not counted as passes.
 The new positive hosted path uses actual Lisp CAPF dispatch, terminal paint,
 same-child filtering, native keys/undo, file boundaries/exit and major-mode
 cleanup. Independent review, positive native 31.1 execution and exact-head
-hosted runtime/package CI remain integration gates for this unit. The actual
+hosted runtime/package CI passed as recorded above. The actual
 pinned package-build recipe built source `c7463d8` and its archive clean-installed
 on local Emacs 29.3, proving the optional helper is packaged without eager core
 loading. Build-tool sources were restored from their pinned upstream blobs
-before this check; hosted 31.1/28.1 installation is still required. Independent
+before this check; hosted 31.1/28.1 installation subsequently passed. Independent
 review found acceptance-hook reentry could release old markers and skip the
 accepted candidate's exit callback; completion results are now captured before
 editing and old disposal preserves a new context. Other review fixes retain
@@ -68,8 +103,8 @@ On 2026-10-27, current MELPA policy blobs still match docs/MELPA.md; the
 and rerun. Only the existing main package-name advisory remains; the optional
 completion helper is clean. Public maintenance and substantive
 human review remain external gates; no eligibility or acceptance is claimed.
-Next: finish this adapter's review/native validation, then concrete popup
-consumer needs and broader lifecycle/display validation before adding abstractions.
+The adapter's initial review/native validation is complete; concrete popup
+consumer needs and broader lifecycle/display validation remain before adding abstractions.
 
 Updated 2026-10-27 (America/Toronto).
 
