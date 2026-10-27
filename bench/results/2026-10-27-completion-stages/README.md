@@ -56,6 +56,14 @@ costs; they do not justify attributing the entire delay to popup rendering or
 the application table. Some stages have GC-sensitive tails: consult the raw
 per-command quantiles and GC records before selecting an optimization.
 
+The unsorted 10k bytecode deletion also records a median 11 garbage collections
+per command on both hosts. Recorded GC-time medians are 92.692 ms Linux and
+83.491 ms macOS, alongside PTY medians of 104.830 and 93.746 ms. These are
+separate distributions: do not subtract their medians or infer a precise stage
+GC split. GC occurs inside stage wall times; the stage clock alone cannot
+separate computation from allocation pressure. Investigate allocations and
+object lifetimes before changing algorithms or tuning GC policy globally.
+
 ## Host inventory
 
 - linux, identity: `{"logical_cpus": 4, "machine": "x86_64", "processor": "AMD EPYC 7763 64-Core Processor", "python": "3.12.3", "system": "Linux-6.17.0-1022-azure-x86_64-with-glibc2.39"}`

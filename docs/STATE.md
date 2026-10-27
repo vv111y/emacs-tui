@@ -27,7 +27,10 @@ are inclusive, independently summarized stage clocks, not additive components.
 Instrumentation changes timing/allocation overhead. Sorter policies ran in
 separate jobs, including different Linux CPU models: this is not a controlled
 policy comparison or a before/after speedup result. Detailed tails, GC, hosts and
-all fields remain available. Package runtime/API and fixed beta refs unchanged.
+all fields remain available. Unsorted 10k bytecode deletion has median 11 GCs
+per command on both hosts, with recorded GC-time medians 92.692/83.491 ms.
+Do not subtract separately summarized medians or assign that GC time to a
+particular stage; inspect allocation pressure and lifetimes before tuning GC. Package runtime/API and fixed beta refs unchanged.
 
 PR #57 merged at 561e91e83306e2f025cb7abd47d37608341b7306 after review
 5663933663, eight CI jobs in 40472111751 and two profile jobs in 40472111645
