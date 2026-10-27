@@ -69,7 +69,8 @@
          (state (list :parent parent :terminal (frame-terminal parent)
                       :host host :session nil :buffers nil :timer nil
                       :publish nil :closed 0 :cancelled 0 :changes 0
-                      :edited-changes nil))
+                      :edited-changes nil :popup nil :popup-buffer nil :popup-frame nil
+                      :popup-source nil :popup-kill-hook nil :popup-closed 0 :popup-markers nil))
          (map (make-sparse-keymap)))
     (switch-to-buffer host)
     (insert (format "host-%s preserved" id))
@@ -108,6 +109,56 @@
         (cl-assert (eq (frame-terminal parent) (frame-terminal child))))
       state)))
 
+(defun emacs-tui-test--hangup-popup (state)
+  "Open an actual source-preserving popup on the dying terminal in STATE."
+  (when (featurep 'tty-child-frames)
+    (cl-assert (emacs-tui-popup-supported-p)))
+  (when (emacs-tui-popup-supported-p)
+    (let* ((parent (selected-frame))
+           (window (selected-window))
+           (text (buffer-string)) (point (point))
+           (popup (emacs-tui-popup
+                   :begin (point-min) :end (point-max)
+                   :width 35 :height 5 :position 'north-east
+                   :view (emacs-tui-view :id 'floating :items '("HANGUP-FLOATING-CANDIDATE" "Other"))
+                   :on-close (lambda (_app) (cl-incf (plist-get state :popup-closed))))))
+      (setf (plist-get state :popup) popup
+            (plist-get state :popup-frame) (emacs-tui--workspace-frame popup)
+            (plist-get state :popup-source) (current-buffer)
+            (plist-get state :popup-kill-hook) (emacs-tui--workspace-origin-kill-hook popup)
+            (plist-get state :popup-buffer)
+            (emacs-tui--view-buffer (car (emacs-tui--workspace-views popup)))
+            (plist-get state :popup-markers)
+            (list (emacs-tui--popup-begin (emacs-tui--workspace-popup popup))
+                  (emacs-tui--popup-end (emacs-tui--workspace-popup popup))))
+      (cl-assert (eq 'popup (emacs-tui--workspace-backend popup)))
+      (cl-assert (frame-live-p (plist-get state :popup-frame)))
+      (cl-assert (memq (plist-get state :popup-kill-hook) kill-buffer-hook))
+      (cl-assert (eq parent (frame-parent (emacs-tui--workspace-frame popup))))
+      (cl-assert (eq (plist-get state :terminal)
+                     (frame-terminal (emacs-tui--workspace-frame popup))))
+      (cl-assert (eq window (selected-window)))
+      (cl-assert (eq parent (selected-frame)))
+      (cl-assert (equal text (buffer-string))) (cl-assert (= point (point)))
+      (cl-assert (eq (plist-get state :session) (emacs-tui-current-session)))
+      (redisplay t)
+      (emacs-tui-test--hangup-write "popup-paint" "HANGUP-FLOATING-CANDIDATE"))))
+
+(defun emacs-tui-test--hangup-popup-disposed-p (state)
+  "Whether STATE's optional floating popup released every owned resource."
+  (let ((popup (plist-get state :popup)))
+    (or (null popup)
+        (and (not (emacs-tui-live-p popup))
+             (= 1 (plist-get state :popup-closed))
+             (not (frame-live-p (plist-get state :popup-frame)))
+             (not (buffer-live-p (plist-get state :popup-buffer)))
+             (or (not (buffer-live-p (plist-get state :popup-source)))
+                 (not (memq (plist-get state :popup-kill-hook)
+                            (buffer-local-value 'kill-buffer-hook
+                                                (plist-get state :popup-source)))))
+             (cl-every (lambda (marker) (not (marker-buffer marker)))
+                       (plist-get state :popup-markers))))))
+
 (defun emacs-tui-test--hangup-join ()
   "Attach B on a second real terminal."
   (condition-case err
@@ -127,6 +178,7 @@
          (= 1 (plist-get state :closed))
          (= 1 (plist-get state :cancelled))
          (not (memq (plist-get state :timer) timer-list))
+         (emacs-tui-test--hangup-popup-disposed-p state)
          (cl-every (lambda (buffer) (not (buffer-live-p buffer)))
                    (plist-get state :buffers)))))
 
@@ -144,6 +196,7 @@
            (cl-assert (equal "" (emacs-tui-input-value sa 'body)))
            (setf (plist-get b :edited-changes) (plist-get b :changes))
            (cl-assert (> (plist-get b :changes) 0))
+           (emacs-tui-test--hangup-popup b)
            (emacs-tui-test--hangup-ready 'hangup-ready))
           ('client-hung-up
            (cl-assert (eq sa (emacs-tui-current-session)))
@@ -180,8 +233,9 @@
            (cl-assert (= 1 (length (frame-list))))
            (emacs-tui-test--hangup-write
             "result"
-            (format "PASS Emacs %s; abrupt real-client hangup; backend=%s; disposal, stale rejection, survivor input and cleanup\n"
-                    emacs-version (emacs-tui--workspace-backend sa)))
+            (format "PASS Emacs %s; abrupt real-client hangup; backend=%s; floating-popup=%s; disposal, stale rejection, survivor input and cleanup\n"
+                    emacs-version (emacs-tui--workspace-backend sa)
+                    (if (plist-get b :popup) "painted/disposed" "unsupported")))
            (kill-emacs 0))
           (_ (error "Unexpected native acknowledgement"))))
     ((error quit) (emacs-tui-test--hangup-fail err))))
@@ -207,6 +261,10 @@
           (cl-assert (= 0 (plist-get a :closed)))
           (cl-assert (= 0 (plist-get a :cancelled)))
           (cl-assert (memq (plist-get a :timer) timer-list))
+          (cl-assert (not (memq #'emacs-tui--popup-post-command
+                                (default-value 'post-command-hook))))
+          (cl-assert (not (memq #'emacs-tui--popup-terminal-deleted
+                                delete-terminal-functions)))
           (if (eq (emacs-tui--workspace-backend (plist-get a :session))
                   'child-frame)
               (progn
