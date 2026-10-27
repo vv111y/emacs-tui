@@ -1,5 +1,13 @@
 # Reproducing latency measurements
 
+[Instrumented completion stage profiles](../bench/results/2026-10-27-completion-stages/README.md)
+retain all 15,120 samples across identity/absent sorters, source/bytecode and
+Linux/macOS 31.1. They locate substantial restoration cost in projection/native
+matching. They are not a paired speedup comparison; nested clocks overlap and
+instrumentation changes timing/allocation overhead. The reports and auditor
+preserve all fields, per-command quantiles, GC counters and exact provenance.
+
+
 [Paired native movement measurements](../bench/results/2026-10-27-popup-movement/README.md)
 now cover PR #54's retained-row reflow on Linux/macOS 31.1. Eight lossless raw
 reports and an audit script preserve all 6,720 records, source provenance and
