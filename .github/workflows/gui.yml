@@ -15,15 +15,16 @@ concurrency:
 jobs:
   smoke:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 25
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
           persist-credentials: false
       - name: Install graphical runtime
+        timeout-minutes: 20
         run: |
           sudo apt-get update
-          sudo apt-get install --yes emacs-gtk xvfb xauth
+          sudo env DEBIAN_FRONTEND=noninteractive apt-get install --yes --no-install-recommends emacs-gtk xvfb xauth
           emacs --version
       - name: Compile graphical fixture strictly
         run: emacs -Q --batch -L . -L examples -L test --eval '(setq byte-compile-error-on-warn t)' -f batch-byte-compile test/gui-smoke.el test/tty-completion-smoke.el test/emacs-tui-popup-lifecycle-smoke.el

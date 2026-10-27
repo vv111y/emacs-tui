@@ -1,6 +1,6 @@
 # Demo guide
 
-Start with `make gallery` from a beta2 or current main checkout. The gallery itself is
+Start with `make gallery` from a beta3 or current main checkout. The gallery itself is
 a persistent TUI: RET shows the selected tour, C-c C-o launches the selected
 example, and C-c C-q closes. Launching closes the gallery first. After closing
 an example, M-x emacs-tui-gallery opens the chooser again. Tour text wraps to
@@ -11,16 +11,16 @@ Emacs. No extra packages, sample files, network services or XOB setup are needed
 The gallery uses self-contained sample data and works immediately under Emacs -Q.
 
 These examples live in the checkout's examples directory, outside the installed
-runtime package. The fixed beta2 branch includes this gallery; the older beta1
-branch remains unchanged. Do not mix new examples with an older installed toolkit.
+runtime package. The fixed beta3 branch includes this gallery; the older beta1/beta2
+branches remain unchanged. Do not mix new examples with an older installed toolkit.
 
 ## Choose a demo
 
 | Make target | What to explore | Explicit effects |
 | --- | --- | --- |
-| gallery | Nine beta2 showcases; ten on current main, with tours and cleanup | Launches your choice |
+| gallery | Ten beta3 showcases, with tours and cleanup | Launches your choice |
 | popup-demo | Typing in the unchanged source, floating candidates, eight compass positions, native undo | TAB explicitly replaces the current word |
-| inspector-demo (main) | Scrollable floating equipment details, eight positions, related objects, Back/Forward, acknowledgement, source focus | Changes buffer-local demo state only |
+| inspector-demo | Scrollable floating equipment details, eight positions, related objects, Back/Forward, acknowledgement, source focus | Changes buffer-local demo state only |
 | completion-demo | Emacs's actual Lisp completion provider, styles and source-preserving popup | TAB explicitly accepts a native completion |
 | board-demo | Three task lanes, independent list state, batch moves and explicit application actions | Changes tasks in session memory |
 | reader-demo | Chapter tree, ancestor search paths, formatted pages, wrapping and reading position | Reads self-contained sample text |
@@ -84,10 +84,10 @@ Older terminals leave the gallery open with a capability error instead of
 substituting a tiled interface. A graphical display or the tty-child-frames
 feature is required; the general toolkit still supports older terminals.
 
-### Floating equipment inspector (main)
+### Floating equipment inspector
 
-Use a current main checkout and run `make inspector-demo`, or choose Equipment
-inspector in its gallery. The fixed beta2 does not include this newer example.
+Use a beta3 or current main checkout and run `make inspector-demo`, or choose
+Equipment inspector in its gallery. Older beta1/beta2 checkouts lack this example.
 A disposable document opens with pump details floating around the reference.
 M-n and M-p scroll three lines while typing focus stays in the source document.
 C-c C-p cycles eight positions and retains the preview's reading position.

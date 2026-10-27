@@ -11,14 +11,14 @@ a query field or origin-buffer commit. Single panels can also borrow existing
 application windows and restore their original buffer when closed.
 XOB is an intended consumer; the toolkit is not specific to XOB, Org or graphs.
 
-**0.1.0 beta2: ready for community testing.** The API remains experimental,
+**0.1.0 beta3: ready for community testing.** The API remains experimental,
 and the package is not on MELPA yet. The reviewed beta is available from its
 versioned release branch while the matching GitHub prerelease tag awaits an
 authenticated publication step.
 
 ## Install the beta
 
-The beta release ref is `release/0.1.0-beta2`. It is fixed to the reviewed beta
+The beta release ref is `release/0.1.0-beta3`. It is fixed to the reviewed beta
 contents and will not track later development. With
 [straight.el](https://github.com/radian-software/straight.el) on Emacs 28.1 or
 later, evaluate:
@@ -27,7 +27,7 @@ later, evaluate:
 (straight-use-package
  '(emacs-tui :type git
              :repo "https://github.com/vv111y/emacs-tui.git"
-             :branch "release/0.1.0-beta2"
+             :branch "release/0.1.0-beta3"
              :files ("emacs-tui*.el")))
 ```
 
@@ -39,11 +39,10 @@ emulators and graphical display variants still need broader community use.
 
 ## Demo gallery
 
-The fixed beta2 includes nine applications and capability showcases with guided
-tours:
+Beta3 includes ten applications and capability showcases with guided tours:
 
 ```sh
-git clone --branch release/0.1.0-beta2 https://github.com/vv111y/emacs-tui.git
+git clone --branch release/0.1.0-beta3 https://github.com/vv111y/emacs-tui.git
 cd emacs-tui
 make gallery
 ```
@@ -55,24 +54,22 @@ and step-by-step tours. Try the inline candidate popup, three-lane task board, c
 snippet picker, object catalog, text composer, streaming search, original graph
 explorer, or layout playground. Each works in a fresh Emacs.
 
-For the latest development demos, including the floating equipment inspector,
-use a separate main checkout with its matching runtime:
+The floating equipment inspector explores related objects without moving the
+source point or editing its document. From the matching beta checkout, run
+`make inspector-demo`: `C-c C-l` follows a related object, `C-c C-b` goes Back,
+`C-c C-f` goes Forward, and `C-g` dismisses. Actions such as acknowledging an
+object are explicit and separate from browsing. The native completion example
+is separately available through `make completion-demo`.
 
-```sh
-git clone --branch main https://github.com/vv111y/emacs-tui.git emacs-tui-main
-cd emacs-tui-main
-make gallery
-# Or launch the inspector directly:
-make inspector-demo
-```
+Floating popups require graphical child frames or a build advertising
+`tty-child-frames` (normally Emacs 31.1+). Unsupported terminals reject these
+popups without replacing the source window. Other presentations retain their
+ordinary-window fallback on Emacs 28.1+.
 
-Main currently has ten gallery entries. The inspector closes with C-g; each
-tour explains its own controls. The native completion example is separately
-available through `make completion-demo`. Main is development code, while the
-beta2 checkout stays fixed to its reviewed release contents.
-The older `release/0.1.0-beta1` branch remains unchanged. The straight.el runtime
-recipe excludes examples. Use the matching checkout for the gallery so examples
-and toolkit come from the same revision.
+For development after this beta, use a separate checkout of `main`. The older
+`release/0.1.0-beta1` and `release/0.1.0-beta2` branches remain unchanged. The
+straight.el runtime recipe excludes examples. Use the matching source checkout
+for the gallery so examples and toolkit come from the same revision.
 
 ## Graph explorer (original demo)
 
@@ -189,7 +186,7 @@ preserved. Use ordinary navigation for lists and native editing in input views.
 
 ## Native completion providers
 
-In beta2, the optional adapter uses your buffer's existing
+The optional adapter uses your buffer's existing
 `completion-at-point-functions` and Emacs completion styles:
 
 ```elisp

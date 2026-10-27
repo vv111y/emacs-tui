@@ -1,10 +1,10 @@
 # Changelog
 
-## Unreleased — development after beta2
+## 0.1.0-beta3 — 2026-10-27
 
 - Floating equipment inspector with source-preserving scrolling, explicit
   acknowledgements, related-object exploration and bounded Back/Forward history.
-  Try `make inspector-demo` in a matching main checkout. These commands update
+  Try `make inspector-demo` in the matching beta3 checkout. These commands update
   application state without editing the source document or moving its point.
 - Public `emacs-tui-scroll-view` scrolls a visible read-only text preview without
   taking source focus; hidden, editable and list views reject this operation.
@@ -16,13 +16,20 @@
   Stage profiles distinguish provider, projection, update and redisplay costs.
 - Graphical popup focus events preserve the selected source instead of
   unexpectedly selecting and closing a read-only popup after preview operations.
+- Native input edits made while modification hooks are inhibited survive
+  focus changes, refresh, layout and metadata-only updates, retaining text
+  properties and undo. Explicit replacement remains an application action.
 - Native GTK/Xvfb completion and inspector checks complement Linux/macOS TTY
   and tmux tests. Repeated command-loop disposal checks verify that leaving or
   replacing a source preserves ordinary navigation and releases owned resources.
 
-This development section is not a new beta release. The fixed beta1/beta2 refs
-remain unchanged; main retains an experimental API. Physical display variants,
-substantive application use and the external MELPA gates remain outstanding.
+The beta3 release branch pins this reviewed snapshot and matching examples.
+Install with the updated straight.el recipe or clone `release/0.1.0-beta3`
+for all ten gallery entries. The fixed beta1/beta2 refs remain unchanged.
+The scrolling API is additive; existing application calls need no migration.
+All betas retain an experimental API. Physical display variants, substantive
+application use and the external MELPA gates remain outstanding. A fixed branch
+is not a GitHub prerelease tag or MELPA publication.
 
 ## 0.1.0-beta2 — 2026-10-27
 

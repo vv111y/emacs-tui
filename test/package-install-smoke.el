@@ -36,7 +36,8 @@
     (error "Actual definitions did not load from the installed package"))
   (unless (file-exists-p (expand-file-name "LICENSE" (file-name-directory (locate-library "emacs-tui"))))
     (error "Installed package lacks its license"))
-  (dolist (function '(emacs-tui-popup emacs-tui-popup-supported-p emacs-tui-reposition-popup))
+  (dolist (function '(emacs-tui-popup emacs-tui-popup-supported-p emacs-tui-reposition-popup
+                       emacs-tui-scroll-view))
     (unless (and (fboundp function)
                  (file-in-directory-p (symbol-file function 'defun) package-user-dir))
       (error "Popup API did not load from the installed package: %s" function)))
@@ -96,6 +97,36 @@
               (error "Installed hidden-view focus failed")))
         (when session (emacs-tui-close session)))
       (when (emacs-tui-live-p session) (error "Installed interface did not close"))))
+  (save-window-excursion
+    (let (session)
+      (unwind-protect
+          (progn
+            (setq session
+                  (emacs-tui-mount
+                   :views (list (emacs-tui-view :id 'items :items '("Keep focus"))
+                                (emacs-tui-view
+                                 :id 'preview
+                                 :text (mapconcat #'number-to-string
+                                                  (number-sequence 1 200) "\n")))))
+            ;; Discover the pane through public focus, then return to the list.
+            (emacs-tui-focus-view session 'preview)
+            (let* ((preview (selected-window))
+                   (start (window-start preview)))
+              (emacs-tui-focus-view session 'items)
+              (let ((source (selected-window))
+                    (buffer (current-buffer))
+                    (position (point))
+                    (text (buffer-string)))
+                (emacs-tui-scroll-view session 'preview 3)
+                (unless (and (> (window-start preview) start)
+                             (eq source (selected-window))
+                             (eq buffer (current-buffer))
+                             (= position (point))
+                             (equal text (buffer-string))
+                             (eq 'items (emacs-tui-current-view session))
+                             (equal "Keep focus" (emacs-tui-current-item session)))
+                  (error "Installed preview scroll changed source or failed to scroll")))))
+        (when session (emacs-tui-close session)))))
   (princ (format "PASS clean package installation on Emacs %s; public API smoke passed\n" emacs-version)))
 
 ;;; package-install-smoke.el ends here
