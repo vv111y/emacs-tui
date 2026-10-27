@@ -1,5 +1,37 @@
 # Project state
 
+## Popup compass movement optimization — preparation, 2026-10-27
+
+The native baseline identified full row reconstruction during compass movement.
+Position-only reflow now retains existing rows only when cached geometry is
+current and the fitted content viewport remains unchanged. The cached signature
+includes that viewport, so preexisting margin/header changes invalidate the
+fast path as well as size changes during fitting. Public refresh still renders.
+Native fitting, final ownership validation and unwind cleanup remain shared.
+
+Independent review reproduced a pre-fit margin invalidation gap in the first
+candidate and confirmed the fix. Local Emacs 29.3 passes 358 ERT, strict runtime
+and native-fixture compilation/checkdoc; the real-window margin regression models
+only native source/fitting. The local PTY verifies glyph bounds and honest
+unsupported presentation, not native positive behavior. Actual Linux/macOS 31.1
+gates add unchanged candidate text over eight moves, resize/public-refresh
+rendering, scrolled/marked row and native window-position preservation, plus
+fitting-failure disposal of captured child/buffer/markers and exact-once cleanup.
+
+The comparison workflow uses PR-base/candidate checkouts with identical fixture
+bytes on each runner, 100/10,000 rows and 200 measured commands per case in
+source/bytecode modes. No speedup is claimed before inspecting the paired raw
+records. Hosted native checks, exact-head review and all CI remain integration
+gates. Neither fixed beta branch is changed.
+
+PR #53 integrated the audited baseline at
+e76da73b8935c6a199bedceb86f6b12f171b3736 after independent exact-head review and
+all eight runtime/package plus two profile jobs passed in runs 40461793720 and
+40461793763. Raw 7,560-record evidence and audit script are retained. Next after
+this candidate: inspect paired measurements, preserve raw comparisons, then
+attribute completion restoration costs and broaden real application/display use.
+
+
 ## Native popup baseline — 2026-10-27
 
 PR #51 merged at 107dfc3fdf26a1d803c970d3e5b8d8a4dd4e050b after exact-head

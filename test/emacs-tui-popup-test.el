@@ -177,6 +177,39 @@
         (set-marker (emacs-tui--popup-begin popup) nil)
         (set-marker (emacs-tui--popup-end popup) nil)))))
 
+(ert-deftest emacs-tui-popup-movement-invalidates-changed-content-viewport ()
+  ;; Use real windows/rendering; model only unavailable native frame fitting.
+  (save-window-excursion
+    (let ((app (emacs-tui-mount
+                :backend 'windows
+                :views (list (emacs-tui-view :id 'rows :items '("alpha" "beta"))))))
+      (unwind-protect
+          (cl-letf (((symbol-function 'emacs-tui--popup-source-valid-p) (lambda (_) t))
+                    ((symbol-function 'emacs-tui--popup-anchor) (lambda (_) '(20 10 4 1)))
+                    ((symbol-function 'emacs-tui--fit-child) (lambda (_) nil)))
+            (setf (emacs-tui--workspace-popup app) (emacs-tui--make-popup :position 'north)
+                  (emacs-tui--workspace-frame app) (selected-frame)
+                  (emacs-tui--workspace-geometry app) (emacs-tui--geometry app))
+            (let* ((window (emacs-tui--workspace-root app))
+                   (buffer (window-buffer window))
+                   (tick (with-current-buffer buffer (buffer-chars-modified-tick))))
+              (emacs-tui-reposition-popup app)
+              (should (= tick (with-current-buffer buffer (buffer-chars-modified-tick))))
+              ;; Outer dimensions are unchanged; the usable viewport is not.
+              (with-current-buffer buffer (setq-local left-margin-width 3))
+              (set-window-margins window 3 0)
+              (should-not (equal (emacs-tui--workspace-geometry app)
+                                 (emacs-tui--geometry app)))
+              (emacs-tui-reposition-popup app)
+              (should (< tick (with-current-buffer buffer (buffer-chars-modified-tick))))
+              (setq tick (with-current-buffer buffer (buffer-chars-modified-tick)))
+              (emacs-tui-refresh app)
+              (should (< tick (with-current-buffer buffer (buffer-chars-modified-tick))))))
+        ;; Never dispose the actual parent used to model the native child handle.
+        (setf (emacs-tui--workspace-frame app) nil
+              (emacs-tui--workspace-popup app) nil)
+        (emacs-tui-close app)))))
+
 (ert-deftest emacs-tui-popup-frames-are-excluded-from-modal-focus-routing ()
   (let ((popup (emacs-tui--make-workspace :active t :frame (selected-frame)
                                         :popup (emacs-tui--make-popup))))

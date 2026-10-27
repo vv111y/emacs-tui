@@ -253,3 +253,18 @@ are observations on these runners, not universal speed ratios. For optimization
 claims, run baseline and candidate on the same otherwise comparable runner and
 retain both inputs and every sample. Package/runtime compatibility CI remains
 independent and required.
+
+## Comparing popup movement changes
+
+The **Popup movement comparison** workflow checks out the PR base and candidate
+on each Linux/macOS 31.1 runner, requires byte-identical measurement fixtures,
+then measures baseline/candidate source followed by baseline/candidate bytecode.
+It exercises navigation and compass movement at 100/10,000 rows with 10 warmups
+and 200 measured commands each. Four raw reports per runner retain both source
+identities, loaded definitions, counters and clocks; artifact retention is
+90 days. A manual run accepts a baseline ref with the same fixture.
+
+This paired order reduces hardware/configuration ambiguity, but does not remove
+scheduling, frequency, warm-cache or run-order effects. There is no timing gate.
+Retain selected paired raw data and qualify any claimed improvement; compatibility
+and actual native state/cleanup tests remain independent required checks.

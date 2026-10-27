@@ -1370,7 +1370,7 @@ position symbol.  Near edges native viewport clamping can limit movement."
     (unless (memq position emacs-tui-layout-popup-positions)
       (error "Unknown popup position: %S" position))
     (setf (emacs-tui--popup-position popup) position)
-    (unless (emacs-tui-refresh session) (user-error "Popup is no longer available"))
+    (unless (emacs-tui--reflow session t) (user-error "Popup is no longer available"))
     position))
 
 (defun emacs-tui--fit-workspace-child (session)
@@ -1546,7 +1546,8 @@ A foreign window inside the subtree makes it unsuitable for reflow."
           (when (emacs-tui--workspace-popup session)
             (list (window-edges (emacs-tui--workspace-origin-window session))
                   (emacs-tui--popup-anchor session)
-                  (frame-position (emacs-tui--workspace-frame session))))
+                  (frame-position (emacs-tui--workspace-frame session))
+                  (emacs-tui--popup-viewport session)))
           (when-let* ((child (emacs-tui--workspace-frame session)))
             (let ((parent (emacs-tui--workspace-origin-frame session)))
               (and (frame-live-p child)
@@ -1659,7 +1660,20 @@ This is normally automatic after window or frame geometry changes.
 Return SESSION on success, or nil after closing an invalidated surface.
 No application provider or commit callback is invoked."
   (interactive)
-  (setq session (emacs-tui--require-session session))
+  (emacs-tui--reflow (emacs-tui--require-session session)))
+
+(defun emacs-tui--popup-viewport (session)
+  "Return the content viewport of SESSION's existing popup."
+  (let ((window (emacs-tui--workspace-root session))
+        (frame (emacs-tui--workspace-frame session)))
+    (list (window-inside-pixel-edges window)
+          (window-max-chars-per-line window)
+          (frame-char-height frame))))
+
+(defun emacs-tui--reflow (session &optional moving-popup)
+  "Reflow live SESSION, optionally preserving content while MOVING-POPUP.
+Only a previously current popup with an unchanged fitted content viewport
+can retain its rendered rows.  Explicit public refresh always renders."
   (unless emacs-tui--refreshing
     (let ((emacs-tui--refreshing t) complete)
       (unwind-protect
@@ -1671,12 +1685,20 @@ No application provider or commit callback is invoked."
                        (root (emacs-tui--workspace-root session))
                        (point (when query (with-current-buffer query (point))))
                        (owned-selection (emacs-tui--owned-window-p session (selected-window)))
-                       (window-point (window-point root)))
+                       (window-point (window-point root))
+                       (viewport
+                        (when (and moving-popup (emacs-tui--workspace-popup session)
+                                   (emacs-tui--workspace-frame session)
+                                   (equal (emacs-tui--workspace-geometry session)
+                                          (emacs-tui--geometry session)))
+                          (emacs-tui--popup-viewport session))))
                   (mapc #'emacs-tui--remember-view (emacs-tui--workspace-views session))
                   (save-selected-window
                     (when (emacs-tui--workspace-frame session)
                       (emacs-tui--fit-child session))
-                    (emacs-tui--arrange session)
+                    (unless (and viewport
+                                 (equal viewport (emacs-tui--popup-viewport session)))
+                      (emacs-tui--arrange session))
                     (when query
                       (with-current-buffer query (goto-char point))
                       (set-window-point root window-point)))

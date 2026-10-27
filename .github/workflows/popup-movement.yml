@@ -1,0 +1,62 @@
+name: Popup movement comparison
+on:
+  workflow_dispatch:
+    inputs:
+      baseline:
+        description: Baseline ref with the same benchmark fixture
+        required: true
+        default: main
+        type: string
+  pull_request:
+    paths:
+      - 'emacs-tui.el'
+      - '.github/workflows/popup-movement.yml'
+permissions:
+  contents: read
+concurrency:
+  group: popup-movement-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  compare:
+    name: movement (${{ matrix.os }}, 31.1)
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.base.sha || inputs.baseline }}
+          path: .benchmark-base
+          persist-credentials: false
+      - uses: purcell/setup-emacs@34c6ded44899fd1bf74d2889558befd1750e61a7
+        with:
+          version: '31.1'
+      - name: Require identical measurement fixtures
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          for name in ('bench/run.py', 'bench/interactive.el'):
+              if Path(name).read_bytes() != (Path('.benchmark-base') / name).read_bytes():
+                  raise SystemExit('Baseline and candidate fixtures differ: ' + name)
+          PY
+      - name: Measure baseline and candidate on the same runner
+        timeout-minutes: 10
+        run: |
+          for mode in source bytecode; do
+            python3 .benchmark-base/bench/run.py --presentation popup --load-mode "$mode" --timeout 120 --kinds navigate-popup move-popup --sizes 100 10000 --samples 200 --warmup 10 --label 'Movement baseline' --output ".cache/popup-movement/baseline-$mode.json"
+            python3 bench/run.py --presentation popup --load-mode "$mode" --timeout 120 --kinds navigate-popup move-popup --sizes 100 10000 --samples 200 --warmup 10 --label 'Movement candidate' --output ".cache/popup-movement/candidate-$mode.json"
+          done
+      - name: Retain paired raw samples and provenance
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: popup-movement-${{ matrix.os }}-31.1
+          path: .cache/popup-movement/*.json
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 90
