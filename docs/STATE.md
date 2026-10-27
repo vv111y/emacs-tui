@@ -1,5 +1,21 @@
 # Project state
 
+## Explicit unsorted completion workload — 2026-10-27
+
+The native benchmark now accepts --completion-sort none for filter-completion,
+while preserving identity as the default. The policy is recorded in reports.
+Both native smoke modes cover unsorted 100/2,500-row tables and retain the same
+paint, source ownership, exact candidate order/value and cleanup assertions.
+This makes the bounded-copy path testable without silently changing the existing
+baseline. The six-sample smoke is protocol evidence, not a latency baseline.
+
+Local Python protocol regressions: all four pass; driver compilation and diff
+checks pass. Local Emacs 29.3 correctly rejects the unsupported native workload
+with zero records and no report. Positive Linux/macOS 31.1 execution and exact
+independent review remain required; no before/after unsorted speedup is claimed.
+Next: run and retain a matched unsorted profile, with stage attribution, before
+claiming an end-to-end improvement.
+
 ## Bounded completion preparation — 2026-10-27
 
 The completion adapter previously copied every candidate string before applying
@@ -13,9 +29,10 @@ identity sorter, so it deliberately continues to exercise the full-sorter path.
 Local Emacs 29.3: all 360 ERT pass, strict package/example byte compilation and
 checkdoc pass. New regressions cover destructive annotation properties with and
 without a sorter, and destructive sorter values cannot alter the projection.
-Independent review and exact-head hosted CI remain required before integration.
-Native Linux/macOS 31.1 coverage must verify completion behavior; local batch
-checks do not replace that evidence. Fixed beta refs are unchanged.
+PR #56 merged at 8446077518ec9f2a04bc2eb96aa050dc741c7141 after
+independent review 5663896426 and all eight jobs in CI 40471477020 passed.
+Native Linux/macOS 31.1 completion, lifecycle and terminal-loss checks passed;
+local batch checks do not replace that evidence. Fixed beta refs are unchanged.
 
 Next: add measured stage attribution and an explicitly unsorted completion
 workload, then investigate restoration costs. Broader display/application use

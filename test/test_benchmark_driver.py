@@ -27,7 +27,10 @@ class NativePopupArguments(unittest.TestCase):
     def test_rejects_mixed_workloads_before_starting_emacs(self):
         with tempfile.TemporaryDirectory() as directory:
             output = pathlib.Path(directory) / "report.json"
-            for arguments in (("--presentation", "popup", "--kinds", "navigate-list"),
+            for arguments in (("--completion-sort", "none"),
+                              ("--presentation", "popup", "--kinds", "move-popup",
+                               "--completion-sort", "none"),
+                              ("--presentation", "popup", "--kinds", "navigate-list"),
                               ("--kinds", "filter-completion"),
                               ("--presentation", "popup", "--filter-prefix", "row ")):
                 result = subprocess.run([sys.executable, str(ROOT / "bench/run.py"),

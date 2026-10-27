@@ -276,3 +276,19 @@ This paired order reduces hardware/configuration ambiguity, but does not remove
 scheduling, frequency, warm-cache or run-order effects. There is no timing gate.
 Retain selected paired raw data and qualify any claimed improvement; compatibility
 and actual native state/cleanup tests remain independent required checks.
+
+## Unsorted completion preparation
+
+Use `--presentation popup --kinds filter-completion --completion-sort none`
+to exercise provider metadata with no display sorter. The default remains
+`identity`, preserving the original workload. Reports record `display_sort`
+inside `provider_fixture`; do not compare differing policies as if identical.
+The unsorted path still computes the full native projection, but only copies
+the bounded displayed subset for decoration. A sorter may modify its entire
+input, so its full candidate isolation remains necessary.
+
+Native smoke runs both policies in source/bytecode at 100 and 2,500 rows, with
+exact filtered/unfiltered candidate validation and required terminal paint.
+Six measured commands validate the protocol; they are not a latency baseline.
+For a full unsorted profile, use 200 samples, 10 warmups and 100/1,000/10,000 rows.
+No before/after unsorted performance claim is established by this addition.
