@@ -1,6 +1,6 @@
 # Demo guide
 
-Start with `make gallery` from a checkout of current main. The gallery itself is
+Start with `make gallery` from a beta2 or current main checkout. The gallery itself is
 a persistent TUI: RET shows the selected tour, C-c C-o launches the selected
 example, and C-c C-q closes. Launching closes the gallery first. After closing
 an example, M-x emacs-tui-gallery opens the chooser again. Tour text wraps to
@@ -11,8 +11,8 @@ Emacs. No extra packages, sample files, network services or XOB setup are needed
 The gallery uses self-contained sample data and works immediately under Emacs -Q.
 
 These examples live in the checkout's examples directory, outside the installed
-runtime package. The fixed beta1 branch remains unchanged; use current main to
-try this gallery. Do not mix new examples with an older installed toolkit.
+runtime package. The fixed beta2 branch includes this gallery; the older beta1
+branch remains unchanged. Do not mix new examples with an older installed toolkit.
 
 ## Choose a demo
 

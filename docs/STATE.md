@@ -1,6 +1,45 @@
 # Project state
 
-## Current continuation — abrupt floating-popup client loss
+## Current continuation — second community-testing beta
+
+PR #48 merged at `63faea9182421f1f68ee659aefd8c83a67845cc5` after independent
+exact-head coding-agent review and all eight jobs in
+[40450211855](https://github.com/vv111y/emacs-tui/actions/runs/40450211855).
+Main matches reviewed tree `ef6d8471323572184e361381664f145e0b824c51`.
+Linux/macOS 31.1 each passed 351 ERT and explicitly reported
+`floating-popup=painted/disposed` after real client loss, followed by surviving
+terminal input. Package build/clean installs and the older-runtime matrix passed.
+
+The beta2 candidate updates the package header and CI expectation to
+`0.1.0-beta2`, documents the additive popup/completion APIs and distinct demos,
+and pins straight.el plus the matching example checkout to the new fixed
+`release/0.1.0-beta2` ref. The optional frontend remains opt-in; no executable
+Lisp forms change in this release unit. Strict native popup requirements and
+ordinary workspace fallback are distinguished in the compatibility policy.
+
+Local Emacs 29.3/Linux passed 351 ERT, strict compilation/checkdoc, literal
+header/canonical package metadata (`0.1.0beta2`), actual pinned recipe build
+and clean archive installation. The package build tested local source `74906b3`
+before rebasing onto the identical reviewed PR #48 tree; archive SHA256 was
+`f939436dc42bba40247533b4c644227250cb9e85487e4a1311070ba64c7c63cb`.
+Independent preliminary release review is clean. Exact published-head review
+and all eight runtime/package CI jobs remain gates before integration. After
+merging, create the fixed beta2 branch at the returned merge SHA and read back
+its SHA/tree before announcing availability. Never move either beta branch.
+The original beta1 ref was reverified unchanged at
+`fd976f725c2bbb111d9fe6700bcabccfab1f3774` on 2026-10-27.
+
+This is a community-testing beta, not maturity or a stable API freeze. GitHub
+tags/prereleases remain unpublished; the available connector cannot create
+them and authenticated release UI access is unavailable. Straight installation
+from a verified fixed branch is the supported delivery path. MELPA public
+maintenance, substantive human review and acceptance remain external gates;
+current policy blobs and recipe-name absence were checked on 2026-10-27.
+Next: complete the beta2 publication sequence, then collect concrete application
+feedback and expand actual GUI/emulator/multiplexer validation and measured
+large-result rendering work. No new latency claim is made.
+
+## Abrupt floating-popup client loss — integrated
 
 PR #47 merged at `912c7709932826881bc6479c908e607af5eba5f5` after independent
 exact-head coding-agent review and all eight jobs in
@@ -13,7 +52,7 @@ read-only retry, resize and major-mode cleanup. Package build and clean installs
 on 31.1/28.1 passed. Hosted multi-client and abrupt-loss checks also passed,
 covering the local Unix-socket restriction without waiving those checks.
 
-The next focused unit extends the real abrupt-client-loss scenario to a floating
+PR #48 extends the real abrupt-client-loss scenario to a floating
 popup nested in the dying client's persistent input view. The driver requires
 the popup's candidate in that client's actual terminal transcript before
 SIGKILL. Disposal checks retain the concrete child frame, view buffer, tracked
@@ -28,12 +67,13 @@ Local 351 ERT, strict compilation/checkdoc, Python compilation, Lisp parsing
 and strict fixture byte compilation passed. Actual local server startup is still blocked by `Operation not
 permitted` on its Unix socket, before either client/popup is created; this is
 not a positive native result. Exact-head independent review and hosted Linux/
-macOS 31.1 painted-popup loss validation plus the full matrix remain required.
+macOS 31.1 painted-popup loss validation plus the full matrix subsequently passed
+as recorded above.
 No runtime implementation change or new latency claim is made in this unit.
 
-Next: complete this terminal boundary validation, then broader GUI/physical
-terminal/multiplexer use and concrete consumer needs. The fixed beta1 branch
-is unchanged; main remains experimental and outside that fixed release.
+This terminal boundary is now validated on the hosted matrix. Broader GUI/
+physical terminal/multiplexer use and concrete consumer needs remain. The fixed
+beta1 branch is unchanged; main remains experimental.
 
 ## Native completion adapter — integrated
 
