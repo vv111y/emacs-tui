@@ -159,6 +159,9 @@ separate example of automatic activation while typing.
 
 Display honors predicates, category style overrides, display sorting,
 affixation and annotations. Affixation takes precedence over annotation.
+Faces and other display properties returned on the affixed candidate, prefix
+and suffix are retained in the popup. Acceptance inserts only the raw candidate
+text, without decoration or text properties.
 Acceptance preserves completion base prefixes and text beyond the field's
 suffix boundary, strips candidate display properties, and uses native undo.
 It rechecks the candidate and source immediately before editing. A successful
