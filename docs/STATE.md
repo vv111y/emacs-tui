@@ -5,6 +5,22 @@ initial beta3 preparation are preserved byte-for-byte in
 [STATE-HISTORY.md](STATE-HISTORY.md). Their pending checks describe their own
 dates, not current blockers; later intermediate edits remain in Git history.
 
+## Native graphical form candidate — 2026-10-27
+
+The GTK fixture now exercises the settings form's actual child frame: native
+field editing, rejected invalid Apply, option toggling, successful Apply and
+Revert, then frame/view-buffer cleanup and source preservation. The existing
+TTY showcase already covers this application; this closes the corresponding
+GUI journey gap without changing production behavior. Local Emacs 29.3 passes
+418 ERT, strict compilation/checkdoc and strict graphical-fixture compilation.
+Independent review and fresh hosted checks remain required before integration;
+local batch checks do not establish graphical behavior.
+
+PR #79 integrated at 7a32848159cf65af901fbb4affc41b8020c60474 after exact-head
+review 5673327045 and all eight CI 40572579490 jobs passed. Reviewed a694bc0e
+and tested merge d2086007 share tree b963d0e37b1d5c7c02e958b2dec98cf7ea75218e.
+The source assessment below remains a documentation boundary, not an adapter.
+
 ## XOB integration assessment — 2026-10-27
 
 PR #79 documents the actual owner repository API at pinned org-xob commit
