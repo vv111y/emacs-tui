@@ -654,6 +654,24 @@ action functions; interactive commands infer it from a TUI buffer. Popup callers
 pass it explicitly while typing in their unchanged source buffer. Internal
 `emacs-tui--*` structures are not an application API.
 
+### Reading a preview from another buffer
+
+Pass the session explicitly from application commands. Both operations below
+leave input focus where it is; the target must be a visible read-only text view.
+The horizontal API requires development main after beta4.
+
+```elisp
+(emacs-tui-scroll-view session 'details 3)               ; Down three lines.
+(emacs-tui-scroll-view-horizontally session 'details 8)  ; Reveal later columns.
+(emacs-tui-scroll-view-horizontally session 'details -8) ; Return toward the start.
+```
+
+A nil distance means nearly a window in the corresponding direction. Negative
+vertical distances scroll upward; horizontal movement stops at column zero.
+An explicit horizontal position survives resizing and layout changes. Updating
+with identical text retains it; replacing the content resets it. These commands
+also work in ordinary-window applications on Emacs 28.1+, without child frames.
+
 ## Interaction
 
 | Key in query buffer | Action |

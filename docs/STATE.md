@@ -49,9 +49,9 @@ CI [40608047489](https://github.com/vv111y/emacs-tui/actions/runs/40608047489)
 and Linux/macOS tmux [40608047562](https://github.com/vv111y/emacs-tui/actions/runs/40608047562).
 Reviewed head and tested merge `2720464e` share the integrated tree above.
 
-## Horizontal preview candidate
+## Horizontal preview integration
 
-The next implementation adds `emacs-tui-scroll-view-horizontally` for visible,
+PR [#89](https://github.com/vv111y/emacs-tui/pull/89) adds `emacs-tui-scroll-view-horizontally` for visible,
 read-only text previews. Positive/negative columns reveal/return along a line;
 nil uses native window width minus two. Source focus, selection and marks stay
 unchanged. An explicitly requested native horizontal minimum survives movement,
@@ -62,8 +62,8 @@ Local Emacs 29.3 passed 433 ERT, strict byte compilation, checkdoc, shared nativ
 fixture compilation and diffcheck. Five new ERT cover focus/data, layout and
 unchanged text, default distance, hidden updates, text-to-list conversion,
 invalid/hidden/editable/repurposed/disposed targets. Native GTK and Linux/macOS
-fixtures now exercise the actual keys, movement, resize, explicit refresh and
-content reset; they still require hosted execution. Package installation now
+fixtures exercise the actual keys, movement, resize, explicit refresh and
+content reset; actual GTK and Linux/macOS tmux journeys passed. Package installation now
 requires and exercises the new public function. A real recipe build from
 `dfc95ac` and clean archive installation on local Emacs 29.3 passed, including
 the horizontal API smoke (archive SHA256
@@ -71,8 +71,18 @@ the horizontal API smoke (archive SHA256
 Independent review identified stale horizontal state on text-to-list conversion;
 the fix now clears it, and a strengthened regression asserts retirement because
 batch redisplay alone did not expose the native minimum. A native conversion
-journey supplements that assertion. Final exact-head review and CI remain
-integration gates; no native pass is claimed here yet.
+journey supplements that assertion. Independent final review 5676566516 passed. All thirteen exact-head checks
+passed before merge `0bf348455b2fdeff9ba2b2a7f597e57c6d16f153`: CI
+[40613332736](https://github.com/vv111y/emacs-tui/actions/runs/40613332736)
+(eight jobs), GTK [40613332737](https://github.com/vv111y/emacs-tui/actions/runs/40613332737),
+tmux [40613332786](https://github.com/vv111y/emacs-tui/actions/runs/40613332786),
+and movement [40613332912](https://github.com/vv111y/emacs-tui/actions/runs/40613332912).
+Reviewed head `c0d286a3`, tested merge `b92b66c9` and integrated commit share tree
+`09fb749581760a26f562c7924352ee24a6f29aa1`. Hosted package installation on 31.1
+and 28.1 passed from the same archive, SHA256
+`d411e722a8ce3474b3b89d1ff7ffc740202d1cb2443db956c6bc61e9f7f2d597`.
+Latest upstream package-lint is still `1865be7`; the updated runtime reports
+only the already disclosed redundant-emacs naming warning.
 
 PR88's archival handoff merged at `3dde958b4222e485a682417f2fb13c07955be7dc`
 after exact-head independent review 5676303259 and eight successful jobs in
@@ -81,6 +91,30 @@ Reviewed head `e8fad7b1`, tested merge `21163461` and integrated tree match
 `687a5931c5f706e4e902377f54fce37ff2358cab`. No runtime changes were in that PR.
 MELPA contribution guidance was checked again during this work; external gates
 below remain unchanged.
+
+## Ordinary-window reading validation candidate
+
+A new `tty-preview-smoke.el` fixture mounts native input beside a wide read-only
+preview in ordinary windows, deliberately without child frames. It invokes the
+horizontal command through a native key, verifies a far-column payload is
+actually visible and painted, retains input text/point through real 120→90→140
+terminal resizing, rows layout, maximize/restore and explicit refresh. It then
+explicitly focuses the preview, invokes native cursor movement to trigger auto
+horizontal scrolling, checks the retained minimum, and returns to the input.
+This additional user navigation is distinct from the API preserving focus. It composes
+vertical scrolling, resets on changed content and verifies native undo plus
+resource cleanup. `make tty-smoke` includes it for every compatibility job.
+README adds public-API usage and the demo table distinguishes main-only keys.
+
+The actual PTY journey passed locally on Emacs 29.3, as did strict fixture
+compilation and diffcheck. Independent review demonstrated that removing the
+manual-minimum restore block still passed the first fixture. The strengthened
+native cursor step passes with production code and fails when that block is
+removed in an isolated copy; no production files were changed by the experiment.
+Final review and hosted compatibility-matrix execution
+remain required before this follow-up can merge; no other local runtime or
+physical terminal is claimed. The next worker should inspect this PR's exact
+head/checks before integration. Fixed beta refs remain untouched.
 
 ## Capabilities and boundaries to preserve
 
