@@ -17,7 +17,8 @@ class SmokeDriverTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             child = Path(directory) / "child"
             child.write_text(f"#!{sys.executable}\n" + r'''
-import os, pathlib, time
+import json, os, pathlib, select, time, tty
+tty.setraw(0)
 ready = pathlib.Path(os.environ["EMACS_TUI_SMOKE_READY"])
 for phase, width in [("1", 90), ("2", 140)]:
     ready.write_text(phase)
@@ -27,6 +28,32 @@ for phase, width in [("1", 90), ("2", 140)]:
             raise RuntimeError("resize not delivered")
         time.sleep(.01)
 mode = os.environ["SMOKE_TEST_MODE"]
+if mode in ("input", "changed-input", "invalid-input"):
+    request = pathlib.Path(os.environ["EMACS_TUI_SMOKE_INPUT"])
+    def publish(value):
+        temporary = request.with_suffix(".tmp")
+        temporary.write_text(json.dumps(value))
+        temporary.replace(request)
+    payload = "日本語 é\n"
+    publish({"id": "one", "text": payload if mode != "invalid-input" else ""})
+    if mode == "invalid-input":
+        time.sleep(5)  # The driver must reject this request and terminate us.
+    received = b""
+    deadline = time.monotonic() + 5
+    while len(received) < len(payload.encode()):
+        if time.monotonic() >= deadline:
+            raise RuntimeError("input not delivered")
+        if select.select([0], [], [], .1)[0]:
+            received += os.read(0, 4096)
+    assert received == payload.encode(), received
+    if mode == "changed-input":
+        publish({"id": "one", "text": "changed"})
+        time.sleep(5)  # Reusing a delivered id with new bytes must fail.
+    # Retain the request across several driver polls; it must not replay.
+    assert not select.select([0], [], [], .3)[0], "input replayed"
+    publish({"id": "two", "text": "next"})
+    assert select.select([0], [], [], 5)[0], "second input missing"
+    assert os.read(0, 4096) == b"next"
 pathlib.Path(os.environ["EMACS_TUI_SMOKE_REPORT"]).write_text(
     "FAIL deliberate failure\n" if mode == "failure" else "PASS protocol\n")
 if mode == "missing-paint":
@@ -48,6 +75,20 @@ print("child output", flush=True)
         result = self.run_child("failure")
         self.assertNotEqual(result.returncode, 0)
         self.assertIn("FAIL deliberate failure", result.stdout)
+
+    def test_terminal_input_is_utf8_and_sent_once_per_id(self):
+        result = self.run_child("input")
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+
+    def test_changed_delivered_request_is_rejected(self):
+        result = self.run_child("changed-input")
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("changed after delivery", result.stderr)
+
+    def test_invalid_input_is_rejected(self):
+        result = self.run_child("invalid-input")
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("Invalid terminal input request", result.stderr)
 
     def test_missing_terminal_paint_rejected(self):
         result = self.run_child("missing-paint")

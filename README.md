@@ -915,6 +915,12 @@ A tenth scenario kills the attached client's process group without asking Emacs
 to delete its frame. It requires asynchronous session disposal, provider
 cancellation, stale-publication rejection and continued native input on the
 surviving terminal before checking final hook and resource cleanup.
+The terminal text-entry journey sends actual UTF-8 bracketed paste and
+latin-postfix input-method keystrokes through the PTY. It checks single native
+undo, committed callback values, refresh/layout/resize retention and source
+isolation; both tmux jobs run it too. This covers terminal protocol input,
+not an operating-system clipboard or every input method. Run it alone with
+`python3 test/run-tty-smoke.py test/tty-text-entry-smoke.el` (optionally `--tmux`).
 These checks are not a visual quality or performance benchmark.
 
 To diagnose asynchronous resize ordering, run an opt-in fault probe:
