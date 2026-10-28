@@ -192,5 +192,35 @@
         (undo-only 1)
         (should (equal text (emacs-tui-input-value session 'input)))))))
 
+(ert-deftest emacs-tui-maximize-rejects-repurposed-surface ()
+  (dolist (maximized '(nil t))
+    (emacs-tui-maximize-test--with
+      (when maximized (emacs-tui-toggle-maximize session))
+      (let ((foreign (generate-new-buffer " *Foreign maximize*"))
+            (window (emacs-tui--view-window
+                     (emacs-tui--focused-view session)))
+            (closed 0))
+        (setf (emacs-tui--workspace-on-close session)
+              (lambda (_) (cl-incf closed)))
+        (unwind-protect
+            (progn
+              (with-current-buffer foreign
+                (insert (make-string 200 ?x))
+                (set-buffer-modified-p nil))
+              (set-window-buffer window foreign)
+              (set-window-point window 80)
+              (set-window-hscroll window 4)
+              (should-error (emacs-tui-toggle-maximize session) :type 'user-error)
+              (should (emacs-tui-live-p session))
+              (should (= closed 0))
+              (should (eq maximized (emacs-tui--workspace-maximized session)))
+              (should (eq foreign (window-buffer window)))
+              (should (= 80 (window-point window)))
+              (should (= 4 (window-hscroll window)))
+              (with-current-buffer foreign
+                (should (equal (buffer-string) (make-string 200 ?x)))
+                (should-not (buffer-modified-p))))
+          (kill-buffer foreign))))))
+
 (provide 'emacs-tui-maximize-test)
 ;;; emacs-tui-maximize-test.el ends here
