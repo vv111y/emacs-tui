@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.1.0-beta5 — 2026-10-28
 
 - `emacs-tui-scroll-view-horizontally` reads wide text previews without taking
   typing focus. The multi-popup demo binds C-c < / >; explicit horizontal
@@ -8,8 +8,19 @@
 
 - C-c C-d pins floating Details to one object while the list continues browsing.
   Hide/show retains the pin; releasing follows current selection again. Source
-  editing and sibling panels remain independent. This main-only demo policy
-  composes existing view updates and does not change the fixed beta4 snapshot.
+  editing and sibling panels remain independent. This demo policy composes existing view updates.
+
+- Named actions reject stale targets after availability predicates yield, and
+  selection callbacks reject repurposed interface surfaces before dispatch.
+  Stale contexts raise a user error; explicitly retry after restoring the UI.
+- Native regression coverage includes real UTF-8 bracketed paste, undo and
+  Quail composition through resizing, plus ordinary-window preview reading.
+- Community testing guide and focused bug/experience forms collect matching
+  revision and display details without requiring private init files.
+
+Beta5 retains all twelve gallery entries. Existing beta1–beta4 refs stay fixed;
+applications need no signature migration. The API remains experimental and
+MELPA acceptance is not implied.
 
 ## 0.1.0-beta4 — 2026-10-27
 

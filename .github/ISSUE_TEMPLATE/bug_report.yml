@@ -11,7 +11,7 @@ body:
     attributes:
       label: Package revision
       description: Exact git commit or installed package revision, and beta branch or main. Unknown is acceptable.
-      placeholder: release/0.1.0-beta4, commit ...
+      placeholder: release/0.1.0-beta5, commit ...
     validations:
       required: true
   - type: textarea
