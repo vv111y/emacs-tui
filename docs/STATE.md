@@ -1,6 +1,6 @@
 # Project state
 
-Updated 2026-10-27 (America/Toronto). This is the current handoff.
+Updated 2026-10-28 (America/Toronto). This is the current handoff.
 [STATE-HISTORY.md](STATE-HISTORY.md) preserves prior checkpoints verbatim;
 statements about pending checks there apply to their own dates.
 
@@ -184,6 +184,42 @@ and distinguish application policies from public primitives and unimplemented
 features. This documentation checkpoint changes no runtime or fixtures.
 Next: collect beta/application feedback and resolve concrete defects; preserve
 these native regression paths when modifying editing or lifecycle code.
+
+## Action dispatch validation
+
+PR [#92](https://github.com/vv111y/emacs-tui/pull/92) merged at
+`c9b35c1d972f054740a7e3e1441ceacf0b12123b` after independent review 5677083511
+and all eight jobs passed in [40621967627](https://github.com/vv111y/emacs-tui/actions/runs/40621967627).
+Reviewed head `3c74fc93`, tested merge `50c3ad1f` and integrated tree match
+`5bc96c91eef1bd4bce21d79e92e1a726545b9416`. This was documentation only.
+
+The next focused fix rejects stale named-action dispatch after availability
+callbacks. Even a pure predicate can yield to timers/process callbacks; a
+session can close or its targets can change before the predicate returns. The
+old path could run the action with those stale objects. Repurposing an ordinary
+window during the action menu also did not prevent dispatch. The new checks
+require the same live focused view, owned surface and identical source objects
+before using an availability result. Equal labels/IDs do not validate a newly
+replaced object. A stale result raises a user error; there is no implicit retry
+or action effect. Existing menu-time updates still receive a fresh availability
+check and dispatch current objects when the context remains valid.
+
+Three new ERT reproduce these gaps on the original runtime (17 of 20 action
+tests pass; all three new tests fail). All 20 action tests pass with the fix on
+local Emacs 29.3. They cover direct/menu dispatch, close, focus, replacement by
+equal objects, selection/marks, final post-menu predicates and repurposed
+surfaces. Independent review additionally exercised a pure predicate yielding to an actual
+close timer and a refreshed source-list spine retaining identical marked
+objects. Both cases are now bounded regression tests: closure aborts; the
+identity-preserving refresh remains valid. All 438 ERT, strict compilation,
+checkdoc and diffcheck pass locally on Emacs 29.3. Actual ordinary-window PTY
+mount and tree journeys pass, including actions and 120→90→140 resizing.
+The extracted runtime's native trampoline compiler is disabled locally; the
+first attempted action run encountered that environment error and is not
+counted as behavioral evidence. Native child frames and the supported-version
+matrix still require hosted checks. Fixed beta references are unchanged.
+MELPA CONTRIBUTING and its recipe checklist were rechecked on October 28; the
+one-month maintenance and substantive human-review gates remain open.
 
 ## Capabilities and boundaries to preserve
 

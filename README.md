@@ -479,6 +479,10 @@ and ambiguous folded names require an exact candidate.
 Action IDs are unique within each view. Descriptions are shared configuration;
 do not mutate them after use. The toolkit does not automatically close, commit,
 or roll back action effects. Applications own validation and persistence.
+Availability results are discarded if the session closes, view focus or surface
+ownership changes, or the target objects are replaced while the predicate runs.
+Invoke the action again to check the new context; predicates are not retried
+automatically, and action effects remain application-owned.
 Legacy `RET` selection remains a separate, current-item exploration action.
 
 `make tree` now offers Preview, Display buffer, Copy names and Refresh. Preview
