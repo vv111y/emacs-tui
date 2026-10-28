@@ -110,6 +110,28 @@ from tested merge `c7407d74` and clean-installed on Emacs 31.1 and 28.1, with
 public API smoke checks. This correction is on main, not in fixed beta5.
 No human or physical-emulator coverage follows.
 
+## Maximization ownership follow-up
+
+PR #100 integrated the cleanup handoff at
+`4d7e20a7374de6ab13d18b1db8204856d756e4dc` after independent review 5690350643
+and all eight CI 40777682790 jobs passed. Reviewed head `7072bb99`, tested
+merge `a981e238` and integration share tree
+`425ce70c2e048957a3418f703077e6c703d0317f`.
+
+A new focused candidate checks surface ownership before toggling maximization,
+matching explicit layout selection and view navigation. Previously a retained
+session handle could toggle maximization on a repurposed window, mutate its
+state and close the session through refresh. The regression fails on the old
+runtime and covers both maximize and restore: the corrected command signals
+user-error, retains the live session and maximization state, does not run the
+close callback, and preserves foreign text, point and horizontal scrolling.
+
+Local Emacs 29.3 passes all 443 ERT, strict compilation and checkdoc. The real
+TTY persistent-mount smoke also passes. Independent review and fresh hosted
+checks still gate integration. This candidate is not in fixed beta5; no human
+or physical-emulator validation is claimed. Continue with concrete beta issues
+and the external readiness gates below.
+
 ## Capabilities and boundaries to preserve
 
 General-purpose, terminal-first toolkit. Persistent applications, embedded

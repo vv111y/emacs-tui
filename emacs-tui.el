@@ -2478,10 +2478,13 @@ Keep an ephemeral query visible.  View navigation visits every view while
 maximized; toggling again restores the selected layout.  Preserve native
 input/undo, text position and scroll, logical selection, marks and expansion.
 No application actions or providers are invoked.  A single-view interface
-is already full size and is unchanged.  Return SESSION, or nil if reflow
+is already full size and is unchanged.  Reject a repurposed surface before
+changing state.  Return SESSION, or nil if reflow
 closes an invalidated surface."
   (interactive)
   (setq session (emacs-tui--require-session session))
+  (unless (emacs-tui--subtree session)
+    (user-error "Interface surface is no longer owned"))
   (if (= 1 (length (emacs-tui--workspace-views session))) session
     (setf (emacs-tui--workspace-maximized session)
           (not (emacs-tui--workspace-maximized session)))
