@@ -102,6 +102,8 @@ The source window is never split or replaced while the panels are shown.
 | C-c 0 | Hide all if any are visible; show all if none are visible |
 | M-n / M-p | Browse sample objects, including while panels are hidden |
 | C-c [ / ] | Scroll Details three lines backward / forward without taking focus |
+| C-c < / > (main) | Pan Details eight columns backward / forward |
+| C-c C-d (main) | Pin / release the current Details object |
 | C-c C-e | Expand / shrink visible Details; retain the choice while hidden |
 | C-c p 1 / 2 / 3 | Move Objects / Details / Keys through eight positions independently |
 | C-c C-p | Alias for moving Objects |
