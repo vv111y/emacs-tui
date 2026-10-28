@@ -81,7 +81,7 @@ resize smoke also passed. Fixed beta5 remains unchanged.
 
 ## Cleanup failure isolation
 
-The next focused correction continues disposing later owned buffers when an
+PR [#99](https://github.com/vv111y/emacs-tui/pull/99) continues disposing later owned buffers when an
 earlier buffer's kill hook signals an error or quit. It releases the origin
 marker, then re-signals the first failure; provider cancellation and close
 callbacks still run through the existing unwind cleanup. It does not bypass a
@@ -90,13 +90,24 @@ or frame deletion errors or arbitrary nonlocal throws.
 
 The existing provider-disposal regression previously checked only worker
 cancellation. Strengthening it to require later buffers and the origin marker
-to be released fails on the old runtime. An additional regression checks first-error/quit preservation, continued
-disposal after a second failure and exactly-once close callbacks. With the
-correction all 442 ERT,
+to be released fails on the old runtime. An additional regression checks
+first-error/quit preservation, continued disposal after a second failure and
+exactly-once close callbacks. With the correction all 442 ERT,
 strict compilation and checkdoc pass on local Emacs 29.3. The real 29.3 TTY
-main smoke also passes. Independent review found no blocking runtime issue
-and requested the additional regression above. Final exact-head review and
-fresh hosted checks still gate integration; this is not in fixed beta5.
+main smoke and 45-lifetime resource/isolation stress also pass. Independent
+exact-head review 5689749991 found no remaining issues and independently ran
+14 focused tests. Head `b83044be`, tree
+`1432411307d0dbc29c659d0ffc7f620145cf61fe`, matches tested merge `c7407d74`
+and integration `425a97ed95ad935eeea9d7c208b02f94398b155c`.
+
+CI 40769765947 (eight jobs), GTK 40769765948, both tmux jobs in 40769765955
+and Linux movement in 40769765949 passed. The original macOS movement job
+123103485353 was cancelled with no runner and no steps; its logs are absent.
+A targeted retry was requested without changing code or weakening checks.
+Retry job 123129585259 acquired a runner and passed. All thirteen required
+checks at the reviewed head passed before PR #99 merged. The real recipe built
+from tested merge `c7407d74` and clean-installed on Emacs 31.1 and 28.1, with
+public API smoke checks. This correction is on main, not in fixed beta5.
 No human or physical-emulator coverage follows.
 
 ## Capabilities and boundaries to preserve
