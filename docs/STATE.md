@@ -130,7 +130,8 @@ A new journey receives multiline bracketed paste with Japanese and combining
 text, verifies its callback-fed preview and terminal paint, then removes it with
 native undo. It activates built-in latin-postfix and receives actual composition
 keystrokes before and after refresh, layout and both real terminal resizes.
-A native cursor-command completion marker distinguishes Quail's silent preedit
+A non-inserting fixture command dispatched from terminal bytes distinguishes
+Quail's silent preedit
 from committed application input; asserting while preedit was still active
 initially misidentified the trailing provisional space as a missing callback.
 No runtime defect was inferred from that incomplete composition. The input
@@ -146,7 +147,14 @@ undo assertion. Six driver tests pass, including
 UTF-8 delivery, no replay, changed-request rejection and invalid-input rejection.
 Disabling latin-postfix in a second isolated experiment fails the bounded
 composition phase with literal keystrokes, proving the input method is exercised.
-Independent final local review found no remaining issues. A broader local `make tty-smoke` passed all thirteen single-process journeys
+Independent initial local review found no remaining issues. The initial hosted
+macOS tmux run then exposed the fixture's use of C-b as a composition terminator:
+that key is tmux's default prefix and is not reliable application input. Text and
+callback values were correct, but the completion marker never arrived. The
+fixture now uses its own C-c C-t command, which only records dispatch after
+Quail commits; it does not insert text or simulate composition. Revised review
+and fresh hosted checks are required; the failed head will not be merged.
+A broader local `make tty-smoke` passed all thirteen single-process journeys
 and both resize fault probes, then stopped at the existing two-client test:
 this container refused creation of its private Unix server socket with
 `Operation not permitted`. The following hangup test was not reached. This is

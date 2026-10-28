@@ -32,10 +32,10 @@
     (rename-file temporary path t)
     (setq emacs-tui-entry--attempts 0)))
 
-(defun emacs-tui-entry--command-completed ()
-  "Record a terminal cursor command after Quail has committed its preedit."
-  (when (eq this-command 'forward-char)
-    (setq emacs-tui-entry--completed-phase emacs-tui-entry--phase)))
+(defun emacs-tui-entry--commit-input ()
+  "Mark real terminal command dispatch after Quail commits its preedit."
+  (interactive)
+  (setq emacs-tui-entry--completed-phase emacs-tui-entry--phase))
 
 (defun emacs-tui-entry--fail (err)
   "Report ERR and stop this isolated process."
@@ -75,10 +75,10 @@
            (when (equal value "")
              (activate-input-method "latin-postfix")
              (setq emacs-tui-entry--phase 'compose)
-             ;; A cursor command commits Quail's preedit.  Timers can run while
-             ;; preedit text is visible but no application edit has committed.
+             ;; A non-inserting command commits Quail's preedit.  Timers can run
+             ;; while preedit is visible but no application edit has committed.
              ;; Real bytes exercise the input method; keyboard macros bypass it.
-             (emacs-tui-entry--send "compose" "a' \C-b\C-f")))
+             (emacs-tui-entry--send "compose" "a' \C-c\C-t")))
           ('compose
            (when (and (eq emacs-tui-entry--completed-phase 'compose)
                       (equal value "á "))
@@ -111,7 +111,7 @@
                    (setq emacs-tui-entry--phase 'large emacs-tui-entry--attempts 0)
                    (with-temp-file (getenv "EMACS_TUI_SMOKE_READY") (insert "2")))
                (setq emacs-tui-entry--phase 'continued)
-               (emacs-tui-entry--send "compose-after-resize" "o' \C-b\C-f"))))
+               (emacs-tui-entry--send "compose-after-resize" "o' \C-c\C-t"))))
           ('continued
            (when (and (eq emacs-tui-entry--completed-phase 'continued)
                       (equal value "á ó "))
@@ -143,6 +143,10 @@
               emacs-tui-entry--app
               (emacs-tui-mount
                :backend (if (featurep 'tty-child-frames) 'child-frame 'windows)
+               :keymap (let ((map (make-sparse-keymap)))
+                         ;; C-b would be intercepted by tmux's default prefix.
+                         (define-key map (kbd "C-c C-t") #'emacs-tui-entry--commit-input)
+                         map)
                :views (list
                        (emacs-tui-input
                         :id 'body
@@ -150,7 +154,6 @@
                                      (cl-incf emacs-tui-entry--calls)
                                      (emacs-tui-update app 'preview :text value)))
                        (emacs-tui-view :id 'preview :text ""))))
-        (add-hook 'post-command-hook #'emacs-tui-entry--command-completed nil t)
         (emacs-tui-entry--send "paste" (concat "\e[200~" emacs-tui-entry--paste "\e[201~"))
         (run-at-time 0.05 0.05 #'emacs-tui-entry--check))
     ((error quit) (emacs-tui-entry--fail err))))
