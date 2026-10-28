@@ -253,6 +253,33 @@ passes. No runtime changes or new execution tests are part of this guide.
 Next: collect concrete beta/application feedback and address reported defects;
 keep fixed beta refs unchanged and preserve the native regression paths.
 
+## Selection callback ownership
+
+PR [#94](https://github.com/vv111y/emacs-tui/pull/94) merged at
+`d38242d8476c9c9ab5020034399ffd466883de93` after independent exact-head review
+5686040566 and all eight CI jobs passed in
+[40725104111](https://github.com/vv111y/emacs-tui/actions/runs/40725104111).
+Reviewed head `d35942fd`, tested merge `9ddd4f54` and integrated tree match
+`c50bec653509e000eb596e9e57c0d888213f8c35`. This adds the community guide and
+feedback forms; no human testing results are inferred.
+
+The next focused fix extends surface-ownership validation to `emacs-tui-select`.
+An explicit call with a live session could invoke its selection callback after
+an ordinary window had been repurposed to display a foreign buffer. It now
+rejects before the callback, preserving the foreign buffer/window. Selection
+still passes only the selected object, even when hidden marks exist, and does
+not close the interface. This does not change named actions or commit semantics.
+
+The new foreign-surface regression fails on the original runtime (the callback
+runs and selection returns); the positive hidden-mark case passes before and
+after. All 440 ERT, strict compilation and checkdoc pass locally on Emacs 29.3
+with native trampolines disabled for this extracted runtime. The actual ordinary
+TTY mount/action journey passes, including 120→90→140 resize. Independent review
+ran all 24 action/select tests and reproduced the original-runtime failure.
+Hosted checks remain required before integration. Fixed beta refs remain
+unchanged. MELPA contribution guidance was rechecked October 28; external
+maintenance and human-review gates remain open.
+
 ## Capabilities and boundaries to preserve
 
 General-purpose, terminal-first toolkit. Persistent applications, embedded

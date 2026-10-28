@@ -317,6 +317,34 @@
               (should (eq foreign (window-buffer window)))))
         (kill-buffer foreign)))))
 
+(ert-deftest emacs-tui-select-rejects-repurposed-surface ()
+  (let ((foreign (generate-new-buffer " *select-foreign*")) (runs 0))
+    (unwind-protect
+        (emacs-tui-action-test--with
+            (list (emacs-tui-view :id 'a :items '("x")
+                                  :on-select (lambda (&rest _) (cl-incf runs))))
+          (let ((window (selected-window)))
+            (with-current-buffer foreign (insert "keep"))
+            (set-window-buffer window foreign)
+            (should-error (emacs-tui-select session) :type 'user-error)
+            (should (= 0 runs))
+            (should (eq foreign (window-buffer window)))
+            (should (equal "keep" (with-current-buffer foreign (buffer-string))))))
+      (kill-buffer foreign))))
+
+(ert-deftest emacs-tui-select-preserves-single-selection-with-hidden-marks ()
+  (let ((first (list :id 'a :label "alpha"))
+        (second (list :id 'b :label "beta")) received)
+    (emacs-tui-action-test--with
+        (list (emacs-tui-view :id 'a :items (list first second) :multi-select t
+                              :on-select (lambda (_app item) (setq received item))))
+      (emacs-tui-toggle-mark session)
+      (emacs-tui-set-query session 'a "beta")
+      (should (eq second (emacs-tui-select session)))
+      (should (eq second received))
+      (should (equal (list first) (emacs-tui-marked-items session)))
+      (should (emacs-tui-live-p session)))))
+
 (ert-deftest emacs-tui-action-pure-availability-yields-to-close-timer ()
   (let (timer fired ran)
     (unwind-protect
