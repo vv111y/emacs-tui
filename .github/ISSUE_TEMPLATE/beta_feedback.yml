@@ -1,0 +1,29 @@
+name: Beta experience
+description: Share successful display coverage or API and usability feedback.
+title: "[Beta] "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        One concrete workflow is enough. This records user experience, not a stability certification. Use the bug form for incorrect behavior and omit private data.
+  - type: input
+    id: revision
+    attributes:
+      label: Revision tested
+      description: Exact commit or installed package revision and beta branch/main, if known.
+    validations:
+      required: true
+  - type: textarea
+    id: environment
+    attributes:
+      label: Display and editing environment
+      description: Emacs, OS, terminal/graphical build, multiplexer and input method tested, if applicable. Unknown details are fine.
+    validations:
+      required: true
+  - type: textarea
+    id: workflow
+    attributes:
+      label: Workflow and result
+      description: Which demo/application did you use? What worked, what was confusing, and what would make the API or interaction easier? Include concrete keys or a small API example when helpful.
+    validations:
+      required: true

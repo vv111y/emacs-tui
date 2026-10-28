@@ -221,6 +221,38 @@ matrix still require hosted checks. Fixed beta references are unchanged.
 MELPA CONTRIBUTING and its recipe checklist were rechecked on October 28; the
 one-month maintenance and substantive human-review gates remain open.
 
+PR [#93](https://github.com/vv111y/emacs-tui/pull/93) merged at
+`5e742a5808ef99b12730c9d57993dacf7099540b` after independent exact-head review
+5685862905 and all thirteen checks passed: CI
+[40723131218](https://github.com/vv111y/emacs-tui/actions/runs/40723131218)
+(eight jobs), GTK [40723131271](https://github.com/vv111y/emacs-tui/actions/runs/40723131271),
+tmux [40723131073](https://github.com/vv111y/emacs-tui/actions/runs/40723131073),
+and movement [40723131215](https://github.com/vv111y/emacs-tui/actions/runs/40723131215).
+Reviewed head `7ec12828`, tested merge `406287e3` and integrated commit share
+`1d7edce18a18011bdd9119c333205ba6b52413bd`. Actual minimum 28.1 and macOS 31.1
+logs confirm 438 passing ERT and native action journeys; macOS 31.1 additionally
+passes child-frame, two-client and abrupt-hangup checks. The package job passes
+real build and clean installation on 31.1/28.1. Local ordinary-window preview
+PTY validation also passed; it establishes no new physical-emulator coverage.
+
+## Community feedback path
+
+[The beta testing guide](BETA-TESTING.md) provides matching-checkout commands,
+three short workflows and release-specific controls, including real paste/input
+method and cleanup checks for human use. GitHub bug and beta-experience forms
+ask for exact revision, display environment and a minimal reproduction or
+concrete experience; they do not request private init files or full sessions.
+The guide distinguishes installed runtime from checkout examples and beta4
+from main. This prepares community testing; no human result is claimed.
+
+Independent documentation review caught and corrected the CAPF cleanup key
+(the mode has no C-c C-q binding), the all-toggle sequence, the need to actually
+attempt invalid Apply, and an unobservable callback-count instruction. Both
+issue forms parse as YAML with unique IDs and required-field booleans; diffcheck
+passes. No runtime changes or new execution tests are part of this guide.
+Next: collect concrete beta/application feedback and address reported defects;
+keep fixed beta refs unchanged and preserve the native regression paths.
+
 ## Capabilities and boundaries to preserve
 
 General-purpose, terminal-first toolkit. Persistent applications, embedded

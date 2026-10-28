@@ -1,0 +1,37 @@
+name: Bug report
+description: Report incorrect behavior in a demo or application.
+title: "[Bug] "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for testing emacs-tui. Use sample data and omit private buffer contents, paths and credentials. Screenshots are optional. The [beta testing guide](https://github.com/vv111y/emacs-tui/blob/main/docs/BETA-TESTING.md) explains clean reproduction and environment checks.
+  - type: input
+    id: revision
+    attributes:
+      label: Package revision
+      description: Exact git commit or installed package revision, and beta branch or main. Unknown is acceptable.
+      placeholder: release/0.1.0-beta4, commit ...
+    validations:
+      required: true
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: Emacs version, OS, terminal emulator or graphical build, multiplexer/version if used, and tty-child-frames capability if known.
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Reproduction
+      description: Demo/command or small self-contained application and exact keys. Does it also happen with a clean matching checkout under emacs -Q?
+    validations:
+      required: true
+  - type: textarea
+    id: behavior
+    attributes:
+      label: Expected and observed behavior
+      description: Include whether text/focus/undo changed, cleanup failed, or the problem depends on window dimensions. Paste the error or relevant backtrace if available.
+    validations:
+      required: true
