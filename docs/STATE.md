@@ -54,6 +54,27 @@ and thirteen passing checks; its regression fails on the old runtime. PR #94
 added feedback guidance/forms after review 5686040566 and eight passing jobs.
 Their detailed evidence and prior feature integrations remain in the archive.
 
+## Commit surface ownership follow-up
+
+PR #97 integrated the release handoff at
+`258ac39b8512e47c9f4444e34def3a7588e03f75` after independent review 5688336747
+and all eight checks in CI 40752712645 passed. Reviewed head `9a4c1b22`,
+tested merge `790af25f` and integration share tree
+`c030d3093396d4673e35face1c803bd9d4d60721`.
+
+A focused follow-up makes explicit commit reject an ordinary-window surface
+that has been repurposed, matching selection and named-action ownership checks.
+Previously an explicit session handle could still commit its old selected item
+to the origin after the query or results window displayed an unrelated buffer.
+The regression fails on the original runtime. With the check, neither callback
+nor origin edit occurs; the unrelated window/text and live session are retained.
+Existing successful commit and rollback behavior is preserved.
+
+Local Emacs 29.3 passes all 441 ERT, strict compilation and checkdoc. The new
+regression covers both query and result surface replacement. This candidate
+still requires independent review and fresh hosted checks before integration;
+fixed beta5 remains unchanged. No human or physical-emulator coverage follows.
+
 ## Capabilities and boundaries to preserve
 
 General-purpose, terminal-first toolkit. Persistent applications, embedded

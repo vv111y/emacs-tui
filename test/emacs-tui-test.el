@@ -84,6 +84,30 @@
     (with-current-buffer source
       (should (equal "xunchaINSERTnged source" (buffer-string))))))
 
+(ert-deftest emacs-tui-commit-rejects-repurposed-surface ()
+  (dolist (surface '(query results))
+    (let ((foreign (generate-new-buffer " *commit-foreign*")) (runs 0))
+      (unwind-protect
+          (emacs-tui-test--workspace
+              (:views (list (emacs-tui-view :id 'a :items '("INSERT")))
+               :on-commit (lambda (_ item _marker)
+                            (cl-incf runs) (insert item)))
+            (let ((window (if (eq surface 'query)
+                              (selected-window)
+                            (emacs-tui--view-window
+                             (emacs-tui--focused-view session)))))
+              (with-current-buffer foreign (insert "keep"))
+              (set-window-buffer window foreign)
+              (should-error (emacs-tui-commit session) :type 'user-error)
+              (should (= runs 0))
+              (should (emacs-tui-live-p session))
+              (should (eq foreign (window-buffer window)))
+              (should (equal "keep" (with-current-buffer foreign (buffer-string))))
+              (with-current-buffer source
+                (should (equal "unchanged source" (buffer-string)))
+                (should-not (buffer-modified-p)))))
+        (kill-buffer foreign)))))
+
 (ert-deftest emacs-tui-failed-commit-rolls-back-and-keeps-session ()
   (emacs-tui-test--workspace
       (:views (list (emacs-tui-view :id 'a :items '("a")))
