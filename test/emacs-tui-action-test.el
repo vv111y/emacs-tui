@@ -236,5 +236,125 @@
         (should-error (emacs-tui-act session) :type 'user-error))
       (should (= 0 runs)))))
 
+(ert-deftest emacs-tui-action-availability-cannot-dispatch-after-invalidation ()
+  ;; A predicate can yield to a timer/process callback even when it is pure.
+  ;; Exercise the resulting invalidation synchronously at the same boundary.
+  (dolist (operation '(close focus replace select mark))
+    (dolist (prompt '(nil t))
+      (let ((runs 0) (prompts 0))
+        (emacs-tui-action-test--with
+            (list (emacs-tui-view
+                   :id 'a :items (list (list :id 'x :label "same")
+                                      (list :id 'y :label "other"))
+                   :multi-select t
+                   :actions
+                   (list (emacs-tui-action
+                          :id 'run :title "Run"
+                          :enabled
+                          (lambda (app _items)
+                            (pcase operation
+                              ('close (emacs-tui-close app))
+                              ('focus (emacs-tui-next-view app))
+                              ('replace (emacs-tui-update
+                                         app 'a :items (list (list :id 'x :label "same")
+                                                            (list :id 'y :label "other"))))
+                              ('select (emacs-tui-next-item app))
+                              ('mark (emacs-tui-next-item app)
+                                     (emacs-tui-toggle-mark app)))
+                            t)
+                          :run (lambda (&rest _) (cl-incf runs)))))
+                  (emacs-tui-view :id 'b :items '("b")))
+          (cl-letf (((symbol-function 'completing-read)
+                     (lambda (&rest _) (cl-incf prompts) "Run (run)")))
+            (should-error (emacs-tui-act session (unless prompt 'run))
+                          :type 'user-error))
+          (should (= 0 runs))
+          (should (= 0 prompts)))))))
+
+(ert-deftest emacs-tui-action-final-availability-cannot-use-replaced-targets ()
+  (let ((runs 0) (checks 0) (prompts 0))
+    (emacs-tui-action-test--with
+        (list (emacs-tui-view
+               :id 'a :items (list (list :id 'x :label "same"))
+               :actions
+               (list (emacs-tui-action
+                      :id 'run :title "Run"
+                      :enabled (lambda (app _items)
+                                 (when (= 2 (cl-incf checks))
+                                   (emacs-tui-update app 'a :items
+                                                     (list (list :id 'x :label "same"))))
+                                 t)
+                      :run (lambda (&rest _) (cl-incf runs))))))
+      (cl-letf (((symbol-function 'completing-read)
+                 (lambda (&rest _) (cl-incf prompts) "Run (run)")))
+        (should-error (emacs-tui-act session) :type 'user-error))
+      (should (= 1 prompts))
+      (should (= 2 checks))
+      (should (= 0 runs)))))
+
+(ert-deftest emacs-tui-action-repurposed-surface-never-dispatches ()
+  (dolist (prompt '(nil t))
+    (let ((foreign (generate-new-buffer " *action-foreign*"))
+          (runs 0) (checks 0))
+      (unwind-protect
+          (emacs-tui-action-test--with
+              (list (emacs-tui-view
+                     :id 'a :items '("x")
+                     :actions (list (emacs-tui-action
+                                     :id 'run :title "Run"
+                                     :enabled (lambda (&rest _) (cl-incf checks) t)
+                                     :run (lambda (&rest _) (cl-incf runs))))))
+            (let ((window (selected-window)))
+              (cl-letf (((symbol-function 'completing-read)
+                         (lambda (&rest _)
+                           (set-window-buffer window foreign)
+                           "Run (run)")))
+                (unless prompt (set-window-buffer window foreign))
+                (should-error (emacs-tui-act session (unless prompt 'run))
+                              :type 'user-error))
+              (should (= (if prompt 1 0) checks))
+              (should (= 0 runs))
+              (should (eq foreign (window-buffer window)))))
+        (kill-buffer foreign)))))
+
+(ert-deftest emacs-tui-action-pure-availability-yields-to-close-timer ()
+  (let (timer fired ran)
+    (unwind-protect
+        (emacs-tui-action-test--with
+            (list (emacs-tui-view
+                   :id 'a :items '("a")
+                   :actions (list (emacs-tui-action
+                                   :id 'run
+                                   :enabled (lambda (&rest _)
+                                              (let ((deadline (+ (float-time) 2)))
+                                                (while (and (not fired)
+                                                            (< (float-time) deadline))
+                                                  (accept-process-output nil 0.001)))
+                                              t)
+                                   :run (lambda (&rest _) (setq ran t))))))
+          (setq timer (run-at-time 0 nil (lambda ()
+                                          (setq fired t)
+                                          (emacs-tui-close session))))
+          (should-error (emacs-tui-act session 'run) :type 'user-error)
+          (should fired)
+          (should-not ran))
+      (when timer (cancel-timer timer)))))
+
+(ert-deftest emacs-tui-action-availability-refresh-retains-original-targets ()
+  (let* ((objects (list (list :id 'a :label "a"))) received)
+    (emacs-tui-action-test--with
+        (list (emacs-tui-view
+               :id 'a :items objects :multi-select t
+               :actions (list (emacs-tui-action
+                               :id 'run
+                               :enabled (lambda (app _items)
+                                          (emacs-tui-update app 'a :items
+                                                            (copy-sequence objects))
+                                          t)
+                               :run (lambda (_app items) (setq received items))))))
+      (emacs-tui-toggle-mark session)
+      (emacs-tui-act session 'run)
+      (should (eq (car objects) (car received))))))
+
 (provide 'emacs-tui-action-test)
 ;;; emacs-tui-action-test.el ends here

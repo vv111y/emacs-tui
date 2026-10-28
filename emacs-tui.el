@@ -2340,10 +2340,28 @@ SESSION defaults to the current interface.  Return SESSION."
   (or (emacs-tui-marked-items session (emacs-tui--view-id view))
       (when-let* ((item (emacs-tui-current-item session))) (list item))))
 
-(defun emacs-tui--action-enabled-p (action session items)
-  "Test ACTION's availability for SESSION and ITEMS."
-  (let ((enabled (emacs-tui--action-enabled action)))
-    (if (functionp enabled) (funcall enabled session items) enabled)))
+(defun emacs-tui--action-targets (session view)
+  "Return current action targets after checking SESSION still owns VIEW."
+  (emacs-tui--require-session session)
+  (unless (eq view (emacs-tui--focused-view session))
+    (user-error "Focused view changed; choose an action again"))
+  (unless (emacs-tui--subtree session)
+    (user-error "Interface surface is no longer owned"))
+  (emacs-tui--action-items session view))
+
+(defun emacs-tui--action-enabled-p (action session view items)
+  "Test ACTION for SESSION's VIEW and ITEMS, rejecting stale results.
+Availability functions must be pure, but may yield to timers or process
+callbacks.  Never dispatch or continue a menu using invalidated targets."
+  (let* ((enabled (emacs-tui--action-enabled action))
+         (available (if (functionp enabled) (funcall enabled session items) enabled))
+         (current (emacs-tui--action-targets session view)))
+    ;; Stable IDs or equal values do not prove that the predicate checked these
+    ;; source objects.  Replacement snapshots must be checked on a new request.
+    (unless (and (= (length items) (length current))
+                 (cl-every #'eq items current))
+      (user-error "Action targets changed; choose an action again"))
+    available))
 
 (defun emacs-tui--action-choice (answer choices)
   "Resolve accepted completion ANSWER in CHOICES without case ambiguity.
@@ -2366,19 +2384,22 @@ back to the selected object.  With no targets, pass nil; applications can
 provide target-free actions such as refresh.  Read current objects and check
 availability again after choosing from the menu.  If the interface closes or
 focus changes during the prompt, abort rather than dispatch to another view.
+Also abort if surface ownership or target objects change during availability
+checks; retry explicitly rather than running with a stale predicate result.
 Only the chosen action's RUN callback executes.  Return its result.  There is
 no implicit close, commit or transaction; applications own all effects."
   (interactive)
   (setq session (emacs-tui--require-session session))
   (let* ((view (emacs-tui--focused-view session))
          (actions (emacs-tui--view-actions view)))
+    (emacs-tui--action-targets session view)
     (unless actions (user-error "This view has no named actions"))
     (unless id
       (let* ((items (emacs-tui--action-items session view))
              (labels (make-hash-table :test #'equal))
              (choices
               (cl-loop for action in actions
-                       when (emacs-tui--action-enabled-p action session items)
+                       when (emacs-tui--action-enabled-p action session view items)
                        collect
                        (let* ((label (format "%s (%S)" (emacs-tui--action-title action)
                                              (emacs-tui--action-id action)))
@@ -2394,13 +2415,10 @@ no implicit close, commit or transaction; applications own all effects."
 							 (if (= 1 (length items)) "" "s"))
 						 choices nil t)
 						choices)))))
-    (emacs-tui--require-session session)
-    (unless (eq view (emacs-tui--focused-view session))
-      (user-error "Focused view changed; choose an action again"))
     (let ((action (cl-find id actions :key #'emacs-tui--action-id :test #'equal))
-          (items (emacs-tui--action-items session view)))
+          (items (emacs-tui--action-targets session view)))
       (unless action (user-error "Unknown action: %S" id))
-      (unless (emacs-tui--action-enabled-p action session items)
+      (unless (emacs-tui--action-enabled-p action session view items)
         (user-error "This action is unavailable for the current targets"))
       (funcall (emacs-tui--action-run action) session items))))
 
