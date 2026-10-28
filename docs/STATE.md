@@ -71,9 +71,33 @@ nor origin edit occurs; the unrelated window/text and live session are retained.
 Existing successful commit and rollback behavior is preserved.
 
 Local Emacs 29.3 passes all 441 ERT, strict compilation and checkdoc. The new
-regression covers both query and result surface replacement. This candidate
-still requires independent review and fresh hosted checks before integration;
-fixed beta5 remains unchanged. No human or physical-emulator coverage follows.
+regression covers both query and result surface replacement. PR #98 merged at
+`0ae9600c30e63b4f308df5b60dd395ea8bb6cf62` after independent review 5688907689
+and all thirteen exact-head checks passed: CI 40759303665 (eight jobs), GTK
+40759303705, tmux 40759304528 and movement 40759304088. Reviewed head
+`c6ec703f`, tested merge `0886764b` and integration share tree
+`f646adbf6528d0fd6e99ec2ea23c55d36695af65`. Local actual TTY marked-commit and
+resize smoke also passed. Fixed beta5 remains unchanged.
+
+## Cleanup failure isolation
+
+The next focused correction continues disposing later owned buffers when an
+earlier buffer's kill hook signals an error or quit. It releases the origin
+marker, then re-signals the first failure; provider cancellation and close
+callbacks still run through the existing unwind cleanup. It does not bypass a
+failing hook or force-kill its buffer, and does not claim recovery from window
+or frame deletion errors or arbitrary nonlocal throws.
+
+The existing provider-disposal regression previously checked only worker
+cancellation. Strengthening it to require later buffers and the origin marker
+to be released fails on the old runtime. An additional regression checks first-error/quit preservation, continued
+disposal after a second failure and exactly-once close callbacks. With the
+correction all 442 ERT,
+strict compilation and checkdoc pass on local Emacs 29.3. The real 29.3 TTY
+main smoke also passes. Independent review found no blocking runtime issue
+and requested the additional regression above. Final exact-head review and
+fresh hosted checks still gate integration; this is not in fixed beta5.
+No human or physical-emulator coverage follows.
 
 ## Capabilities and boundaries to preserve
 

@@ -2122,13 +2122,22 @@ windows are preserved."
 			(set-window-point window origin))
                       (unless origin
                         (set-window-buffer window (other-buffer (window-buffer window) t)))))))))
-	  (dolist (buffer (cons (emacs-tui--workspace-query-buffer session)
-				(mapcar #'emacs-tui--view-buffer
-					(emacs-tui--workspace-views session))))
-            (when (buffer-live-p buffer)
-              (with-current-buffer buffer (set-buffer-modified-p nil))
-              (kill-buffer buffer)))
-	  (when origin (set-marker origin nil)))
+          (let (disposal-error)
+            (dolist (buffer (cons (emacs-tui--workspace-query-buffer session)
+                                 (mapcar #'emacs-tui--view-buffer
+                                         (emacs-tui--workspace-views session))))
+              (when (buffer-live-p buffer)
+                (condition-case err
+                    (progn
+                      (with-current-buffer buffer (set-buffer-modified-p nil))
+                      (kill-buffer buffer))
+                  ((error quit)
+                   (unless disposal-error (setq disposal-error err))))))
+            (when origin (set-marker origin nil))
+            ;; A failing user hook must not strand the remaining owned buffers.
+            ;; Preserve the first failure; do not bypass the failing hook.
+            (when disposal-error
+              (signal (car disposal-error) (cdr disposal-error)))))
       (unless emacs-tui--sessions
 	(remove-hook 'delete-frame-functions #'emacs-tui--frame-deleted)
 	(remove-hook 'window-state-change-hook #'emacs-tui--window-state-changed))
