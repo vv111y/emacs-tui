@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- `emacs-tui-scroll-view-horizontally` reads wide text previews without taking
+  typing focus. The multi-popup demo binds C-c < / >; explicit horizontal
+  position survives reflow and resize, and resets with new preview content.
+
 - C-c C-d pins floating Details to one object while the list continues browsing.
   Hide/show retains the pin; releasing follows current selection again. Source
   editing and sibling panels remain independent. This main-only demo policy

@@ -833,6 +833,12 @@ Prepare application projections before changing any displayed content."
                   emacs-tui--row-tick (buffer-chars-modified-tick))
             (emacs-tui--highlight-row (emacs-tui--view-selected view))
             (set-buffer-modified-p nil)
+            (when (nth 4 (emacs-tui--view-display-state view))
+              (let ((window (emacs-tui--view-window view)))
+                (when (and (window-live-p window) (eq (window-buffer window) buffer))
+                  (with-selected-window window
+                    (scroll-right (window-hscroll window) t))))
+              (setf (emacs-tui--view-display-state view) nil))
             (when (emacs-tui--view-text view)
               (setf (emacs-tui--view-display-state view) nil))
             (when (emacs-tui--view-editable view)
@@ -1637,7 +1643,8 @@ A foreign window inside the subtree makes it unsuitable for reflow."
                (eq (window-buffer window) (emacs-tui--view-buffer view)))
       (setf (emacs-tui--view-display-state view)
             (list (window-start window) (window-point window)
-                  (window-hscroll window) (window-vscroll window t))))))
+                  (window-hscroll window) (window-vscroll window t)
+                  (nth 4 (emacs-tui--view-display-state view)))))))
 
 (defun emacs-tui--restore-view (view)
   "Restore VIEW's cached scroll and text cursor in its current window."
@@ -1649,6 +1656,11 @@ A foreign window inside the subtree makes it unsuitable for reflow."
               (position (max (point-min) (min (point-max) (nth 1 state)))))
           (set-window-start window start t)
           (when (emacs-tui--view-text view) (set-window-point window position))
+          ;; Native buffer installation clears the manual horizontal minimum.
+          ;; Restore only a minimum explicitly requested through our scroll API.
+          (when (nth 4 state)
+            (set-window-hscroll window (nth 4 state))
+            (with-selected-window window (scroll-left 0 t)))
           (set-window-hscroll window (nth 2 state))
           (set-window-vscroll window (nth 3 state) t))))))
 
@@ -2183,6 +2195,33 @@ Return SESSION."
   (unless (or (null lines) (integerp lines))
     (error "Scroll distance must be an integer or nil"))
   (setq session (emacs-tui--require-session session))
+  (let ((view (emacs-tui--scrollable-view session id)))
+    (unwind-protect
+        (with-selected-window (emacs-tui--view-window view) (scroll-up lines))
+      (emacs-tui--remember-view view)))
+  session)
+
+(defun emacs-tui-scroll-view-horizontally (session id &optional columns)
+  "Scroll SESSION's visible read-only preview ID horizontally by COLUMNS.
+Nil ID means the logically focused view.  Positive COLUMNS reveals text farther
+along each line; negative values return toward the beginning, stopping at zero.
+Nil COLUMNS uses the native window width minus two, as with `scroll-left'.
+Preserve source focus, text, selection and marks.  Retain the explicit scroll
+minimum through layout changes and popup resizing; new preview text resets it.
+Hidden, list and editable views are rejected.  Return SESSION."
+  (unless (or (null columns) (integerp columns))
+    (error "Scroll distance must be an integer or nil"))
+  (setq session (emacs-tui--require-session session))
+  (let ((view (emacs-tui--scrollable-view session id)))
+    (with-selected-window (emacs-tui--view-window view)
+      (scroll-left columns t))
+    (emacs-tui--remember-view view)
+    (setf (nth 4 (emacs-tui--view-display-state view))
+          (window-hscroll (emacs-tui--view-window view))))
+  session)
+
+(defun emacs-tui--scrollable-view (session id)
+  "Return SESSION's visible read-only preview ID or signal a user error."
   (let* ((view (emacs-tui--resolve-view session id))
          (window (emacs-tui--view-window view)))
     (unless (and (emacs-tui--view-text view)
@@ -2193,10 +2232,7 @@ Return SESSION."
                  (emacs-tui--owned-window-p session window)
                  (eq (window-buffer window) (emacs-tui--view-buffer view)))
       (user-error "Preview is not visible in an owned window"))
-    (unwind-protect
-        (with-selected-window window (scroll-up lines))
-      (emacs-tui--remember-view view)))
-  session)
+    view))
 
 (defun emacs-tui--selection-cached-p (view)
   "Whether the current buffer has valid rendered positions for VIEW."

@@ -117,6 +117,12 @@ focus, and sibling panels retain their sizes and positions. Native viewport
 bounds can limit the actual dimensions. Hide/show retains the size choice;
 disabling/re-enabling resets it.
 
+On development main, C-c < / > pans Details eight columns backward / forward.
+Read the wide operator notes without focusing the popup. Movement, resizing
+and refresh retain the explicit horizontal position; browsing to new content
+resets it. Returning past the first column stops at zero. These keys and the
+`emacs-tui-scroll-view-horizontally` API are absent from fixed beta4.
+
 On development main, C-c C-d pins visible Details to its current object. Its
 header displays [pinned]. Browse with M-n/M-p: Objects changes while Details
 keeps its text and reading position. Hide/show retains the pinned object;

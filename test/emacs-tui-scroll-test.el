@@ -107,5 +107,82 @@
       (emacs-tui-close app)
       (should-error (emacs-tui-scroll-view app 'preview 1) :type 'user-error))))
 
+(ert-deftest emacs-tui-horizontal-scroll-preserves-source-and-survives-reflow ()
+  (emacs-tui-scroll-test--app
+    (emacs-tui-toggle-mark app)
+    (let* ((source (current-buffer)) (host (selected-window)) (point (point))
+           (view (emacs-tui--resolve-view app 'preview))
+           (buffer (emacs-tui--view-buffer view))
+           (tick (with-current-buffer buffer (buffer-chars-modified-tick))))
+      (should (eq app (emacs-tui-scroll-view-horizontally app 'preview 12)))
+      (should (= 12 (window-hscroll (emacs-tui--view-window view))))
+      (emacs-tui-scroll-view app 'preview 3)
+      (emacs-tui-update app 'preview :text (copy-sequence text))
+      (emacs-tui-cycle-layout app)
+      (should (= 12 (window-hscroll (emacs-tui--view-window view))))
+      (should (eq source (current-buffer)))
+      (should (eq host (selected-window)))
+      (should (= point (point)))
+      (should (eq 'items (emacs-tui-current-view app)))
+      (should (equal '("A") (emacs-tui-marked-items app)))
+      (should (= tick (with-current-buffer buffer (buffer-chars-modified-tick))))
+      (emacs-tui-scroll-view-horizontally app 'preview -100)
+      (should (= 0 (window-hscroll (emacs-tui--view-window view)))))))
+
+(ert-deftest emacs-tui-horizontal-scroll-default-focus-and-new-text ()
+  (emacs-tui-scroll-test--app
+    (emacs-tui-focus-view app 'preview)
+    (let ((window (selected-window)))
+      (emacs-tui-scroll-view-horizontally app nil)
+      (should (= (- (window-width window) 2) (window-hscroll window)))
+      (emacs-tui-update app 'preview :title "Same content")
+      (should (> (window-hscroll window) 0))
+      (emacs-tui-update app 'preview :text "A new object")
+      (should (= 0 (window-hscroll window)))
+      (emacs-tui-refresh app)
+      (should (= 0 (window-hscroll (emacs-tui--view-window
+                                    (emacs-tui--resolve-view app 'preview))))))))
+
+(ert-deftest emacs-tui-horizontal-scroll-hidden-update-and-list-transition ()
+  (emacs-tui-scroll-test--app
+    (let ((view (emacs-tui--resolve-view app 'preview)))
+      (emacs-tui-scroll-view-horizontally app 'preview 10)
+      (emacs-tui-toggle-maximize app)
+      (emacs-tui-update app 'preview :text "New hidden object")
+      (emacs-tui-toggle-maximize app)
+      (should (= 0 (window-hscroll (emacs-tui--view-window view))))
+      (emacs-tui-scroll-view-horizontally app 'preview 8)
+      (emacs-tui-update app 'preview :text nil :items '("An item"))
+      ;; Batch redisplay cannot expose a stale native minimum.  Assert its
+      ;; retirement as well, then exercise reconstruction of the list window.
+      (should-not (nth 4 (emacs-tui--view-display-state view)))
+      (emacs-tui-refresh app)
+      (should (= 0 (window-hscroll (emacs-tui--view-window view)))))))
+
+(ert-deftest emacs-tui-horizontal-scroll-rejects-invalid-targets ()
+  (emacs-tui-scroll-test--app
+    (let ((windows (window-state-get)))
+      (dolist (id '(items input absent))
+        (should-error (emacs-tui-scroll-view-horizontally app id 4)))
+      (should-error (emacs-tui-scroll-view-horizontally app 'preview 1.5))
+      (should (equal windows (window-state-get))))
+    (emacs-tui-toggle-maximize app)
+    (should-error (emacs-tui-scroll-view-horizontally app 'preview 4) :type 'user-error)
+    (emacs-tui-close app)
+    (should-error (emacs-tui-scroll-view-horizontally app nil 4) :type 'user-error)))
+
+(ert-deftest emacs-tui-horizontal-scroll-rejects-repurposed-surface ()
+  (emacs-tui-scroll-test--app
+    (let ((foreign (generate-new-buffer " *horizontal foreign*"))
+          (window (emacs-tui--view-window (emacs-tui--resolve-view app 'preview))))
+      (unwind-protect
+          (progn
+            (set-window-buffer window foreign)
+            (let ((state (window-state-get)))
+              (should-error (emacs-tui-scroll-view-horizontally app 'preview 5)
+                            :type 'user-error)
+              (should (equal state (window-state-get)))))
+        (kill-buffer foreign)))))
+
 (provide 'emacs-tui-scroll-test)
 ;;; emacs-tui-scroll-test.el ends here

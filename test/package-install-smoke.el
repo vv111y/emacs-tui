@@ -37,7 +37,8 @@
   (unless (file-exists-p (expand-file-name "LICENSE" (file-name-directory (locate-library "emacs-tui"))))
     (error "Installed package lacks its license"))
   (dolist (function '(emacs-tui-popup emacs-tui-popup-supported-p emacs-tui-reposition-popup
-                       emacs-tui-scroll-view emacs-tui-resize-popup))
+                       emacs-tui-scroll-view emacs-tui-scroll-view-horizontally
+                       emacs-tui-resize-popup))
     (unless (and (fboundp function)
                  (file-in-directory-p (symbol-file function 'defun) package-user-dir))
       (error "Popup API did not load from the installed package: %s" function)))
@@ -118,6 +119,9 @@
                     (position (point))
                     (text (buffer-string)))
                 (emacs-tui-scroll-view session 'preview 3)
+                (emacs-tui-scroll-view-horizontally session 'preview 8)
+                (unless (= 8 (window-hscroll preview))
+                  (error "Installed horizontal preview scroll failed"))
                 (unless (and (> (window-start preview) start)
                              (eq source (selected-window))
                              (eq buffer (current-buffer))
