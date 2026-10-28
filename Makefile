@@ -14,6 +14,7 @@ tty-smoke:
 	EMACS=$(EMACS) python3 test/run-tty-smoke.py test/tty-embed-smoke.el
 	EMACS=$(EMACS) python3 test/run-tty-smoke.py test/tty-table-smoke.el
 	EMACS=$(EMACS) python3 test/run-tty-smoke.py test/tty-input-smoke.el
+	EMACS=$(EMACS) python3 test/run-tty-smoke.py test/tty-text-entry-smoke.el
 	EMACS=$(EMACS) python3 test/run-tty-smoke.py test/tty-preview-smoke.el
 	EMACS=$(EMACS) python3 test/run-tty-smoke.py test/tty-tree-smoke.el
 	EMACS=$(EMACS) python3 test/run-tty-smoke.py test/tty-lifecycle-smoke.el

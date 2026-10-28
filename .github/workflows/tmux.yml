@@ -48,3 +48,4 @@ jobs:
           python3 test/run-tty-smoke.py --tmux test/tty-popup-smoke.el
           python3 test/run-tty-smoke.py --tmux test/tty-completion-smoke.el
           python3 test/run-tty-smoke.py --tmux test/tty-input-smoke.el
+          python3 test/run-tty-smoke.py --tmux test/tty-text-entry-smoke.el

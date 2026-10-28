@@ -92,7 +92,7 @@ Reviewed head `e8fad7b1`, tested merge `21163461` and integrated tree match
 MELPA contribution guidance was checked again during this work; external gates
 below remain unchanged.
 
-## Ordinary-window reading validation candidate
+## Ordinary-window reading validation
 
 A new `tty-preview-smoke.el` fixture mounts native input beside a wide read-only
 preview in ordinary windows, deliberately without child frames. It invokes the
@@ -111,10 +111,54 @@ compilation and diffcheck. Independent review demonstrated that removing the
 manual-minimum restore block still passed the first fixture. The strengthened
 native cursor step passes with production code and fails when that block is
 removed in an isolated copy; no production files were changed by the experiment.
-Final review and hosted compatibility-matrix execution
-remain required before this follow-up can merge; no other local runtime or
-physical terminal is claimed. The next worker should inspect this PR's exact
-head/checks before integration. Fixed beta refs remain untouched.
+PR [#90](https://github.com/vv111y/emacs-tui/pull/90) merged at
+`d05fd6eaf43dcfc7ba2cd513438ba1f327e4536d` after independent review 5676629123
+and all eleven checks passed: CI
+[40614367472](https://github.com/vv111y/emacs-tui/actions/runs/40614367472)
+(eight jobs), GTK [40614367456](https://github.com/vv111y/emacs-tui/actions/runs/40614367456)
+and tmux [40614367514](https://github.com/vv111y/emacs-tui/actions/runs/40614367514).
+Reviewed head `614e7901`, tested merge `5ef2c171` and integrated tree match
+`bc5a9e8feaf0733b9d9b453a4a993d1e9758b813`. Actual logs confirm the new ordinary
+PTY journey on minimum Emacs 28.1 and Linux/macOS 31.1; all 433 ERT passed.
+No physical emulator or human usability validation is inferred.
+
+## Terminal text-entry validation candidate
+
+The smoke driver now accepts atomic fixture requests for real UTF-8 PTY input.
+Each request ID is delivered once, and reuse with changed bytes is rejected.
+A new journey receives multiline bracketed paste with Japanese and combining
+text, verifies its callback-fed preview and terminal paint, then removes it with
+native undo. It activates built-in latin-postfix and receives actual composition
+keystrokes before and after refresh, layout and both real terminal resizes.
+A native cursor-command completion marker distinguishes Quail's silent preedit
+from committed application input; asserting while preedit was still active
+initially misidentified the trailing provisional space as a missing callback.
+No runtime defect was inferred from that incomplete composition. The input
+method, text/point, modification tick and callback count survive
+redisplay-only changes. Closing removes owned buffers and preserves the original
+source and its input-method state. No package runtime behavior changes.
+
+Local Emacs 29.3 passed the actual PTY journey, strict fixture compilation,
+and the complete 433-test/compile/checkdoc suite. Independent review strengthened the fixture to snapshot before refresh/layout,
+so those operations cannot hide redundant edits or callbacks. An isolated
+sensitivity experiment removing paste delimiters fails at the single native
+undo assertion. Six driver tests pass, including
+UTF-8 delivery, no replay, changed-request rejection and invalid-input rejection.
+Disabling latin-postfix in a second isolated experiment fails the bounded
+composition phase with literal keystrokes, proving the input method is exercised.
+Independent final local review found no remaining issues. A broader local `make tty-smoke` passed all thirteen single-process journeys
+and both resize fault probes, then stopped at the existing two-client test:
+this container refused creation of its private Unix server socket with
+`Operation not permitted`. The following hangup test was not reached. This is
+not reported as a full local native-suite pass; hosted multi-client checks remain
+required. The fixture is included
+in every compatibility job and both tmux jobs. Exact-head hosted execution remains
+required before integration; clipboard integration, physical
+emulators, arbitrary input methods and GUI composition are not established.
+MELPA CONTRIBUTING and the recipe checklist were reread in this run; their
+public-maintenance and human-review gates are unchanged. Fixed beta refs remain
+untouched. Next: resolve review findings and inspect exact-head native jobs before
+integration; do not call this a new runtime feature.
 
 ## Capabilities and boundaries to preserve
 

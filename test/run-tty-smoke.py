@@ -2,7 +2,7 @@
 # Assisted-by: Codex:gpt-6.1-sol-wm
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-import argparse, shutil
+import argparse, json, shutil
 import errno, fcntl, os, pathlib, pty, select, signal, struct, subprocess, sys, tempfile, termios, time
 
 def attach_terminal():
@@ -20,9 +20,10 @@ with tempfile.TemporaryDirectory() as directory:
     report = pathlib.Path(directory) / "result.txt"
     ready = pathlib.Path(directory) / "ready.txt"
     paint = pathlib.Path(directory) / "paint.txt"
+    input_request = pathlib.Path(directory) / "input.json"
     master, slave = pty.openpty()
     fcntl.ioctl(slave, termios.TIOCSWINSZ, struct.pack("HHHH", 40, 120, 0, 0))
-    env = dict(os.environ, TERM="xterm-256color", EMACS_TUI_SMOKE_REPORT=str(report), EMACS_TUI_SMOKE_READY=str(ready), EMACS_TUI_SMOKE_PAINT=str(paint))
+    env = dict(os.environ, TERM="xterm-256color", EMACS_TUI_SMOKE_REPORT=str(report), EMACS_TUI_SMOKE_READY=str(ready), EMACS_TUI_SMOKE_PAINT=str(paint), EMACS_TUI_SMOKE_INPUT=str(input_request))
     command = [os.environ.get("EMACS", "emacs"), "-Q", "-nw", "-L", ".", "-l", args.script]
     socket = str(pathlib.Path(directory) / "tmux.sock")
     if args.tmux:
@@ -37,8 +38,29 @@ with tempfile.TemporaryDirectory() as directory:
     transcript = bytearray()
     deadline = time.monotonic() + 30
     resized = set()
+    sent_inputs = {}
     try:
         while process.poll() is None and time.monotonic() < deadline:
+            if input_request.exists():
+                # Fixtures publish complete snapshots by atomic rename.  Keep
+                # requests idempotent while Emacs consumes real terminal bytes.
+                request = json.loads(input_request.read_text())
+                request_id, payload = request.get("id"), request.get("text")
+                if (not isinstance(request_id, str) or not request_id
+                        or not isinstance(payload, str) or not payload
+                        or len(payload.encode("utf-8")) > 4096):
+                    raise ValueError("Invalid terminal input request")
+                if request_id in sent_inputs:
+                    if sent_inputs[request_id] != payload:
+                        raise ValueError("Terminal input request changed after delivery")
+                else:
+                    remaining = payload.encode("utf-8")
+                    while remaining:
+                        written = os.write(master, remaining)
+                        if written <= 0:
+                            raise RuntimeError("Terminal input write made no progress")
+                        remaining = remaining[written:]
+                    sent_inputs[request_id] = payload
             if ready.exists():
                 phase = ready.read_text()
                 if phase in ("1", "2") and phase not in resized:
