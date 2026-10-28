@@ -21,7 +21,7 @@
   "Sample objects owned by this application.")
 
 (defconst emacs-tui-multi-popup-demo--panels
-  '((objects south-west 26 6) (details east 34 7) (keys north-west 40 9))
+  '((objects south-west 26 6) (details east 34 7) (keys north-west 40 10))
   "Panel identifiers, initial positions and requested dimensions.")
 
 (defvar-local emacs-tui-multi-popup-demo--sessions nil)
@@ -76,7 +76,7 @@
                                          emacs-tui-multi-popup-demo--objects)) :text)))
     ('keys (emacs-tui-view
             :id id :title "Independent floating panels"
-            :text "C-c 1 / 2 / 3: toggle each panel\nC-c 0: hide all / show all\nC-c p 1 / 2 / 3: move each panel\nM-n / M-p: browse objects\nC-c [ / ]: scroll details\nC-c C-e: expand / shrink details\nC-c C-d: pin / release details\nC-g: hide | C-c C-q: disable"))))
+            :text "C-c 1 / 2 / 3: toggle each panel\nC-c 0: hide all / show all\nC-c p 1 / 2 / 3: move each panel\nM-n / M-p: browse objects\nC-c [ / ]: scroll details\nC-c < / >: pan details horizontally\nC-c C-e: expand / shrink details\nC-c C-d: pin / release details\nC-g: hide | C-c C-q: disable"))))
 
 (defun emacs-tui-multi-popup-demo--check-context (source window generation)
   "Reject publication after SOURCE, WINDOW or GENERATION changed."
@@ -217,6 +217,22 @@ panels so reopening shows coherent application state."
   "Read three lines earlier in Details while typing focus stays in the source."
   (interactive) (emacs-tui-multi-popup-demo--scroll -3))
 
+(defun emacs-tui-multi-popup-demo--pan (columns)
+  "Read Details horizontally by COLUMNS without moving source focus."
+  (unless (and emacs-tui-multi-popup-demo-mode (not emacs-tui-multi-popup-demo--busy))
+    (user-error "Enable the multi-popup demo first"))
+  (let ((app (emacs-tui-multi-popup-demo--session 'details)))
+    (unless app (user-error "Show Details with C-c 2 first"))
+    (emacs-tui-scroll-view-horizontally app 'details columns)))
+
+(defun emacs-tui-multi-popup-demo-pan-forward ()
+  "Reveal eight more columns of Details, retaining source typing focus."
+  (interactive) (emacs-tui-multi-popup-demo--pan 8))
+
+(defun emacs-tui-multi-popup-demo-pan-backward ()
+  "Return eight columns toward the start of Details."
+  (interactive) (emacs-tui-multi-popup-demo--pan -8))
+
 (defun emacs-tui-multi-popup-demo-toggle-pin ()
   "Pin visible Details to its object, or resume following object selection.
 The pin survives hiding and reopening.  Re-enabling the demo resets it."
@@ -319,6 +335,8 @@ Use \\[emacs-tui-multi-popup-demo-scroll-forward] and
 Use \\[emacs-tui-multi-popup-demo-toggle-size] to expand or shrink Details.
 Use \\[emacs-tui-multi-popup-demo-toggle-pin] to pin Details while browsing objects.
 Release the pin to follow the current selection again.
+Use \\[emacs-tui-multi-popup-demo-pan-forward] and
+\\[emacs-tui-multi-popup-demo-pan-backward] to read wide detail lines.
 Scrolling and resizing require Details to be visible.  Hiding and reopening
 retains its size choice but resets its reading position.
 Typing and undo stay in the source.
@@ -334,6 +352,8 @@ Positions are clamped and may overlap."
             (define-key map (kbd "C-c C-p") #'emacs-tui-multi-popup-demo-move)
             (define-key map (kbd "C-c p 1") #'emacs-tui-multi-popup-demo-move)
             (define-key map (kbd "C-c p 2") #'emacs-tui-multi-popup-demo-move-details)
+            (define-key map (kbd "C-c >") #'emacs-tui-multi-popup-demo-pan-forward)
+            (define-key map (kbd "C-c <") #'emacs-tui-multi-popup-demo-pan-backward)
             (define-key map (kbd "C-c ]") #'emacs-tui-multi-popup-demo-scroll-forward)
             (define-key map (kbd "C-c [") #'emacs-tui-multi-popup-demo-scroll-backward)
             (define-key map (kbd "C-c C-d") #'emacs-tui-multi-popup-demo-toggle-pin)

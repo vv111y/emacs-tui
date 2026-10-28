@@ -617,6 +617,7 @@ and continue exploration; commitment is a separate command.
 | `emacs-tui-layout-popup` | Compute a clamped anchor-relative rectangle without display effects |
 | `emacs-tui-completion-mode` | Optional buffer-local frontend for existing completion-at-point providers |
 | `emacs-tui-scroll-view` | Scroll a visible read-only preview without taking input focus |
+| `emacs-tui-scroll-view-horizontally` | Pan a preview by columns while retaining source focus (development main) |
 | `emacs-tui-completion-next` / `emacs-tui-completion-previous` | Browse candidates while retaining source input focus |
 | `emacs-tui-completion-accept` / `emacs-tui-completion-dismiss` | Explicitly insert the selected completion or close unchanged |
 | `emacs-tui-completion-move` | Cycle the active completion popup's compass position |

@@ -49,6 +49,39 @@ CI [40608047489](https://github.com/vv111y/emacs-tui/actions/runs/40608047489)
 and Linux/macOS tmux [40608047562](https://github.com/vv111y/emacs-tui/actions/runs/40608047562).
 Reviewed head and tested merge `2720464e` share the integrated tree above.
 
+## Horizontal preview candidate
+
+The next implementation adds `emacs-tui-scroll-view-horizontally` for visible,
+read-only text previews. Positive/negative columns reveal/return along a line;
+nil uses native window width minus two. Source focus, selection and marks stay
+unchanged. An explicitly requested native horizontal minimum survives movement,
+layout and popup resize, while changed content resets it. The multi-popup demo
+binds C-c < / > to eight-column steps. Fixed beta4 does not include this API.
+
+Local Emacs 29.3 passed 433 ERT, strict byte compilation, checkdoc, shared native
+fixture compilation and diffcheck. Five new ERT cover focus/data, layout and
+unchanged text, default distance, hidden updates, text-to-list conversion,
+invalid/hidden/editable/repurposed/disposed targets. Native GTK and Linux/macOS
+fixtures now exercise the actual keys, movement, resize, explicit refresh and
+content reset; they still require hosted execution. Package installation now
+requires and exercises the new public function. A real recipe build from
+`dfc95ac` and clean archive installation on local Emacs 29.3 passed, including
+the horizontal API smoke (archive SHA256
+`641f9e1f7644f2343360b72e50f1ecd5a1ff0b0e2a16b47b18622bf8a09c7cbd`).
+Independent review identified stale horizontal state on text-to-list conversion;
+the fix now clears it, and a strengthened regression asserts retirement because
+batch redisplay alone did not expose the native minimum. A native conversion
+journey supplements that assertion. Final exact-head review and CI remain
+integration gates; no native pass is claimed here yet.
+
+PR88's archival handoff merged at `3dde958b4222e485a682417f2fb13c07955be7dc`
+after exact-head independent review 5676303259 and eight successful jobs in
+[40608813841](https://github.com/vv111y/emacs-tui/actions/runs/40608813841).
+Reviewed head `e8fad7b1`, tested merge `21163461` and integrated tree match
+`687a5931c5f706e4e902377f54fce37ff2358cab`. No runtime changes were in that PR.
+MELPA contribution guidance was checked again during this work; external gates
+below remain unchanged.
+
 ## Capabilities and boundaries to preserve
 
 General-purpose, terminal-first toolkit. Persistent applications, embedded
