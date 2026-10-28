@@ -280,6 +280,29 @@ Hosted checks remain required before integration. Fixed beta refs remain
 unchanged. MELPA contribution guidance was rechecked October 28; external
 maintenance and human-review gates remain open.
 
+## Beta5 preparation
+
+PR #95 merged at `7c3cba529ba116b58c008e7c76396f3fccfe2f0b` after
+review 5686639716 and all thirteen exact-head checks passed: CI 40732341777
+(eight jobs), GTK 40732341788, tmux 40732341790 and movement 40732341798.
+Reviewed head `7294b260`, tested merge `5c1f833e` and integrated commit share
+tree `9734141d2cf3e24bccbe7f536e33c51ff7e78d3c`.
+
+The candidate beta5 packages pinning, horizontal preview reading, action and
+selection ownership fixes, native input regression coverage and feedback forms.
+The package header, installation/example instructions and changelog are updated
+together. Local Emacs 29.3 passes all 440 ERT, strict compilation and checkdoc;
+no runtime behavior changes in this candidate. Actual recipe build and clean
+installation on local 29.3 passed from `c870ba3`, including literal beta5
+metadata parsing and public API smoke. Archive SHA256:
+`5c177fdfcfc82af92fe3ea4c08c1c8c6fc8619fd4814d90e30898404462afadb`.
+Hosted 31.1 build and 31.1/28.1 installation still gate publication.
+This is preparation: no beta5
+release ref has been created. Publish
+only from reviewed passing integration, verify the immutable ref and actual
+package installation, and then update this handoff. Fixed beta1–beta4 refs must
+not move. No human usability, physical-emulator or MELPA acceptance is claimed.
+
 ## Capabilities and boundaries to preserve
 
 General-purpose, terminal-first toolkit. Persistent applications, embedded

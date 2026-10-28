@@ -11,14 +11,14 @@ a query field or origin-buffer commit. Single panels can also borrow existing
 application windows and restore their original buffer when closed.
 XOB is an intended consumer; the toolkit is not specific to XOB, Org or graphs.
 
-**0.1.0 beta4: ready for community testing.** The API remains experimental,
+**0.1.0 beta5: ready for community testing.** The API remains experimental,
 and the package is not on MELPA yet. The reviewed beta is available from its
 versioned release branch while the matching GitHub prerelease tag awaits an
 authenticated publication step.
 
 ## Install the beta
 
-The beta release ref is `release/0.1.0-beta4`. It is fixed to the reviewed beta
+The beta release ref is `release/0.1.0-beta5`. It is fixed to the reviewed beta
 contents and will not track later development. With
 [straight.el](https://github.com/radian-software/straight.el) on Emacs 28.1 or
 later, evaluate:
@@ -27,7 +27,7 @@ later, evaluate:
 (straight-use-package
  '(emacs-tui :type git
              :repo "https://github.com/vv111y/emacs-tui.git"
-             :branch "release/0.1.0-beta4"
+             :branch "release/0.1.0-beta5"
              :files ("emacs-tui*.el")))
 ```
 
@@ -41,25 +41,25 @@ links to bug and experience reports; one concrete workflow is enough.
 
 ## Demo gallery
 
-Beta4 includes twelve applications and capability showcases with guided tours,
+Beta5 includes twelve applications and capability showcases with guided tours,
 including a validated settings form (`make form-demo`) and three independent
 floating panels (`make multi-popup-demo`). In the latter, C-c 1/2/3 toggles
 Objects/Details/Keys; C-c [ / ] scrolls visible Details without moving typing
 focus. C-c p 1/2/3 moves each independently through eight positions; C-c C-e
 expands/shrinks Details. Placement and size choices survive hiding/reopening.
 C-c 0 hides all if any are visible, or shows all if none are visible. Native
-typing stays in the source window. Use the matching beta4 checkout:
+typing stays in the source window. Use the matching beta5 checkout:
 
 ```sh
-git clone --branch release/0.1.0-beta4 https://github.com/vv111y/emacs-tui.git
+git clone --branch release/0.1.0-beta5 https://github.com/vv111y/emacs-tui.git
 cd emacs-tui
 make gallery
 ```
 
-Development main additionally offers C-c C-d in the multi-popup demo: pin
-Details to one object while browsing the list, then release it to follow the
-current selection. The fixed beta4 does not include this later command; use a
-separate matching main checkout to try it.
+The multi-popup demo also offers C-c C-d: pin Details to one object while
+browsing the list, then release it to follow the current selection. C-c < / >
+pans wide preview lines without moving source typing focus. These controls
+are included in beta5; the older fixed beta4 remains unchanged.
 
 In the gallery, `RET` shows a tour and `C-c C-o` launches the selected demo.
 Close it with `C-c C-q`, then `M-x emacs-tui-gallery` to choose another.
@@ -623,7 +623,7 @@ and continue exploration; commitment is a separate command.
 | `emacs-tui-layout-popup` | Compute a clamped anchor-relative rectangle without display effects |
 | `emacs-tui-completion-mode` | Optional buffer-local frontend for existing completion-at-point providers |
 | `emacs-tui-scroll-view` | Scroll a visible read-only preview without taking input focus |
-| `emacs-tui-scroll-view-horizontally` | Pan a preview by columns while retaining source focus (development main) |
+| `emacs-tui-scroll-view-horizontally` | Pan a preview by columns while retaining source focus (beta5 and current main) |
 | `emacs-tui-completion-next` / `emacs-tui-completion-previous` | Browse candidates while retaining source input focus |
 | `emacs-tui-completion-accept` / `emacs-tui-completion-dismiss` | Explicitly insert the selected completion or close unchanged |
 | `emacs-tui-completion-move` | Cycle the active completion popup's compass position |
@@ -664,7 +664,7 @@ pass it explicitly while typing in their unchanged source buffer. Internal
 
 Pass the session explicitly from application commands. Both operations below
 leave input focus where it is; the target must be a visible read-only text view.
-The horizontal API requires development main after beta4.
+The horizontal API is included in beta5 and current main.
 
 ```elisp
 (emacs-tui-scroll-view session 'details 3)               ; Down three lines.

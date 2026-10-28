@@ -7,13 +7,13 @@ that these environments have passed.
 
 ## Choose a matching checkout
 
-The reproducible community snapshot is `release/0.1.0-beta4`. It contains the
+The reproducible community snapshot is `release/0.1.0-beta5`. It contains the
 runtime and all twelve matching gallery entries. The examples are not installed
 by the straight.el runtime recipe; run them from a checkout:
 
 ```sh
-git clone --branch release/0.1.0-beta4 https://github.com/vv111y/emacs-tui.git emacs-tui-beta4
-cd emacs-tui-beta4
+git clone --branch release/0.1.0-beta5 https://github.com/vv111y/emacs-tui.git emacs-tui-beta5
+cd emacs-tui-beta5
 git rev-parse HEAD
 make gallery
 ```
@@ -26,11 +26,11 @@ versions. To test graphical Emacs, from the same checkout run:
 emacs -Q -L . -l examples/emacs-tui-gallery.el -f emacs-tui-gallery
 ```
 
-For development fixes and newer controls, use a separate main checkout and
-record its exact `git rev-parse HEAD`. Do not load main examples into an already
-running beta4 runtime. Main includes Details pinning (`C-c C-d`) and horizontal
-panning (`C-c <` / `C-c >`); fixed beta4 does not. See [DEMOS.md](DEMOS.md) for
-the full tour and the [API policy](API-STABILITY.md) for compatibility limits.
+For development fixes, use a separate main checkout and record its exact
+`git rev-parse HEAD`. Do not mix checkout examples with another loaded runtime.
+Beta5 includes Details pinning (`C-c C-d`) and horizontal panning (`C-c <` /
+`C-c >`); older fixed beta4 does not. See [DEMOS.md](DEMOS.md) for the full tour
+and the [API policy](API-STABILITY.md) for compatibility limits.
 
 Ordinary-window demos support Emacs 28.1+. Floating examples require graphical
 child frames or `(featurep 'tty-child-frames)` in the actual Emacs build. On an
@@ -56,7 +56,7 @@ input-method composition. Report lost characters, duplicated text, unexpected pr
 jumps or broken undo separately from the expected
 single-line Name validation. Revert intentionally resets undo for changed fields.
 
-On main only, pin Details with `C-c C-d`, browse with `M-n`, then release the
+In beta5, pin Details with `C-c C-d`, browse with `M-n`, then release the
 pin. The pinned object's text should stay until release; source typing remains
 independent. Horizontal panning should survive movement/resizing and reset
 when the displayed text changes.
