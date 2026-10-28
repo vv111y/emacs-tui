@@ -100,11 +100,11 @@ identities and CI evidence for these units remain in the archived checkpoint.
    [MELPA.md](MELPA.md) and [API-STABILITY.md](API-STABILITY.md) retain the gates.
 
 Latest upstream package-lint remains `1865be780a16098f972fef50a52b21ca6ee04df9`.
-The last recorded run against beta4 runtime files on Emacs 29.3 reports only the disclosed
-redundant-`emacs` name warning; helpers are clean. It exits nonzero for that
-warning and is not reported as warning-free. The initial local invocation used
-the lint checkout as cwd and could not resolve helper main-file metadata;
-rerunning from the package root resolved those invocation errors.
+A fresh beta5 run on Emacs 29.3 reports only the disclosed redundant-`emacs`
+name warning; helpers are clean. It exits nonzero for that warning and is not
+reported as warning-free. The first attempt used an incomplete local lint
+copy and failed to load its data files; rerunning the verified complete lint
+checkout from the package root produced the result above.
 
 Follow AGENTS.md: inspect remote heads/open PRs, respect recent draft ownership,
 use independent coding-agent review and passing exact-head checks before merge,
