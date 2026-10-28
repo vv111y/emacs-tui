@@ -303,6 +303,13 @@ only from reviewed passing integration, verify the immutable ref and actual
 package installation, and then update this handoff. Fixed beta1–beta4 refs must
 not move. No human usability, physical-emulator or MELPA acceptance is claimed.
 
+The first beta5 hosted package check failed before building: CI still expected
+literal `0.1.0-beta4`, while the candidate header correctly said beta5.
+Failed job 123004977604 in run 40741779165 was not waived. The workflow now
+expects beta5 explicitly, retaining both the literal-header and parsed-version
+assertions. Local metadata/build/install had already used the beta5 expectation;
+fresh hosted checks and exact-head review are required for the correction.
+
 ## Capabilities and boundaries to preserve
 
 General-purpose, terminal-first toolkit. Persistent applications, embedded
