@@ -5,23 +5,40 @@ initial beta3 preparation are preserved byte-for-byte in
 [STATE-HISTORY.md](STATE-HISTORY.md). Their pending checks describe their own
 dates, not current blockers; later intermediate edits remain in Git history.
 
-## Beta4 release candidate — 2026-10-27
+## Pinned floating Details candidate — 2026-10-27
 
-Prepare a fixed community-testing snapshot containing the settings form and
-three independent floating panels with toggles, placement, scrolling and resize.
-Metadata, straight.el recipe, matching twelve-entry gallery instructions and
-release notes now target beta4. Clean-install checks also resolve the new resize
-API from the installed artifact. The release branch must be created only at the
-reviewed integrated commit after fresh compatibility, native display and package
-checks pass; it is not published yet. Beta1–beta3 refs must not move.
-Local Emacs 29.3 passes all 424 ERT, strict compilation/checkdoc, metadata
-parsing (literal 0.1.0-beta4, canonical 0.1.0beta4) and diffcheck. The actual
-package-build recipe and clean installation pass locally on Emacs 29.3,
-including installed resize API provenance. Hosted
-validation and independent review remain pending for this candidate. Next: complete those gates, publish the fixed ref, and collect
-concrete application feedback. Physical terminal/IME use, human review and
-MELPA acceptance remain external gates; rules rechecked 2026-10-27 still require
-public maintenance of at least one month and substantive human review.
+Development main candidate adds C-c C-d to hold visible Details on its object
+while browsing the independent list, then release to follow current selection.
+The header shows [pinned]; hide/show retains the held object and fresh enable
+resets it. Application policy composes existing public updates; no core API is
+added. Failed/stale publication closes only original Details and does not publish
+a new pin. Four behavioral regressions cover retention, guards, failed release
+and stale callbacks. Local Emacs 29.3 passes 428 ERT, strict compile/checkdoc,
+shared-fixture compilation and diffcheck. The shared GTK/TTY journey checks
+reading position while pinning and browsing, rendered text, reopening/release,
+same frame and source/sibling isolation. Fresh native execution and final
+independent review are required before integration. Beta4 remains unchanged.
+
+## Published fixed beta4 — 2026-10-27
+
+PR #86 merged at f5d8a56ece025964d8a3db31ea07e1399d12150d after independent
+review 5676197886 and all thirteen final-head jobs: CI 40607249360 (eight),
+GTK 40607249371, Linux/macOS tmux 40607249445 and movement comparison
+40607249352 (two). Reviewed bb3be274, tested merge b54240aa and integrated
+commit share tree e0021f70696c1a5e9e2e46a37b262ac5cf31b877. The fixed branch
+release/0.1.0-beta4 was created at that merge and read back; beta3 remains
+a43239cfca0c455b4512525f323afdd1e11b20e0 and no older beta ref was moved.
+The snapshot contains the settings form and three floating panels with toggles,
+independent placement, Details scrolling and resize, with all twelve gallery
+tours and matching straight.el instructions. Package job 122549710552 verifies
+literal 0.1.0-beta4 / canonical 0.1.0beta4, builds the recipe and clean-installs
+the same archive on 31.1/28.1, including installed resize API provenance.
+Local 29.3 also passes 424 ERT, strict compilation/checkdoc and actual recipe
+build/clean installation. This fixed branch is not a GitHub prerelease tag or
+MELPA acceptance. Physical terminal/IME use and substantive human review remain
+open; MELPA rules rechecked 2026-10-27 still require at least one month of public
+maintenance. Next: collect concrete beta feedback and continue reviewed,
+consumer-driven functionality on main without moving the fixed release.
 
 ## Integrated oversized native resize coverage — 2026-10-27
 
@@ -313,7 +330,7 @@ support Emacs 28.1+; floating popups require native child-frame capability.
 ## Next work and remaining limits
 
 1. Collect concrete beta/API feedback and fix reported defects before expanding
-   scope; the beta4 candidate aligns installation and all twelve gallery examples.
+   scope; the fixed beta4 aligns installation and all twelve gallery examples.
 2. PR #74 integrated a distinct settings form at
    42d2217b23c8e1823982f6b525293f7c30d9b140: native fields, checkbox-style
    options, live validation and explicit Apply/Revert with session-only storage.

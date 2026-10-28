@@ -117,6 +117,14 @@ focus, and sibling panels retain their sizes and positions. Native viewport
 bounds can limit the actual dimensions. Hide/show retains the size choice;
 disabling/re-enabling resets it.
 
+On development main, C-c C-d pins visible Details to its current object. Its
+header displays [pinned]. Browse with M-n/M-p: Objects changes while Details
+keeps its text and reading position. Hide/show retains the pinned object;
+scrolling, movement and resizing still work. Press C-c C-d again to show the
+current list selection and resume following it. Pinning requires visible
+Details; re-enabling the demo clears the pin. This is local application state,
+not a persistent bookmark. The fixed beta4 does not contain this later command.
+
 Move each panel with C-c p 1/2/3, then hide/show the group with C-c 0.
 Selection and each requested position survive; hidden panels
 release their frames and buffers, and reopening creates new surfaces. Type and

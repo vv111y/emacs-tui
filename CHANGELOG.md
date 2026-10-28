@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased
+
+- C-c C-d pins floating Details to one object while the list continues browsing.
+  Hide/show retains the pin; releasing follows current selection again. Source
+  editing and sibling panels remain independent. This main-only demo policy
+  composes existing view updates and does not change the fixed beta4 snapshot.
+
 ## 0.1.0-beta4 — 2026-10-27
 
 - Three simultaneous floating panels with individual and collective hotkey
