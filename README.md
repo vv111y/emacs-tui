@@ -54,6 +54,11 @@ cd emacs-tui
 make gallery
 ```
 
+Development main additionally offers C-c C-d in the multi-popup demo: pin
+Details to one object while browsing the list, then release it to follow the
+current selection. The fixed beta4 does not include this later command; use a
+separate matching main checkout to try it.
+
 In the gallery, `RET` shows a tour and `C-c C-o` launches the selected demo.
 Close it with `C-c C-q`, then `M-x emacs-tui-gallery` to choose another.
 See [the demo guide](docs/DEMOS.md) for individual commands, feature coverage,
