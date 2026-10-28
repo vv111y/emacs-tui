@@ -2440,12 +2440,15 @@ Reject a surface that no longer belongs to SESSION before invoking the action."
 (defun emacs-tui-commit (&optional session)
   "Run SESSION's explicit commit callback, then close on success.
 Errors in a callback roll back its edits to the origin buffer and leave
-the workspace open.  Applications own all persistence semantics.
+the workspace open.  Reject a surface no longer owned by SESSION before
+running the callback.  Applications own all persistence semantics.
 The callback receives a nil item only when the focused multi-select
 view has marked items but no visible selection.  Read those items with
 `emacs-tui-marked-items' to implement batch commits."
   (interactive)
   (setq session (emacs-tui--require-session session))
+  (unless (emacs-tui--subtree session)
+    (user-error "Interface surface is no longer owned"))
   (let ((callback (emacs-tui--workspace-on-commit session))
         (origin (emacs-tui--workspace-origin session))
         (item (emacs-tui-current-item session)))
