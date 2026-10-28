@@ -1,6 +1,6 @@
 # Demo guide
 
-Start with `make gallery` from a beta3 or current main checkout. The gallery itself is
+Start with `make gallery` from a beta4 or current main checkout. The gallery itself is
 a persistent TUI: RET shows the selected tour, C-c C-o launches the selected
 example, and C-c C-q closes. Launching closes the gallery first. After closing
 an example, M-x emacs-tui-gallery opens the chooser again. Tour text wraps to
@@ -11,30 +11,31 @@ Emacs. No extra packages, sample files, network services or XOB setup are needed
 The gallery uses self-contained sample data and works immediately under Emacs -Q.
 
 These examples live in the checkout's examples directory, outside the installed
-runtime package. The fixed beta3 branch includes ten gallery entries. Development main adds
-the settings form and independent floating panels; all fixed release branches remain unchanged. Do not mix new examples with an older installed toolkit.
+runtime package. The fixed beta4 branch includes twelve gallery entries, including
+the settings form and independent floating panels. Older release branches remain
+unchanged. Do not mix new examples with an older installed toolkit.
 
 ## Choose a demo
 
 | Make target | What to explore | Explicit effects |
 | --- | --- | --- |
-| gallery | Ten beta3 showcases; main adds the form and independent floating panels, with tours and cleanup | Launches your choice |
+| gallery | Twelve beta4 showcases with tours and cleanup | Launches your choice |
 | popup-demo | Typing in the unchanged source, floating candidates, eight compass positions, native undo | TAB explicitly replaces the current word |
-| multi-popup-demo (main) | Three simultaneous floating child frames; individual/all toggles, selection retained while hidden | Browses sample data only; source typing remains native |
+| multi-popup-demo | Three simultaneous floating child frames; individual/all toggles, selection retained while hidden | Browses sample data only; source typing remains native |
 | inspector-demo | Scrollable floating equipment details, eight positions, related objects, Back/Forward, acknowledgement, source focus | Changes buffer-local demo state only |
 | completion-demo | Emacs's actual Lisp completion provider, styles and source-preserving popup | TAB explicitly accepts a native completion |
 | board-demo | Three task lanes, independent list state, batch moves and explicit application actions | Changes tasks in session memory |
 | reader-demo | Chapter tree, ancestor search paths, formatted pages, wrapping and reading position | Reads self-contained sample text |
 | snippet-demo | One borrowed-window palette, tracked origin point, explicit insertion and native undo | RET inserts a literal snippet in the launching buffer |
 | catalog-demo | Search input, numeric sort, fill-width table, formatted details, hidden marks, batch actions | Collect/clear in session memory |
-| form-demo (main) | Native fields, checkbox-style options, live validation, draft versus applied settings | Apply/Revert changes session memory only |
+| form-demo | Native fields, checkbox-style options, live validation, draft versus applied settings | Apply/Revert changes session memory only |
 | composer | Two native editable fields, multiline composition and live preview | C-c C-c copies to kill ring |
 | stream-demo | Visible batches, debounce, cancellation, partial failure and recovery | Synthetic data only |
 | graph-demo (also demo) | Original graph explorer, links/backlinks, Back/Forward, multi-selection, preview/commit split | C-c C-c inserts demo links into the original buffer |
 | layout-demo | Columns/rows/grid, maximize, hidden panels, tree, Unicode, editable text, live preview | Scratch edits only |
 
 The inline popup preserves source typing instead of allocating a tiled workspace.
-The inspector on main uses that presentation for a general object and a scrollable
+The inspector uses that presentation for a general object and a scrollable
 text view, with an explicit action that keeps the popup open.
 The board has three working lists and no search or preview. The reader is a
 chapter outline beside a document. The snippet picker occupies a single borrowed
@@ -86,9 +87,9 @@ Older terminals leave the gallery open with a capability error instead of
 substituting a tiled interface. A graphical display or the tty-child-frames
 feature is required; the general toolkit still supports older terminals.
 
-### Independent floating panels (development main)
+### Independent floating panels
 
-Run `make multi-popup-demo` from current main, or choose Independent floating
+Run `make multi-popup-demo` from the beta4 checkout, or choose Independent floating
 panels in its gallery. A disposable note starts with three separate child frames:
 an object list below point, details to the right and a key guide above-left.
 The source window is never split or replaced while the panels are shown.
@@ -128,7 +129,7 @@ its major mode closes every owned panel.
 All panels are read-only and retain source keyboard focus. Their positions are
 clamped and may overlap on narrow displays; this is not automatic collision
 avoidance or a draggable window manager. Native child-frame capability is
-required. The fixed beta3 does not contain this development example.
+required. Beta1–beta3 do not contain this example.
 
 To enable the same demo over an existing source without inserting sample text,
 load examples/emacs-tui-multi-popup-demo.el and run
@@ -136,7 +137,7 @@ M-x emacs-tui-multi-popup-demo-mode. Only your own typing changes source text.
 
 ### Floating equipment inspector
 
-Use a beta3 or current main checkout and run `make inspector-demo`, or choose
+Use a beta4 or current main checkout and run `make inspector-demo`, or choose
 Equipment inspector in its gallery. Older beta1/beta2 checkouts lack this example.
 A disposable document opens with pump details floating around the reference.
 M-n and M-p scroll three lines while typing focus stays in the source document.
@@ -205,10 +206,10 @@ original buffer. Normal undo reverses insertion. Launch again and q cancels
 without editing. A read-only host rejects insertion and leaves the picker open.
 The picker never evaluates snippet text, saves files or writes to the kill ring.
 
-### Validated settings form (development main)
+### Validated settings form
 
-Use a matching main checkout and run `make form-demo`, or select Settings form
-from its gallery. The fixed beta3 does not contain this entry. Name and Retries
+Use a matching beta4 checkout and run `make form-demo`, or select Settings form
+from its gallery. Beta1–beta3 do not contain this entry. Name and Retries
 are ordinary editable Emacs buffers: type, paste and undo normally. TAB cycles
 Name, Retries, Options and the live validation/applied-record pane. In Options,
 SPC toggles the selected checkbox; n/p selects another option.

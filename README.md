@@ -11,14 +11,14 @@ a query field or origin-buffer commit. Single panels can also borrow existing
 application windows and restore their original buffer when closed.
 XOB is an intended consumer; the toolkit is not specific to XOB, Org or graphs.
 
-**0.1.0 beta3: ready for community testing.** The API remains experimental,
+**0.1.0 beta4: ready for community testing.** The API remains experimental,
 and the package is not on MELPA yet. The reviewed beta is available from its
 versioned release branch while the matching GitHub prerelease tag awaits an
 authenticated publication step.
 
 ## Install the beta
 
-The beta release ref is `release/0.1.0-beta3`. It is fixed to the reviewed beta
+The beta release ref is `release/0.1.0-beta4`. It is fixed to the reviewed beta
 contents and will not track later development. With
 [straight.el](https://github.com/radian-software/straight.el) on Emacs 28.1 or
 later, evaluate:
@@ -27,7 +27,7 @@ later, evaluate:
 (straight-use-package
  '(emacs-tui :type git
              :repo "https://github.com/vv111y/emacs-tui.git"
-             :branch "release/0.1.0-beta3"
+             :branch "release/0.1.0-beta4"
              :files ("emacs-tui*.el")))
 ```
 
@@ -39,17 +39,17 @@ emulators and graphical display variants still need broader community use.
 
 ## Demo gallery
 
-Beta3 includes ten applications and capability showcases with guided tours.
-Development main adds a validated settings form (`make form-demo`) and three
-independent floating panels (`make multi-popup-demo`). In the latter, C-c 1/2/3
-toggles Objects/Details/Keys; C-c [ / ] scrolls the visible Details panel without
-moving typing focus. C-c p 1/2/3 moves each independently and remembers
-its placement while hidden. C-c 0 hides all if any are visible, or shows all
-if none are visible. Native typing stays in the source window. Use a matching
-main checkout for these examples; the fixed beta3 stays unchanged.
+Beta4 includes twelve applications and capability showcases with guided tours,
+including a validated settings form (`make form-demo`) and three independent
+floating panels (`make multi-popup-demo`). In the latter, C-c 1/2/3 toggles
+Objects/Details/Keys; C-c [ / ] scrolls visible Details without moving typing
+focus. C-c p 1/2/3 moves each independently through eight positions; C-c C-e
+expands/shrinks Details. Placement and size choices survive hiding/reopening.
+C-c 0 hides all if any are visible, or shows all if none are visible. Native
+typing stays in the source window. Use the matching beta4 checkout:
 
 ```sh
-git clone --branch release/0.1.0-beta3 https://github.com/vv111y/emacs-tui.git
+git clone --branch release/0.1.0-beta4 https://github.com/vv111y/emacs-tui.git
 cd emacs-tui
 make gallery
 ```
@@ -74,8 +74,8 @@ popups without replacing the source window. Other presentations retain their
 ordinary-window fallback on Emacs 28.1+.
 
 For development after this beta, use a separate checkout of `main`. The older
-`release/0.1.0-beta1` and `release/0.1.0-beta2` branches remain unchanged. The
-straight.el runtime recipe excludes examples. Use the matching source checkout
+`release/0.1.0-beta1`, `release/0.1.0-beta2` and `release/0.1.0-beta3` branches
+remain unchanged. The straight.el runtime recipe excludes examples. Use the matching source checkout
 for the gallery so examples and toolkit come from the same revision.
 
 ## Graph explorer (original demo)
