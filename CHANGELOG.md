@@ -1,17 +1,31 @@
 # Changelog
 
-## Unreleased
+## 0.1.0-beta4 — 2026-10-27
 
 - Three simultaneous floating panels with individual and collective hotkey
   toggles, independent eight-position movement, hidden-panel selection/placement
   retention and native source editing. Run
-  `make multi-popup-demo` or use the development gallery. Shared GUI/TTY
+  `make multi-popup-demo` or use the matching beta4 gallery. Shared GUI/TTY
   checks cover sibling isolation, source preservation and cleanup.
 
 - A distinct persistent settings-form demo combines native fields, checkbox-style
   options, live validation and explicit Apply/Revert. Invalid or changed-during-
   publication drafts cannot replace the saved session record. No external settings
-  are written; `make form-demo` and the development gallery launch it.
+  are written; `make form-demo` and the matching beta4 gallery launch it.
+
+- Public `emacs-tui-resize-popup` changes requested dimensions on the existing
+  child, preserving source focus and using native viewport clamping. The
+  multi-popup demo uses C-c C-e to expand/shrink Details, retaining that choice
+  across hide/show. C-c [ / ] scrolls its longer object descriptions.
+- Repositioning during active reflow now rejects before changing placement.
+  Native checks exercise oversized resize/recovery, sibling isolation and
+  failure cleanup on GTK and Linux/macOS terminals, including tmux.
+
+The beta4 snapshot includes all twelve gallery entries. Install with the
+file-filtered straight.el recipe or clone `release/0.1.0-beta4` for matching
+demos. Fixed beta1–beta3 refs remain unchanged. The resize API is additive;
+existing applications require no migration. All beta compatibility and external
+MELPA limits below still apply; this is not a stable release or a GitHub tag.
 
 ## 0.1.0-beta3 — 2026-10-27
 

@@ -37,7 +37,7 @@
   (unless (file-exists-p (expand-file-name "LICENSE" (file-name-directory (locate-library "emacs-tui"))))
     (error "Installed package lacks its license"))
   (dolist (function '(emacs-tui-popup emacs-tui-popup-supported-p emacs-tui-reposition-popup
-                       emacs-tui-scroll-view))
+                       emacs-tui-scroll-view emacs-tui-resize-popup))
     (unless (and (fboundp function)
                  (file-in-directory-p (symbol-file function 'defun) package-user-dir))
       (error "Popup API did not load from the installed package: %s" function)))

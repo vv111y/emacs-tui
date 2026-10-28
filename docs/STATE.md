@@ -5,17 +5,37 @@ initial beta3 preparation are preserved byte-for-byte in
 [STATE-HISTORY.md](STATE-HISTORY.md). Their pending checks describe their own
 dates, not current blockers; later intermediate edits remain in Git history.
 
-## Oversized native resize coverage candidate — 2026-10-27
+## Beta4 release candidate — 2026-10-27
+
+Prepare a fixed community-testing snapshot containing the settings form and
+three independent floating panels with toggles, placement, scrolling and resize.
+Metadata, straight.el recipe, matching twelve-entry gallery instructions and
+release notes now target beta4. Clean-install checks also resolve the new resize
+API from the installed artifact. The release branch must be created only at the
+reviewed integrated commit after fresh compatibility, native display and package
+checks pass; it is not published yet. Beta1–beta3 refs must not move.
+Local Emacs 29.3 passes all 424 ERT, strict compilation/checkdoc, metadata
+parsing (literal 0.1.0-beta4, canonical 0.1.0beta4) and diffcheck. The actual
+package-build recipe and clean installation pass locally on Emacs 29.3,
+including installed resize API provenance. Hosted
+validation and independent review remain pending for this candidate. Next: complete those gates, publish the fixed ref, and collect
+concrete application feedback. Physical terminal/IME use, human review and
+MELPA acceptance remain external gates; rules rechecked 2026-10-27 still require
+public maintenance of at least one month and substantive human review.
+
+## Integrated oversized native resize coverage — 2026-10-27
 
 The shared GTK/TTY resize journey now requests 10000×10000 cells, verifies
 actual frame bounds clamp inside the parent while requested dimensions survive,
 then restores 50×12 on the same child with source focus retained. Existing
-full-source and sibling-isolation assertions remain. Local 424 ERT, strict
-compile/checkdoc, shared-fixture compilation and diffcheck pass; new native
-execution and independent review remain required. This adds regression coverage,
-not a new clamping implementation. Next: review fresh GTK/Linux/macOS outcomes
-and continue consumer-driven functionality; physical terminal/IME coverage and
-MELPA external gates remain unproven.
+full-source and sibling-isolation assertions remain. PR #85 merged at
+faa6c4caf0fd1c38f95c3c382d307fc995e49f43 after exact-head review 5675642622
+and all eleven final checks: CI 40599974496 (eight jobs), GTK 40599974459 and
+Linux/macOS tmux 40599974523. Reviewed 03a55674 and tested merge 5dfde8d7
+share tree 518c92ba5927ef27e67ce7765ee7588972e5690f. GTK 29.3 and native
+TTY 31.1 Linux/macOS execute the new assertions. Local 424 ERT, strict
+compile/checkdoc, shared-fixture compilation and diffcheck pass. This adds
+regression coverage, not a new clamping implementation.
 
 ## Integrated floating Details resize — 2026-10-27
 
@@ -293,7 +313,7 @@ support Emacs 28.1+; floating popups require native child-frame capability.
 ## Next work and remaining limits
 
 1. Collect concrete beta/API feedback and fix reported defects before expanding
-   scope; the fixed beta3 install instructions and examples now match.
+   scope; the beta4 candidate aligns installation and all twelve gallery examples.
 2. PR #74 integrated a distinct settings form at
    42d2217b23c8e1823982f6b525293f7c30d9b140: native fields, checkbox-style
    options, live validation and explicit Apply/Revert with session-only storage.
