@@ -2424,9 +2424,12 @@ no implicit close, commit or transaction; applications own all effects."
 
 (defun emacs-tui-select (&optional session)
   "Invoke the focused view's selection action in SESSION.
-Selection is separate from commitment and does not close the workspace."
+Selection is separate from commitment and does not close the workspace.
+Reject a surface that no longer belongs to SESSION before invoking the action."
   (interactive)
   (setq session (emacs-tui--require-session session))
+  (unless (emacs-tui--subtree session)
+    (user-error "Interface surface is no longer owned"))
   (let* ((view (emacs-tui--focused-view session))
          (item (emacs-tui-current-item session))
          (action (emacs-tui--view-on-select view)))
