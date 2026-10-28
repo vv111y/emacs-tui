@@ -36,6 +36,8 @@ Emacs version, operating system, terminal or emulator, whether
 `(featurep 'tty-child-frames)` is non-nil, and a minimal reproduction. CI covers
 Emacs 28.1 through 31.1 on Linux and 30.2/31.1 on macOS. Physical terminal
 emulators and graphical display variants still need broader community use.
+The [beta testing guide](docs/BETA-TESTING.md) gives short hands-on checks and
+links to bug and experience reports; one concrete workflow is enough.
 
 ## Demo gallery
 
