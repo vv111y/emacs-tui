@@ -148,6 +148,30 @@ uniform speedup, negligible overhead or a latency bound. Only the normal
 filtering path is measured, with no custom modification hooks. Native popup,
 31.1/macOS, emulator paint and retained-heap claims are outside this evidence.
 
+## Interactive render-hook regression candidate
+
+PR106 integrated the retained measurement pair and the PR105 handoff at
+`b0ebda428a33e46bd08c057c81b3a188dacb2ce2` after independent exact-head review
+5693714453 and all eight CI 40829360637 jobs passed. Reviewed head `dc6f04ce`,
+tested merge `6262506a` and integration share tree
+`0e513fa0843924fc4d3cef13be42eed2d99a7256`.
+
+The table terminal journey now exercises eight rendering updates through
+Emacs keyboard macros: before/after-change hooks at deletion/insertion,
+each succeeding or signaling an error after switching to the unrelated host.
+It checks target display visibility, selection/marks, exact error and text
+rollback, host text/point/modified state, and then the existing two resizes,
+actions and disposal. These are native command/redisplay checks inside a real
+PTY; the commands are keyboard macros, not injected physical keyboard bytes.
+No physical emulator paint or human interaction is claimed.
+
+Local Emacs 29.3 passes the extended real-TTY journey and strict fixture byte
+compilation. The same fixture fails on beta6 at the first missing rendered row,
+so it detects the original redirection. The unchanged batch suite remains at
+452 ERT; it is not recounted as new tests. Independent review and the fresh
+hosted compatibility matrix still gate this validation-only change. Runtime
+code and the fixed beta6 snapshot are unchanged.
+
 ## Next work and boundaries
 
 1. Keep beta6 available for community testing and prioritize reproducible bug

@@ -1,4 +1,9 @@
 ;;; tty-table-smoke.el --- Exercise embedded native TTY views -*- lexical-binding: t; -*-
+;; Copyright (C) 2026 Willy Rempel
+;; Author: Willy Rempel <https://github.com/vv111y>
+;; Assisted-by: Codex:GPT-6
+;; SPDX-License-Identifier: GPL-3.0-or-later
+
 (setq load-prefer-newer t)
 (require 'cl-lib)
 (require 'emacs-tui)
@@ -96,10 +101,84 @@
             (cl-assert (equal (with-current-buffer emacs-tui-test--table-host
                                 (buffer-string)) "unchanged"))
             (with-temp-file (getenv "EMACS_TUI_SMOKE_REPORT")
-              (insert (format "PASS Emacs %s; real TTY; backend=%s; lifecycle=table; rightmost numeric payload visible; actions=2; resize=120x40->90x30->140x45\n"
+              (insert (format "PASS Emacs %s; real TTY; backend=%s; lifecycle=table; rightmost numeric payload visible; modification-hook commands=8; actions=2; resize=120x40->90x30->140x45\n"
                               emacs-version backend)))
             (kill-emacs 0))))
     ((error quit) (emacs-tui-test--table-failure err))))
+
+(defun emacs-tui-test--table-render-hooks (session source)
+  "Exercise native command rendering with switching hooks in SESSION.
+SOURCE is unrelated host text which must remain unchanged."
+  (let* ((view (car (emacs-tui--workspace-views session)))
+         (buffer (emacs-tui--view-buffer view))
+         (window (emacs-tui--view-window view))
+         (binding (lookup-key (current-local-map) (kbd "u")))
+         (completed 0))
+    (unwind-protect
+        (dolist (hook-variable '(before-change-functions after-change-functions))
+          (dolist (stage '(0 1))
+            (dolist (fail '(nil t))
+              (let ((calls 0) (armed t) caught invoked
+                    (before (with-current-buffer buffer (buffer-string)))
+                    hook)
+                (setq hook
+                      (lambda (&rest _)
+                        (when armed
+                          (when (= calls stage)
+                            (setq armed nil)
+                            (set-buffer source)
+                            (when fail (error "Native render hook failed")))
+                          (cl-incf calls))))
+                (with-current-buffer buffer
+                  (add-hook hook-variable hook nil t)
+                  (local-set-key
+                   (kbd "u")
+                   (lambda ()
+                     (interactive)
+                     (setq invoked t)
+                     (condition-case err
+                         (emacs-tui-update session 'items
+                                           :items '("alpha" "beta" "gamma"))
+                       (error (setq caught err))))))
+                (unwind-protect
+                    (progn
+                      (execute-kbd-macro (kbd "u"))
+                      (cl-assert invoked)
+                      (cl-assert (not armed))
+                      (cl-assert (eq (selected-window) window))
+                      (cl-assert (eq (window-buffer window) buffer))
+                      (cl-assert (emacs-tui-live-p session))
+                      (cl-assert (equal (emacs-tui-current-item session) "beta"))
+                      (cl-assert (equal (emacs-tui-marked-items session 'items)
+                                        '("beta")))
+                      (if fail
+                          (progn
+                            (cl-assert (equal caught '(error "Native render hook failed")))
+                            (cl-assert (equal before
+                                              (with-current-buffer buffer (buffer-string)))))
+                        (cl-assert (null caught))
+                        (cl-assert (member "gamma" (emacs-tui--view-visible-items view))))
+                      (redisplay t)
+                      (with-current-buffer buffer
+                        (let ((overlay emacs-tui--selection-overlay))
+                          (cl-assert (eq (overlay-buffer overlay) buffer))
+                          (cl-assert (pos-visible-in-window-p (overlay-start overlay) window)))
+                        (unless fail
+                          (save-excursion
+                            (goto-char (point-min))
+                            (cl-assert (search-forward "gamma" nil t))
+                            (cl-assert (pos-visible-in-window-p (1- (point)) window)))))
+                      (with-current-buffer source
+                        (cl-assert (equal (buffer-string) "unchanged"))
+                        (cl-assert (= (point) 4))
+                        (cl-assert (not (buffer-modified-p)))
+                        (cl-assert (not (overlays-in (point-min) (point-max)))))
+                      (cl-incf completed))
+                  (with-current-buffer buffer (remove-hook hook-variable hook t)))
+                ;; Restore the original table before the next hook case or resize.
+                (emacs-tui-update session 'items :items '("alpha" "beta"))))))
+      (with-current-buffer buffer (local-set-key (kbd "u") binding)))
+    (cl-assert (= completed 8))))
 
 (defun emacs-tui-test--table-start ()
   (condition-case err
@@ -111,6 +190,8 @@
         (switch-to-buffer source)
         (erase-buffer)
         (insert "unchanged")
+        (goto-char 4)
+        (set-buffer-modified-p nil)
         (setq emacs-tui-test--table-host source
               emacs-tui-test--table-window (selected-window)
               emacs-tui-test--table-session
@@ -132,6 +213,7 @@
         (cl-assert (equal (car (emacs-tui--view-visible-items
                                (car (emacs-tui--workspace-views emacs-tui-test--table-session))))
                           "beta"))
+        (emacs-tui-test--table-render-hooks emacs-tui-test--table-session source)
         (cl-assert (= 1 (length (window-list))))
         (cl-assert (equal (with-current-buffer source (buffer-string)) "unchanged"))
         (redisplay t)
