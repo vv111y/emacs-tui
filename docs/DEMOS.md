@@ -1,6 +1,6 @@
 # Demo guide
 
-Start with `make gallery` from a beta5 or current main checkout. The gallery itself is
+Start with `make gallery` from a beta6 or current main checkout. The gallery itself is
 a persistent TUI: RET shows the selected tour, C-c C-o launches the selected
 example, and C-c C-q closes. Launching closes the gallery first. After closing
 an example, M-x emacs-tui-gallery opens the chooser again. Tour text wraps to
@@ -11,7 +11,7 @@ Emacs. No extra packages, sample files, network services or XOB setup are needed
 The gallery uses self-contained sample data and works immediately under Emacs -Q.
 
 These examples live in the checkout's examples directory, outside the installed
-runtime package. The fixed beta5 branch includes twelve gallery entries, including
+runtime package. The fixed beta6 branch includes twelve gallery entries, including
 the settings form and independent floating panels. Older release branches remain
 unchanged. Do not mix new examples with an older installed toolkit.
 
@@ -19,7 +19,7 @@ unchanged. Do not mix new examples with an older installed toolkit.
 
 | Make target | What to explore | Explicit effects |
 | --- | --- | --- |
-| gallery | Twelve beta5 showcases with tours and cleanup | Launches your choice |
+| gallery | Twelve beta6 showcases with tours and cleanup | Launches your choice |
 | popup-demo | Typing in the unchanged source, floating candidates, eight compass positions, native undo | TAB explicitly replaces the current word |
 | multi-popup-demo | Three simultaneous floating child frames; individual/all toggles, selection retained while hidden | Browses sample data only; source typing remains native |
 | inspector-demo | Scrollable floating equipment details, eight positions, related objects, Back/Forward, acknowledgement, source focus | Changes buffer-local demo state only |
@@ -89,7 +89,7 @@ feature is required; the general toolkit still supports older terminals.
 
 ### Independent floating panels
 
-Run `make multi-popup-demo` from the beta5 checkout, or choose Independent floating
+Run `make multi-popup-demo` from the beta6 checkout, or choose Independent floating
 panels in its gallery. A disposable note starts with three separate child frames:
 an object list below point, details to the right and a key guide above-left.
 The source window is never split or replaced while the panels are shown.
@@ -119,19 +119,19 @@ focus, and sibling panels retain their sizes and positions. Native viewport
 bounds can limit the actual dimensions. Hide/show retains the size choice;
 disabling/re-enabling resets it.
 
-In beta5 and current main, C-c < / > pans Details eight columns backward / forward.
+In beta6 and current main, C-c < / > pans Details eight columns backward / forward.
 Read the wide operator notes without focusing the popup. Movement, resizing
 and refresh retain the explicit horizontal position; browsing to new content
 resets it. Returning past the first column stops at zero. These keys and the
-`emacs-tui-scroll-view-horizontally` API are included in beta5 (absent from older fixed beta4).
+`emacs-tui-scroll-view-horizontally` API are included in beta6 (absent from older fixed beta4).
 
-In beta5 and current main, C-c C-d pins visible Details to its current object. Its
+In beta6 and current main, C-c C-d pins visible Details to its current object. Its
 header displays [pinned]. Browse with M-n/M-p: Objects changes while Details
 keeps its text and reading position. Hide/show retains the pinned object;
 scrolling, movement and resizing still work. Press C-c C-d again to show the
 current list selection and resume following it. Pinning requires visible
 Details; re-enabling the demo clears the pin. This is local application state,
-not a persistent bookmark. Beta5 includes this command; older fixed beta4 does not.
+not a persistent bookmark. Beta6 includes this command; older fixed beta4 does not.
 
 Move each panel with C-c p 1/2/3, then hide/show the group with C-c 0.
 Selection and each requested position survive; hidden panels
@@ -153,7 +153,7 @@ M-x emacs-tui-multi-popup-demo-mode. Only your own typing changes source text.
 
 ### Floating equipment inspector
 
-Use a beta5 or current main checkout and run `make inspector-demo`, or choose
+Use a beta6 or current main checkout and run `make inspector-demo`, or choose
 Equipment inspector in its gallery. Older beta1/beta2 checkouts lack this example.
 A disposable document opens with pump details floating around the reference.
 M-n and M-p scroll three lines while typing focus stays in the source document.
@@ -224,7 +224,7 @@ The picker never evaluates snippet text, saves files or writes to the kill ring.
 
 ### Validated settings form
 
-Use a matching beta5 checkout and run `make form-demo`, or select Settings form
+Use a matching beta6 checkout and run `make form-demo`, or select Settings form
 from its gallery. Beta1–beta3 do not contain this entry. Name and Retries
 are ordinary editable Emacs buffers: type, paste and undo normally. TAB cycles
 Name, Retries, Options and the live validation/applied-record pane. In Options,

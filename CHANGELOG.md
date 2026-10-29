@@ -1,5 +1,24 @@
 # Changelog
 
+## 0.1.0-beta6 — 2026-10-28
+
+- Explicit commit rejects a retained session after its query or results window
+  has been repurposed, before invoking the callback or changing origin text.
+- Maximize/restore rejects a repurposed surface before changing state or
+  closing the session. Unrelated text, point and horizontal scroll are retained.
+- A failing owned-buffer kill hook no longer prevents disposal of later buffers
+  and the origin marker. The failing buffer is retained and the first error or
+  quit is re-signalled after cleanup; user hooks are not bypassed.
+- Table projections that change the current buffer cannot redirect rendering
+  into unrelated text. Closing the session during projection rejects display
+  publication before any writes. This does not promise general reentrant
+  update transactions or obsolete-provider suppression during projections.
+
+All twelve gallery entries and public signatures remain unchanged. Install the
+fixed `release/0.1.0-beta6` runtime and use the matching examples. Beta1–beta5
+refs stay fixed. This remains an experimental beta, not a stable release or
+MELPA acceptance.
+
 ## 0.1.0-beta5 — 2026-10-28
 
 - `emacs-tui-scroll-view-horizontally` reads wide text previews without taking
