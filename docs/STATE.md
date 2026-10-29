@@ -93,6 +93,42 @@ require public maintenance for at least one month and a human author as the
 first and most thorough reviewer of AI-assisted code. Approximately 2026-11-23
 is the earliest known time gate, not a maturity guarantee. No recipe submitted.
 
+## Render modification-hook isolation candidate
+
+PR104 integrated the beta6 publication handoff at
+`aef5a1b27c09883924b9c11d18de99ecbc46adb8` after exact-head independent review
+5693540620 and all eight CI 40827163935 jobs passed. Reviewed head `b185867c`
+and tested merge `064c2ae8` share tree `ead77f7020a5d67a6458d9f0e2cfaf33790c4aa8`.
+
+A follow-up to PR102 protects the erase/insert phase from native modification
+hooks that change the current buffer. Previously an after-change hook could
+redirect the next insertion into unrelated text or prevent overlay rollback.
+Each edit now has its own saved buffer context, including on failure, and
+rendering rechecks target/session liveness before continuing. Independent review
+found that this alone did not protect before-change hooks: the native edit
+resumes before the saved context unwinds. A temporary final before-change guard
+now checks liveness and restores the target before that native edit resumes.
+The guard is removed on unwind; native hooks and their error handling still run.
+
+Regressions cover deletion/insertion stages, local and inherited global hooks,
+exact hook-error preservation with text/selection rollback, session closure,
+self-removing/replaced hooks and guard cleanup. All six buffer-switch regressions fail on beta6; the before-change cases
+also fail on the initial partial fix. Final local Emacs 29.3 validation passes
+452 ERT, strict byte compilation and checkdoc. Actual TTY table/action/resize
+smoke also passes. Independent coding-agent re-review passed all nine focused render tests; it
+resolved both the before-change redirection and hook-replacement findings.
+Exact remote-head review and fresh hosted checks remain required before
+integration.
+
+Native change-group cleanup can report a deleted-buffer error if a hook kills
+the render buffer; no particular error subtype or rollback of a killed buffer
+is promised. The fix prevents subsequent toolkit text/display writes into the
+foreign buffer. It does not undo effects made by hooks themselves or Emacs's
+native hook-list clearing after an error. In particular, a hook that switches
+buffers then errors may cause Emacs to clear the foreign buffer's hook list.
+This is focused rendering protection, not arbitrary hook transaction isolation.
+Fixed beta6 remains unchanged.
+
 ## Next work and boundaries
 
 1. Keep beta6 available for community testing and prioritize reproducible bug

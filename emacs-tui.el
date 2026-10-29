@@ -820,14 +820,39 @@ Recheck the buffer and session after projections, which may yield or close."
                                   (overlay-start emacs-tui--selection-overlay)))
                   (old-end (and (overlayp emacs-tui--selection-overlay)
                                 (overlay-end emacs-tui--selection-overlay)))
+                  (restore-buffer
+                   (lambda (&rest _)
+                     (unless (and (buffer-live-p buffer)
+                                  (emacs-tui--workspace-active session))
+                       (user-error "The interface closed during rendering"))
+                     (set-buffer buffer)))
                   completed)
+              ;; A before-change hook can redirect the native edit itself.
+              ;; Run a final guard after local and inherited global hooks.
+              ;; Do not dynamically bind their lists: preserve native error
+              ;; handling instead of restoring hook-list snapshots.
+              (add-hook 'before-change-functions restore-buffer most-positive-fixnum t)
               (unwind-protect
                   (progn
                     (atomic-change-group
-                      (erase-buffer)
-                      (insert (car content))
+                      ;; Native modification hooks may change the current
+                      ;; buffer, signal, or dispose the interface.  Keep each
+                      ;; edit's buffer context separate, including on error.
+                      (save-current-buffer (erase-buffer))
+                      (unless (and (buffer-live-p buffer)
+                                   (emacs-tui--workspace-active session))
+                        (user-error "The interface closed during rendering"))
+                      ;; The deletion hooks may have replaced their hook list.
+                      (add-hook 'before-change-functions restore-buffer most-positive-fixnum t)
+                      (save-current-buffer (insert (car content)))
+                      (unless (and (buffer-live-p buffer)
+                                   (emacs-tui--workspace-active session))
+                        (user-error "The interface closed during rendering"))
                       (goto-char (cadr content)))
                     (setq completed t))
+                (when (buffer-live-p buffer)
+                  (with-current-buffer buffer
+                    (remove-hook 'before-change-functions restore-buffer t)))
                 ;; Text rollback does not promise to restore overlay marker bounds.
                 (when (and (not completed) old-start old-end (buffer-live-p buffer))
                   (move-overlay emacs-tui--selection-overlay old-start old-end buffer))))
