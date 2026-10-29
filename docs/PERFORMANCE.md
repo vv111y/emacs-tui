@@ -1,5 +1,11 @@
 # Reproducing latency measurements
 
+[Render modification-hook filtering pair](../bench/results/2026-10-29-render-hooks/README.md)
+retains 140 records from fresh-bytecode Emacs 29.3 ordinary-window filtering
+before/after PR105. It measures the normal path at 100/10,000 rows; small-list
+tails are mixed. The small sequential sample establishes no uniform speedup
+or negligible-overhead guarantee. All quantiles and counters remain auditable.
+
 [Paired completion snapshot measurements](../bench/results/2026-10-27-completion-lifetime/README.md)
 retain all 16 source/bytecode reports (6,720 records), paired host/fixture checks,
 and every insertion/deletion p50/p95/p99 for 100/10,000 matches. Results are mixed:

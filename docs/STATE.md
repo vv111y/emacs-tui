@@ -93,7 +93,7 @@ require public maintenance for at least one month and a human author as the
 first and most thorough reviewer of AI-assisted code. Approximately 2026-11-23
 is the earliest known time gate, not a maturity guarantee. No recipe submitted.
 
-## Render modification-hook isolation candidate
+## Render modification-hook isolation on main
 
 PR104 integrated the beta6 publication handoff at
 `aef5a1b27c09883924b9c11d18de99ecbc46adb8` after exact-head independent review
@@ -117,8 +117,14 @@ also fail on the initial partial fix. Final local Emacs 29.3 validation passes
 452 ERT, strict byte compilation and checkdoc. Actual TTY table/action/resize
 smoke also passes. Independent coding-agent re-review passed all nine focused render tests; it
 resolved both the before-change redirection and hook-replacement findings.
-Exact remote-head review and fresh hosted checks remain required before
-integration.
+PR [#105](https://github.com/vv111y/emacs-tui/pull/105) was integrated at
+`c5a29ac888e5147e4ad65cd5173dc66de55a4980` after exact-head review 5693653664
+and all thirteen checks passed: CI 40828538787 (eight), GTK 40828538774,
+Linux/macOS tmux 40828538781 and movement 40828538789. Reviewed head
+`0eed430c1b0975d190dd54a669d6e615c6946c7f`, tested merge
+`65c4b6361658ba51cd2140cbe3649a994ca7aeee` and actual integration share tree
+`23d90fb8326ea1cea13e3423ec2cc6df7052ce57`. This correction is on main,
+not the fixed beta6 snapshot.
 
 Native change-group cleanup can report a deleted-buffer error if a hook kills
 the render buffer; no particular error subtype or rollback of a killed buffer
@@ -128,6 +134,19 @@ native hook-list clearing after an error. In particular, a hook that switches
 buffers then errors may cause Emacs to clear the foreign buffer's hook list.
 This is focused rendering protection, not arbitrary hook transaction isolation.
 Fixed beta6 remains unchanged.
+
+## Retained render-hook measurements
+
+[Filtering measurements](../bench/results/2026-10-29-render-hooks/README.md)
+retain both complete reports and a reproducibility auditor: 140 records,
+including 120 measured commands and 20 warmups. The same native PTY host ran
+beta6 then PR105 with freshly compiled Emacs 29.3 libraries at 100/10,000 rows.
+The auditor verifies matching fixtures/host and every pooled/per-command
+quantile. Small-list insertion tails worsen while deletion tails improve;
+10k medians are close. This small sequential sample does not establish a
+uniform speedup, negligible overhead or a latency bound. Only the normal
+filtering path is measured, with no custom modification hooks. Native popup,
+31.1/macOS, emulator paint and retained-heap claims are outside this evidence.
 
 ## Next work and boundaries
 
