@@ -1,11 +1,11 @@
 # Project state
 
-Updated 2026-10-28 (America/Toronto). This is the current handoff.
+Updated 2026-10-29 (America/Toronto). This is the current handoff.
 [STATE-BETA5-TO-BETA6.md](STATE-BETA5-TO-BETA6.md) preserves the preceding
 checkpoint, including beta5 publication, PR98/99/100/101 evidence and the
 then-pending projection patch. Earlier archives remain linked there.
 
-## Beta6 release candidate
+## Available community release
 
 Version `0.1.0-beta6` packages the reviewed post-beta5 corrections below.
 README, API policy, demo/feedback guides, bug-report placeholder and the CI
@@ -14,15 +14,18 @@ public signatures are unchanged. Runtime installation still excludes examples;
 use a matching source checkout. This is an experimental beta, not stable API,
 human usability validation or MELPA acceptance.
 
-Publish a new fixed `release/0.1.0-beta6` branch only after this release PR has
-independent exact-head review and all thirteen fresh checks pass. Read back the
-release ref and integrated tree. The instructions are prepared for that ref;
-this checkpoint does not claim it has already been created. No existing release
-refs may move. The last verified community release is fixed beta5 at
-`7c601abbc925269dd67bb59341aaf1fb08319720`; beta4 is fixed at
-`f5d8a56ece025964d8a3db31ea07e1399d12150d`. GitHub prerelease/tag creation is
-not exposed by the connected tools; the fixed branch is the available release
-transport. Do not describe it as a tag or claim MELPA submission.
+Fixed `release/0.1.0-beta6` is available at
+`0789f8af3ce4e6e741247a308335150366e30f7c`. The branch was created after
+reviewed, passing PR [#103](https://github.com/vv111y/emacs-tui/pull/103)
+integration and read back. Its tree matches the tested release head and merge.
+The README straight.el recipe and matching source-checkout instructions now
+resolve to this published snapshot. No prior release ref was moved; beta5 was
+read back at `7c601abbc925269dd67bb59341aaf1fb08319720`.
+
+This is fixed-branch distribution, not a GitHub prerelease/tag or MELPA package.
+GitHub prerelease/tag creation is not exposed by the connected tools. Existing
+release refs must remain fixed; subsequent corrections belong on main and in
+a future explicitly versioned snapshot.
 
 ## Reviewed corrections included
 
@@ -60,12 +63,27 @@ regressions or hosted checks.
 
 ## Release validation and remaining gates
 
-The beta6 candidate passes all 445 ERT, warning-free byte compilation and
+The beta6 release passes all 445 ERT, warning-free byte compilation and
 checkdoc on local Emacs 29.3. Package metadata smoke verifies literal
-`0.1.0-beta6` and canonical `0.1.0beta6`; CI's expectation matches. Separate
-release review and fresh hosted package-build/clean-install/native checks still
-gate integration and publication; passing prior development jobs do not replace
-release-head validation.
+`0.1.0-beta6` and canonical `0.1.0beta6`; CI's expectation matches. Independent
+exact-head review 5691325295 found no remaining issues. Head
+`f4b168b171b04a6a237fc2ba98781a344aea43f3`, tested merge
+`02973f20bd5c30c54d9974ddff57da1f974cce25` and published integration share tree
+`a7f40b82549b6b9564422c6b89660b4e8abe2b1b`.
+
+All thirteen release-head checks passed before integration:
+
+- CI [40792486963](https://github.com/vv111y/emacs-tui/actions/runs/40792486963):
+  eight jobs, Linux Emacs 28.1/28.2/29.4/30.2/31.1, macOS 30.2/31.1 and package.
+- GTK [40792486962](https://github.com/vv111y/emacs-tui/actions/runs/40792486962).
+- Linux/macOS tmux [40792486944](https://github.com/vv111y/emacs-tui/actions/runs/40792486944).
+- Linux/macOS movement [40792486928](https://github.com/vv111y/emacs-tui/actions/runs/40792486928).
+
+Package job 123180835780 built the real candidate recipe from the tested merge
+and clean-installed the identical archive on Emacs 31.1 and 28.1 with public API
+smoke checks. Archive SHA256:
+`a91c5fee8b553b0e6de5cec5c19c86ffac0a753dd65a5c5d297e9a33d315ced8`.
+No earlier development jobs were substituted for release-head checks.
 
 Current upstream package-lint `1865be780a16098f972fef50a52b21ca6ee04df9`
 was verified on 2026-10-28. A fresh beta6 run reports only the disclosed
@@ -77,8 +95,8 @@ is the earliest known time gate, not a maturity guarantee. No recipe submitted.
 
 ## Next work and boundaries
 
-1. Complete release-head review/checks, create and read back the fixed beta6
-   ref, then record publication evidence. Keep prior release refs fixed.
+1. Keep beta6 available for community testing and prioritize reproducible bug
+   reports. Preserve this fixed snapshot while reviewing future main changes.
 2. Prioritize concrete community application feedback. Human use must exercise
    physical Ghostty/iTerm2, graphical variants, paste/input methods and API
    ergonomics; hosted PTYs/tmux and GTK/Xvfb do not establish these environments.
