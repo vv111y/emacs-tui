@@ -148,7 +148,7 @@ uniform speedup, negligible overhead or a latency bound. Only the normal
 filtering path is measured, with no custom modification hooks. Native popup,
 31.1/macOS, emulator paint and retained-heap claims are outside this evidence.
 
-## Interactive render-hook regression candidate
+## Interactive render-hook regression on main
 
 PR106 integrated the retained measurement pair and the PR105 handoff at
 `b0ebda428a33e46bd08c057c81b3a188dacb2ce2` after independent exact-head review
@@ -168,9 +168,17 @@ No physical emulator paint or human interaction is claimed.
 Local Emacs 29.3 passes the extended real-TTY journey and strict fixture byte
 compilation. The same fixture fails on beta6 at the first missing rendered row,
 so it detects the original redirection. The unchanged batch suite remains at
-452 ERT; it is not recounted as new tests. Independent review and the fresh
-hosted compatibility matrix still gate this validation-only change. Runtime
-code and the fixed beta6 snapshot are unchanged.
+452 ERT; it is not recounted as new tests. PR [#107](https://github.com/vv111y/emacs-tui/pull/107) integrated this
+validation-only change at `331a6038297da622877d7e91bd7c56c7682e48ab` after
+independent exact-head review 5693789132 and all eleven jobs passed: CI
+40830345155 (eight), GTK 40830345144 and Linux/macOS tmux 40830345156.
+Reviewed head `51f807eb6c015517b8d2d39750523ac48ee168f5`, tested merge
+`579a0daea5bbd02ee854bf91d33ce8522a4de441` and actual integration share tree
+`7f4fc8c553e492327c6c5783ad7dfa4b1202d218`. The ordinary-window fixture runs
+in the supported-version CI matrix, including minimum Emacs 28.1 and
+Linux/macOS 31.1. GTK and tmux passing results cover their existing journeys;
+the eight new table-hook cases are not part of those separate fixtures.
+Runtime code and the fixed beta6 snapshot are unchanged.
 
 ## Next work and boundaries
 
