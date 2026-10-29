@@ -118,7 +118,7 @@ and all eight CI 40777682790 jobs passed. Reviewed head `7072bb99`, tested
 merge `a981e238` and integration share tree
 `425ce70c2e048957a3418f703077e6c703d0317f`.
 
-A new focused candidate checks surface ownership before toggling maximization,
+PR #101 checks surface ownership before toggling maximization,
 matching explicit layout selection and view navigation. Previously a retained
 session handle could toggle maximization on a repurposed window, mutate its
 state and close the session through refresh. The regression fails on the old
@@ -127,10 +127,41 @@ user-error, retains the live session and maximization state, does not run the
 close callback, and preserves foreign text, point and horizontal scrolling.
 
 Local Emacs 29.3 passes all 443 ERT, strict compilation and checkdoc. The real
-TTY persistent-mount smoke also passes. Independent review and fresh hosted
-checks still gate integration. This candidate is not in fixed beta5; no human
+TTY persistent-mount smoke also passes. Integration evidence is recorded below.
+This correction is not in fixed beta5; no human
 or physical-emulator validation is claimed. Continue with concrete beta issues
 and the external readiness gates below.
+
+## Projection buffer isolation candidate
+
+PR [#101](https://github.com/vv111y/emacs-tui/pull/101) merged maximization
+ownership protection at `c4ca3745e8c40813395f5ac3242b51434b432991`, after
+independent exact-head review 5690799225 and all thirteen checks passed:
+CI 40783953683 (eight jobs), GTK 40783953657, tmux 40783953666 and movement
+40783953661. Reviewed head `bc4a8034`, tested merge `96917470` and integration
+share tree `c4e1562ade9a83c0d3443b96010a07e334bfe29a`. Local validation was
+443 ERT, strict compilation/checkdoc and real persistent-mount TTY smoke.
+The command now rejects repurposed windows before changing maximization state
+or closing the session. This is on main and absent from fixed beta5.
+
+The next candidate isolates rendering from application table projections that
+change the current buffer, including callbacks that close their session.
+Previously, rendering continued in the callback's current buffer and could
+replace unrelated text. Content preparation now has its own buffer context;
+the renderer checks that the target buffer and session remain live, then
+explicitly re-enters the owned buffer before writing. A closed target raises
+user-error before any display writes. This is a focused buffer/lifetime fix,
+not a general transaction across reentrant application updates or provider
+generations. Application projections should still avoid modifying UI state.
+
+Two regressions exercise buffer switching with a live target and session closure.
+Both fail on the original runtime; local Emacs 29.3 passes 445 ERT, strict
+compilation and checkdoc. The actual TTY table/action/resize smoke also passes.
+Separate coding-agent review found no issues and independently passed 21
+focused render/table tests, with both regressions failing against the original
+runtime. Exact remote-head review and fresh hosted checks remain required before
+integration. No human or physical-emulator coverage is claimed. Fixed release
+refs remain unchanged.
 
 ## Capabilities and boundaries to preserve
 

@@ -796,19 +796,22 @@ Return (CONTENT POSITION ROW-RANGES).  Projection errors leave display intact."
 
 (defun emacs-tui--render-view (session view)
   "Render VIEW in SESSION without replacing its buffer or window.
-Prepare application projections before changing any displayed content."
+Prepare application projections before changing any displayed content.
+Recheck the buffer and session after projections, which may yield or close."
   ;; Once mounted, a live input buffer is authoritative.  Initial rendering
   ;; must still use its supplied value, and staged copies from explicit updates
   ;; must retain their replacement text rather than reading the old buffer.
   (when (and (memq session emacs-tui--sessions)
              (memq view (emacs-tui--workspace-views session)))
     (emacs-tui--capture-input view))
-  (let ((buffer (emacs-tui--view-buffer view)))
+  (let ((buffer (emacs-tui--view-buffer view)) content)
     (when (buffer-live-p buffer)
+      (setq content (with-current-buffer buffer (emacs-tui--view-content view)))
+      (unless (and (buffer-live-p buffer) (emacs-tui--workspace-active session))
+        (user-error "The interface closed while preparing its display"))
       (with-current-buffer buffer
         (let ((inhibit-read-only t)
-              (emacs-tui--rendering t)
-              (content (emacs-tui--view-content view)))
+              (emacs-tui--rendering t))
           (unless (and (emacs-tui--view-text view)
                        (save-restriction
                          (widen)
