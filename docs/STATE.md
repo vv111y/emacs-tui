@@ -274,6 +274,18 @@ has an error/quit regression. Independent re-review passes both focused tests.
 The same TTY margin fixture fails the margin-preservation assertion against
 the old runtime; it is not counted as an old-runtime width-timeout reproduction.
 Fresh hosted checks and exact-head review gate integration.
+An additional full local `make tty-smoke` passed through the graph journey but
+failed showcase phase 4 with an invalid-subtree reflow message and a native
+compiler warning. A separate unchanged PR111 showcase run passed; one reviewer
+diagnostic candidate run also passed without capturing an invalid subtree.
+These results leave the earlier intermittent issue unresolved. The failed
+full-suite invocation is not a pass, and no assertions or polling bounds were
+waived. The static review found no demonstrated connection to the new
+table-only rendering branch; this is not a proven environment-only diagnosis.
+Separate delayed/disabled-reflow fault probes passed for input and tree.
+Terminal-client and terminal-hangup probes could not start their Emacs servers:
+the local Unix-socket creation returned `Operation not permitted`. They provide
+no local lifecycle pass; hosted checks remain required for those paths.
 Popup viewport changes retain their existing full-reflow path. No claim of
 physical-emulator validation or general preservation of window decorations
 across full layout rebuilds is made; fixed beta6 remains unchanged.
