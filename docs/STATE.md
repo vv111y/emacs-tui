@@ -180,6 +180,32 @@ Linux/macOS 31.1. GTK and tmux passing results cover their existing journeys;
 the eight new table-hook cases are not part of those separate fixtures.
 Runtime code and the fixed beta6 snapshot are unchanged.
 
+## Equal-share table columns candidate
+
+PR108 integrated the terminal validation handoff at
+`6d3ecf1a0ebdcc1ea6ab62a2d71389ae963ffe65` after independent review 5697342263
+and all eight CI 40870065418 jobs passed. Reviewed and tested tree:
+`afda627b3b361f3f9696cf9fa3ad7720bb189f0d`.
+
+The catalog now puts Name and Description in two fill columns beside fixed
+Type and KiB columns. Fill columns divide the remaining display width equally;
+earlier columns receive remainders and each keeps at least one display column.
+Fixed-only and single-fill behavior remains unchanged, and descriptions are
+never mutated. Weighted widths and automatic content measurement are not added.
+
+Local Emacs 29.3 passes 454 ERT, strict compilation/checkdoc and
+actual TTY table commands, rightmost numeric payload visibility, hook cases,
+selection/marks and resizing from 120x40 to 90x30 to 140x45. The fixture uses
+two fill columns. Independent review passed 21 table tests and extra three-fill
+allocation checks, with no substantive API/allocation findings. Its first TTY
+run failed the existing resize-growth assertion; the second passed. That
+intermittent failure remains an investigation item, not an ignored success.
+The broader showcase reached its later stream phase but failed to settle on
+both this candidate and unchanged main in this local runtime (warning buffers
+and reflow disposal appeared); neither run is counted as passing showcase
+coverage. Fresh hosted compatibility checks and investigation of any repeated
+resize failure still gate integration. Fixed beta6 does not include multiple fill columns.
+
 ## Next work and boundaries
 
 1. Keep beta6 available for community testing and prioritize reproducible bug

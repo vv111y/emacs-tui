@@ -308,9 +308,12 @@ Give a view `:columns` to display its existing items as table rows:
 ```
 
 Column `:value` is a plist keyword or a pure function receiving the original
-item. Widths count display columns; one column may use `:width 'fill` to consume
-the live window's remaining width without mutating its description. It shrinks
-to one column when fixed columns already overflow. Wide characters are clipped
+item. Widths count display columns; columns using `:width 'fill` share
+the live window's remaining width equally without mutating their descriptions.
+Earlier fill columns receive leftover columns after division; each retains at
+least one column when fixed columns already overflow. The catalog demonstrates
+this with Name and Description alongside fixed Type and KiB columns on current
+main. Fixed beta6 supports only one fill column. Wide characters are clipped
 at cell boundaries, and tabs/newlines display as spaces. Fixed overflow can be
 scrolled horizontally with ordinary Emacs commands. Headers occupy the first
 buffer line; they are not sticky while scrolling. Table rows use their columns

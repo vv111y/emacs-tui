@@ -121,11 +121,7 @@
     (should-error (apply #'emacs-tui-column args)))
   (let ((column (emacs-tui-column :id 'x :value :label)))
     (should-error (emacs-tui-view :id 'a :columns (list column column)))
-    (should-error (emacs-tui-view :id 'a :columns '(invalid))))
-  (should-error
-   (emacs-tui-view
-    :id 'a :columns (list (emacs-tui-column :id 'a :value :label :width 'fill)
-                          (emacs-tui-column :id 'b :value :label :width 'fill)))))
+    (should-error (emacs-tui-view :id 'a :columns '(invalid)))))
 
 (ert-deftest emacs-tui-table-fill-column-uses-remainder-without-mutating-description ()
   (let* ((fill (emacs-tui-column :id 'name :value :label :width 'fill))
@@ -157,6 +153,38 @@
                             :columns
                             (list (emacs-tui-column :id 'name :value :label :width 'fill)
                                   (emacs-tui-column :id 'size :value :size :width 6))))))
+              (let* ((view (car (emacs-tui--workspace-views session)))
+                     (window (emacs-tui--view-window view)))
+                (with-current-buffer (emacs-tui--view-buffer view)
+                  (goto-char (point-min))
+                  (while (not (eobp))
+                    (should (<= (string-width (buffer-substring
+                                               (line-beginning-position)
+                                               (line-end-position)))
+                                (window-max-chars-per-line window)))
+                    (forward-line 1))
+                  (goto-char (point-min))
+                  (forward-line 1)
+                  (should (string-match-p "10 *$" (buffer-substring
+                                                  (line-beginning-position)
+                                                  (line-end-position)))))))
+          (when session (emacs-tui-close session)))))))
+
+(ert-deftest emacs-tui-table-multiple-fill-columns-preserve-rightmost-payload-in-live-window ()
+  (dolist (marked '(nil t))
+    (save-window-excursion
+      (delete-other-windows)
+      (let (session)
+        (unwind-protect
+            (progn
+              (setq session
+                    (emacs-tui-mount
+                     :views
+                     (list (emacs-tui-view
+                            :id 'rows :items emacs-tui-table-test--rows :multi-select marked
+                            :columns
+                            (list (emacs-tui-column :id 'name :value :label :width 'fill)
+                                  (emacs-tui-column :id 'size :value :size :width 'fill))))))
               (let* ((view (car (emacs-tui--workspace-views session)))
                      (window (emacs-tui--view-window view)))
                 (with-current-buffer (emacs-tui--view-buffer view)
@@ -309,6 +337,24 @@
               (should (= 1 cancelled))
               (should-not (funcall publish 'rows :items nil))))
         (when session (emacs-tui-close session))))))
+
+
+(ert-deftest emacs-tui-table-multiple-fill-shares-space-and-preserves-descriptions ()
+  (let* ((a (emacs-tui-column :id 'a :value :label :width 'fill))
+         (b (emacs-tui-column :id 'b :value :label :width 'fill :align 'right))
+         (fixed (emacs-tui-column :id 'size :value :size :width 3))
+         (columns (list a fixed b)))
+    (should (emacs-tui-view :id 'rows :columns columns))
+    (dolist (case '((20 7 6) (21 7 7) (8 1 1)))
+      (let ((resolved (emacs-tui--table-resolve-columns columns (car case))))
+        (should (equal (list (cadr case) 3 (caddr case))
+                       (mapcar #'emacs-tui--column-width resolved)))
+        (should (= (max 9 (car case))
+                   (string-width (emacs-tui--table-line
+                                  resolved '(:label "日本語abcdef" :size 7)))))
+        (should (eq fixed (cadr resolved)))))
+    (should (eq 'fill (emacs-tui--column-width a)))
+    (should (eq 'fill (emacs-tui--column-width b)))))
 
 (provide 'emacs-tui-table-test)
 ;;; emacs-tui-table-test.el ends here
