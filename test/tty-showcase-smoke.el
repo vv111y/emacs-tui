@@ -22,10 +22,11 @@
   (emacs-tui--view-text (emacs-tui--resolve-view emacs-tui-showcase--app id)))
 
 (defun emacs-tui-showcase--fail (err)
-  (with-temp-file (getenv "EMACS_TUI_SMOKE_REPORT")
-    (insert (format "FAIL showcase phase %s: %S\n" emacs-tui-showcase--phase err))
-    (insert (with-current-buffer "*Messages*" (buffer-string)))
-    (when (get-buffer "*Warnings*") (insert (with-current-buffer "*Warnings*" (buffer-string)))))
+  (let ((coding-system-for-write 'utf-8-unix))
+    (with-temp-file (getenv "EMACS_TUI_SMOKE_REPORT")
+      (insert (format "FAIL showcase phase %s: %S\n" emacs-tui-showcase--phase err))
+      (insert (with-current-buffer "*Messages*" (buffer-string)))
+      (when (get-buffer "*Warnings*") (insert (with-current-buffer "*Warnings*" (buffer-string))))))
   (kill-emacs 1))
 
 (defun emacs-tui-showcase--query (text)
