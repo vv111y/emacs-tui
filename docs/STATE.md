@@ -220,6 +220,29 @@ Fixed beta6 does not include multiple fill columns. Investigate a repeat local
 resize failure with recorded geometry before changing assertions; hosted PTY
 success is not physical-emulator or human validation.
 
+## Showcase failure-report encoding candidate
+
+PR110 integrated the equal-share validation handoff at
+`929601dac5584fcb1222c6d5127b7d3ec5fdbc2a` after exact-head review 5708615247
+and all eight CI 41011395960 jobs passed. Its tested merge and reviewed tree
+match `1588e6967dd1a06afa54aedb4c924b12d5dcaccb`.
+
+The prior local showcase transcript shows native-compiler warnings followed by
+an encoding-selection prompt while the failure reporter writes diagnostics.
+The reporter now explicitly writes UTF-8, following the existing completion
+and GUI fixtures. A regression with ASCII output selected verifies Unicode
+error/warning preservation, no encoding prompt, and exit status 1. It fails
+against the original writer through lossy replacement characters and passes
+with the fix. The test scopes fixture startup-hook registration locally.
+
+Local Emacs 29.3 passes 455 ERT, strict runtime/example compilation and
+checkdoc. The complete actual TTY showcase also passed on this run, including
+catalog actions and streaming failure/recovery. This does not establish the
+cause of earlier intermittent resize or stream failures: the change affects
+only diagnostic writing after failure, not successful rendering or polling.
+Independent review and fresh hosted checks still gate this test-only change.
+No runtime API or fixed beta6 ref changes.
+
 ## Next work and boundaries
 
 1. Keep beta6 available for community testing and prioritize reproducible bug
