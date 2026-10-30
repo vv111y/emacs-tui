@@ -5,7 +5,7 @@ Updated 2026-10-30 (America/Toronto). This is the current handoff.
 publication and subsequent implementation, review, checks and failure evidence.
 Earlier archives remain linked there.
 
-## Beta7 candidate
+## Available community release
 
 Version `0.1.0-beta7` packages the post-beta6 rendering protection and table
 improvements for community use. README, API policy, demo/testing guides, bug
@@ -13,12 +13,15 @@ report placeholder and CI literal-version expectation match. All twelve demos,
 public signatures and hotkeys remain available; runtime installation excludes
 examples, so use a matching source checkout.
 
-This is a release candidate until exact-head review, supported-version CI,
-recipe build/clean installation and fixed-ref publication finish. No beta7
-release ref has been published at this checkpoint. The existing community
-snapshot `release/0.1.0-beta6` remains fixed at
-`0789f8af3ce4e6e741247a308335150366e30f7c`. No older release ref may move.
-Fixed-branch distribution is not a GitHub prerelease/tag or MELPA acceptance.
+Fixed `release/0.1.0-beta7` is published at
+`fa186fe11f565fa6d41084ab4c2079728ebfe9a2` after reviewed, passing
+PR [#113](https://github.com/vv111y/emacs-tui/pull/113) integration. The branch
+was created and read back at that exact commit. It shares the reviewed/tested
+tree below; straight.el and matching-demo instructions now resolve to it.
+No older ref was moved. Beta6 was read back unchanged at
+`0789f8af3ce4e6e741247a308335150366e30f7c`.
+This is experimental fixed-branch distribution, not a stable API, GitHub
+prerelease/tag or MELPA acceptance.
 
 ## Included changes
 
@@ -82,10 +85,27 @@ The real recipe built and clean-installed on local Emacs 29.3 from
 `0647ce52ee7d823df90365ed78584424d67f16d2`; public installed-client checks passed.
 Build-tool Lisp files matched the pinned upstream blob hashes. Local archive
 SHA256: `2500b8da13c770ef8b9436258caa8604bc102ef4a7bb2efbe586a573d886c290`.
-Hosted release validation and exact-head independent review remain pending.
-Earlier implementation checks are not release-head checks. The recipe
-must build and clean-install the identical archive on Emacs 31.1 and 28.1 before
-publishing the fixed beta7 ref. Physical Ghostty/iTerm2, GUI variants and human
+Independent exact-head review 5716942660 found no substantive issues in
+`ca204ccc090fa4c9240ea9d6f02f6a235093e775`. Its tree
+`bca9c4e59187507e68214a1ef837ae5fcd579355` matches the tested merge
+`52a63fafa2abb1e652342dcb187ce640c354523b` and local release checkpoint.
+Release package job 124240770327 built the real recipe from that tested merge
+and clean-installed the identical archive on Emacs 31.1 and 28.1; installed
+public-API checks passed. Hosted archive SHA256:
+`55d51b56b7524c8fd65eac1c40efeb5537d478d4f3f19561a7823bf42126475f`.
+Local archive comparison matched all six libraries and LICENSE to the reviewed
+source, apart from package-build's exact version/revision header substitution.
+Earlier implementation jobs are not substituted for release-head validation.
+All thirteen release-head checks passed before integration:
+
+- CI [41107407285](https://github.com/vv111y/emacs-tui/actions/runs/41107407285):
+  Linux 28.1/28.2/29.4/30.2/31.1, macOS 30.2/31.1 and package (eight jobs).
+- GTK [41107407301](https://github.com/vv111y/emacs-tui/actions/runs/41107407301).
+- Linux/macOS tmux [41107407322](https://github.com/vv111y/emacs-tui/actions/runs/41107407322).
+- Linux/macOS movement [41107407478](https://github.com/vv111y/emacs-tui/actions/runs/41107407478).
+
+Actual integration and fixed beta7 publication have the same reviewed/tested
+tree. No failing hosted check was bypassed. Physical Ghostty/iTerm2, GUI variants and human
 paste/input-method/API feedback remain separate from hosted PTY/tmux/Xvfb tests.
 
 MELPA's recipe checklist and CONTRIBUTING.org were checked on 2026-10-30:
@@ -93,15 +113,17 @@ public maintenance for at least one month and a human first/most thorough review
 of AI-assisted code remain external gates. Approximately 2026-11-23 is the
 earliest known time gate, not a maturity guarantee. No recipe was submitted.
 Upstream package-lint was rechecked on 2026-10-30 and remains at
-`1865be780a16098f972fef50a52b21ca6ee04df9`. Prior package-lint evidence retains
-the redundant-`emacs` package-name warning; this is not a claim of a new or
-warning-free package-lint result.
+`1865be780a16098f972fef50a52b21ca6ee04df9`. A fresh beta7 invocation with the
+verified source and both exact upstream data blobs exits 1 with only the
+redundant-`emacs` package-name warning; helper libraries are clean. An initial
+incomplete local linter directory could not load its missing data and was not
+counted as a lint result. No warning-free package-lint claim is made.
 
 ## Next work
 
-1. Validate and publish beta7 after reviewed, passing PR112 integration,
-   without moving earlier release refs. Record release-head checks and archive
-   identity before announcing availability.
+1. Keep fixed beta7 available for community testing and preserve older refs.
+   Prioritize reproducible failures before broadening release scope; subsequent
+   corrections belong on main and a future explicitly versioned snapshot.
 2. Prioritize concrete community failures and substantive application use.
    Preserve the twelve distinct demos and general-purpose lifecycle boundaries.
 3. Continue investigating any reproducible resize failures; the captured
