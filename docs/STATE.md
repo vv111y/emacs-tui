@@ -220,7 +220,7 @@ Fixed beta6 does not include multiple fill columns. Investigate a repeat local
 resize failure with recorded geometry before changing assertions; hosted PTY
 success is not physical-emulator or human validation.
 
-## Showcase failure-report encoding candidate
+## Showcase failure-report encoding on main
 
 PR110 integrated the equal-share validation handoff at
 `929601dac5584fcb1222c6d5127b7d3ec5fdbc2a` after exact-head review 5708615247
@@ -240,8 +240,55 @@ checkdoc. The complete actual TTY showcase also passed on this run, including
 catalog actions and streaming failure/recovery. This does not establish the
 cause of earlier intermittent resize or stream failures: the change affects
 only diagnostic writing after failure, not successful rendering or polling.
-Independent review and fresh hosted checks still gate this test-only change.
-No runtime API or fixed beta6 ref changes.
+PR [#111](https://github.com/vv111y/emacs-tui/pull/111) integrated at
+`cb3f4f053bd2fc480df94104623eb7e63f411e7f` after exact-head review 5711964056
+and all eleven checks passed: CI 41052522423 (eight), GTK 41052555643 and
+Linux/macOS tmux 41052522093. Reviewed head `dfde8d49`, tested merge
+`8bfd6032` and actual integration share tree
+`73d020fbcfc925ac4405b7da40488b4ccf026ae9`. No runtime API or fixed beta6 ref
+changes.
+
+## Native table-width candidate
+
+While investigating resize coverage, a separate deterministic case reproduced:
+changing native window margins leaves outer edges unchanged, so the existing
+geometry cache skips table rendering. A two-pane batch example retained a
+38-column row in a 31-column text area. This does not establish the cause of
+the earlier intermittent frame-resize failure.
+
+The candidate includes usable table widths in the geometry signature. In
+ordinary/embedded windows, a change confined to those widths redraws only
+affected visible tables in their existing windows, preserving native margins
+and untouched sibling content. Outer layout
+changes retain the existing reflow/disposal path. There is no new public API.
+The regression changes and removes margins while retaining selection/marks,
+window identity, unchanged outer edges and an untouched sibling preview; an
+unchanged second hook call performs no further rendering. It fails on old main.
+Final local Emacs 29.3 validation passes 457 ERT, strict compilation/checkdoc
+and the real-TTY table journey with native margin shrink/restore hook delivery, followed by the
+existing two resizes, modification-hook cases and actions. The fixture never
+calls explicit refresh or the toolkit window hook for the margin phases.
+Independent review found that a projection quit needed the same unwind cleanup
+as full reflow. The corrected path now disposes on unsuccessful rendering and
+has an error/quit regression. Independent re-review passes both focused tests.
+The same TTY margin fixture fails the margin-preservation assertion against
+the old runtime; it is not counted as an old-runtime width-timeout reproduction.
+Fresh hosted checks and exact-head review gate integration.
+An additional full local `make tty-smoke` passed through the graph journey but
+failed showcase phase 4 with an invalid-subtree reflow message and a native
+compiler warning. A separate unchanged PR111 showcase run passed; one reviewer
+diagnostic candidate run also passed without capturing an invalid subtree.
+These results leave the earlier intermittent issue unresolved. The failed
+full-suite invocation is not a pass, and no assertions or polling bounds were
+waived. The static review found no demonstrated connection to the new
+table-only rendering branch; this is not a proven environment-only diagnosis.
+Separate delayed/disabled-reflow fault probes passed for input and tree.
+Terminal-client and terminal-hangup probes could not start their Emacs servers:
+the local Unix-socket creation returned `Operation not permitted`. They provide
+no local lifecycle pass; hosted checks remain required for those paths.
+Popup viewport changes retain their existing full-reflow path. No claim of
+physical-emulator validation or general preservation of window decorations
+across full layout rebuilds is made; fixed beta6 remains unchanged.
 
 ## Next work and boundaries
 

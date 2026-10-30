@@ -202,6 +202,91 @@
                                                   (line-end-position)))))))
           (when session (emacs-tui-close session)))))))
 
+(ert-deftest emacs-tui-table-native-margins-refit-without-replacing-windows ()
+  (save-window-excursion
+    (delete-other-windows)
+    (let (session)
+      (unwind-protect
+          (progn
+            (setq session
+                  (emacs-tui-mount
+                   :views
+                   (list (emacs-tui-view
+                          :id 'rows :items emacs-tui-table-test--rows :multi-select t
+                          :columns
+                          (list (emacs-tui-column :id 'name :value :label :width 'fill)
+                                (emacs-tui-column :id 'size :value :size :width 'fill)))
+                         (emacs-tui-view :id 'preview :text "unchanged preview"))))
+            (emacs-tui-next-item session)
+            (emacs-tui-toggle-mark session)
+            (let* ((view (car (emacs-tui--workspace-views session)))
+                   (preview (cadr (emacs-tui--workspace-views session)))
+                   (window (emacs-tui--view-window view))
+                   (preview-window (emacs-tui--view-window preview))
+                   (preview-tick (buffer-chars-modified-tick
+                                  (emacs-tui--view-buffer preview)))
+                   (edges (window-edges window)))
+              (dolist (margins '((3 . 4) (nil . nil)))
+                (set-window-margins window (car margins) (cdr margins))
+                ;; Exercise the redisplay hook in batch; the TTY fixture also
+                ;; verifies delivery by native redisplay, without calling it.
+                (emacs-tui--window-state-changed)
+                (should (emacs-tui-live-p session))
+                (should (eq window (emacs-tui--view-window view)))
+                (should (eq preview-window (emacs-tui--view-window preview)))
+                (should (equal edges (window-edges window)))
+                (should (equal margins (window-margins window)))
+                (should (eq (cadr emacs-tui-table-test--rows)
+                            (emacs-tui-current-item session)))
+                (should (equal (list (cadr emacs-tui-table-test--rows))
+                               (emacs-tui-marked-items session)))
+                (should (= preview-tick (buffer-chars-modified-tick
+                                         (emacs-tui--view-buffer preview))))
+                (with-current-buffer (emacs-tui--view-buffer view)
+                  (save-excursion
+                    (goto-char (point-min))
+                    (while (not (eobp))
+                      (should (= (string-width (buffer-substring
+                                                 (line-beginning-position)
+                                                 (line-end-position)))
+                                 (window-max-chars-per-line window)))
+                      (forward-line 1))))
+                (let ((tick (buffer-chars-modified-tick (emacs-tui--view-buffer view))))
+                  (emacs-tui--window-state-changed)
+                  (should (= tick (buffer-chars-modified-tick
+                                   (emacs-tui--view-buffer view))))))))
+        (when session (emacs-tui-close session))))))
+
+(ert-deftest emacs-tui-table-margin-refit-failure-disposes-session ()
+  (dolist (failure '(error quit))
+    (save-window-excursion
+      (delete-other-windows)
+      (let (session fail buffers caught)
+        (unwind-protect
+            (progn
+              (setq session
+                    (emacs-tui-mount
+                     :views (list (emacs-tui-view
+                                   :id 'rows :items '("alpha")
+                                   :columns (list (emacs-tui-column
+                                                   :id 'name :width 'fill
+                                                   :value (lambda (item)
+                                                            (when fail (signal failure nil))
+                                                            item)))))))
+              (setq buffers (mapcar #'emacs-tui--view-buffer
+                                    (emacs-tui--workspace-views session)))
+              (set-window-margins (emacs-tui--view-window
+                                   (car (emacs-tui--workspace-views session))) 3 4)
+              (setq fail t)
+              (condition-case nil
+                  (emacs-tui--window-state-changed)
+                (quit (setq caught t)))
+              (should (eq caught (eq failure 'quit)))
+              (should-not (emacs-tui-live-p session))
+              (should-not (memq session emacs-tui--sessions))
+              (should-not (cl-some #'buffer-live-p buffers)))
+          (when session (emacs-tui-close session)))))))
+
 (ert-deftest emacs-tui-table-comparison-failure-keeps-previous-order ()
   (emacs-tui-table-test--session ()
     (let ((view (car (emacs-tui--workspace-views session))))
