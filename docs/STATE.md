@@ -1,6 +1,6 @@
 # Project state
 
-Updated 2026-10-29 (America/Toronto). This is the current handoff.
+Updated 2026-10-30 (America/Toronto). This is the current handoff.
 [STATE-BETA5-TO-BETA6.md](STATE-BETA5-TO-BETA6.md) preserves the preceding
 checkpoint, including beta5 publication, PR98/99/100/101 evidence and the
 then-pending projection patch. Earlier archives remain linked there.
@@ -180,7 +180,7 @@ Linux/macOS 31.1. GTK and tmux passing results cover their existing journeys;
 the eight new table-hook cases are not part of those separate fixtures.
 Runtime code and the fixed beta6 snapshot are unchanged.
 
-## Equal-share table columns candidate
+## Equal-share table columns on main
 
 PR108 integrated the terminal validation handoff at
 `6d3ecf1a0ebdcc1ea6ab62a2d71389ae963ffe65` after independent review 5697342263
@@ -203,8 +203,22 @@ intermittent failure remains an investigation item, not an ignored success.
 The broader showcase reached its later stream phase but failed to settle on
 both this candidate and unchanged main in this local runtime (warning buffers
 and reflow disposal appeared); neither run is counted as passing showcase
-coverage. Fresh hosted compatibility checks and investigation of any repeated
-resize failure still gate integration. Fixed beta6 does not include multiple fill columns.
+coverage. All eleven hosted checks passed without reruns or waived assertions: CI
+40977037294 (eight), GTK 40977037331 and Linux/macOS tmux 40977037308.
+Logs on minimum 28.1, 29.4 and Linux/macOS 31.1 confirm 454 ERT, table resizing
+and complete showcase journeys. Six additional local diagnostic table runs,
+retaining the resize assertion, passed; they did not establish the earlier
+failure's cause. Local failures remain recorded above, not reclassified as passes.
+
+Independent exact-head review 5706516504 and integration assessment 5708603916
+supported PR [#109](https://github.com/vv111y/emacs-tui/pull/109), merged at
+`bf369525dacc1efdc87f0bacbaef2dbd94775ec2`. Reviewed head
+`e63dfe8c2a4a284a91fcc312fcb26ae8217f0015`, tested merge
+`adeef55baf9eb5d4ffac0590a323700a222b7f5d` and integration share tree
+`89703d5960c98460fde0cbd02928e6607bdf7aa7`.
+Fixed beta6 does not include multiple fill columns. Investigate a repeat local
+resize failure with recorded geometry before changing assertions; hosted PTY
+success is not physical-emulator or human validation.
 
 ## Next work and boundaries
 
