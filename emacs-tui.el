@@ -1644,8 +1644,8 @@ A foreign window inside the subtree makes it unsuitable for reflow."
              (unless (memq window windows) (setq complete nil))) ancestor)
           (and complete ancestor))))))
 
-(defun emacs-tui--geometry (session)
-  "Return SESSION's geometry signature, or nil for an invalid surface."
+(defun emacs-tui--layout-geometry (session)
+  "Return SESSION's outer layout signature, or nil for an invalid surface."
   (when-let* ((subtree (emacs-tui--subtree session)))
     (list (window-edges subtree)
           (mapcar (lambda (window) (list window (window-edges window)))
@@ -1663,6 +1663,18 @@ A foreign window inside the subtree makes it unsuitable for reflow."
                          (frame-pixel-width child) (frame-pixel-height child)
                          (frame-char-width child) (frame-char-height child)
                          (frame-parameter child 'left) (frame-parameter child 'top))))))))
+
+(defun emacs-tui--geometry (session)
+  "Return SESSION's layout and table widths, or nil for an invalid surface.
+Native margins can change a table's usable width without changing its edges."
+  (when-let* ((layout (emacs-tui--layout-geometry session)))
+    (cons layout
+          (cl-loop for view in (emacs-tui--workspace-views session)
+                   for window = (emacs-tui--view-window view)
+                   when (and (emacs-tui--view-columns view)
+                             (not (emacs-tui--view-text view))
+                             (window-live-p window))
+                   collect (cons window (window-max-chars-per-line window))))))
 
 (defun emacs-tui--remember-view (view)
   "Capture VIEW's native window position before hiding or rearranging it."
@@ -1833,9 +1845,27 @@ can retain its rendered rows.  Explicit public refresh always renders."
     (dolist (session (copy-sequence emacs-tui--sessions))
       (when (emacs-tui--workspace-active session)
         (condition-case err
-            (when (not (equal (emacs-tui--workspace-geometry session)
-                              (emacs-tui--geometry session)))
-              (emacs-tui-refresh session))
+            (let ((previous (emacs-tui--workspace-geometry session))
+                  (current (emacs-tui--geometry session)))
+              (unless (equal previous current)
+                (if (and previous current (equal (car previous) (car current)))
+                    ;; A body-width change does not need new windows.  Keep
+                    ;; native margins and the other views' buffers intact.
+                    (let ((emacs-tui--refreshing t) complete)
+                      (unwind-protect
+                          (progn
+                            (dolist (view (emacs-tui--workspace-views session))
+                              (let* ((window (emacs-tui--view-window view))
+                                     (width (assq window (cdr current))))
+                                (when (and width
+                                           (not (equal width (assq window (cdr previous)))))
+                                  (emacs-tui--remember-view view)
+                                  (emacs-tui--render-view session view)
+                                  (emacs-tui--restore-view view))))
+                            (setf (emacs-tui--workspace-geometry session) current)
+                            (setq complete t))
+                        (unless complete (emacs-tui-close session))))
+                  (emacs-tui-refresh session))))
           (error
            (message "emacs-tui closed after window change: %s"
                     (error-message-string err))

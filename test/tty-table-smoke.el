@@ -18,6 +18,50 @@
 (defvar emacs-tui-test--table-host nil)
 (defvar emacs-tui-test--table-window nil)
 (defvar emacs-tui-test--table-command-session nil)
+(defvar emacs-tui-test--table-margin-phase 0)
+(defvar emacs-tui-test--table-margin-timer nil)
+
+(defun emacs-tui-test--table-margins ()
+  "Wait for native redisplay to refit a table after margin changes."
+  (condition-case err
+      (let* ((session emacs-tui-test--table-session)
+             (view (car (emacs-tui--workspace-views session)))
+             (window (emacs-tui--view-window view))
+             (margins (if (= emacs-tui-test--table-margin-phase 1)
+                          '(3 . 4) '(nil . nil))))
+        (cl-incf emacs-tui-test--table-attempts)
+        (when (> emacs-tui-test--table-attempts 100)
+          (error "Table margin phase %s did not settle"
+                 emacs-tui-test--table-margin-phase))
+        ;; Do not call refresh or the toolkit hook: test native hook delivery.
+        (redisplay t)
+        (cl-assert (emacs-tui-live-p session))
+        (cl-assert (eq window emacs-tui-test--table-window))
+        (if (= emacs-tui-test--table-margin-phase 0)
+            (when (equal (emacs-tui--workspace-geometry session)
+                         (emacs-tui--geometry session))
+              (setq emacs-tui-test--table-margin-phase 1
+                    emacs-tui-test--table-attempts 0)
+              (set-window-margins window 3 4))
+          (cl-assert (equal margins (window-margins window)))
+          (when (with-current-buffer (emacs-tui--view-buffer view)
+                  (save-excursion
+                    (goto-char (point-min))
+                    (= (string-width (buffer-substring (line-beginning-position)
+                                                      (line-end-position)))
+                       (window-max-chars-per-line window))))
+            (cl-assert (equal (emacs-tui-current-item session) "beta"))
+            (cl-assert (equal (emacs-tui-marked-items session 'items) '("beta")))
+            (if (= emacs-tui-test--table-margin-phase 1)
+                (progn
+                  (setq emacs-tui-test--table-margin-phase 2
+                        emacs-tui-test--table-attempts 0)
+                  (set-window-margins window nil nil))
+              (cancel-timer emacs-tui-test--table-margin-timer)
+              (setq emacs-tui-test--table-attempts 0)
+              (with-temp-file (getenv "EMACS_TUI_SMOKE_READY") (insert "1"))
+              (run-at-time 0.05 0.05 #'emacs-tui-test--table-resized)))))
+    ((error quit) (emacs-tui-test--table-failure err))))
 
 (defun emacs-tui-test--table-failure (err)
   (with-temp-file (getenv "EMACS_TUI_SMOKE_REPORT")
@@ -101,7 +145,7 @@
             (cl-assert (equal (with-current-buffer emacs-tui-test--table-host
                                 (buffer-string)) "unchanged"))
             (with-temp-file (getenv "EMACS_TUI_SMOKE_REPORT")
-              (insert (format "PASS Emacs %s; real TTY; backend=%s; lifecycle=table; rightmost numeric payload visible; modification-hook commands=8; actions=2; resize=120x40->90x30->140x45\n"
+              (insert (format "PASS Emacs %s; real TTY; backend=%s; lifecycle=table; margin refits=2; rightmost numeric payload visible; modification-hook commands=8; actions=2; resize=120x40->90x30->140x45\n"
                               emacs-version backend)))
             (kill-emacs 0))))
     ((error quit) (emacs-tui-test--table-failure err))))
@@ -217,8 +261,8 @@ SOURCE is unrelated host text which must remain unchanged."
         (cl-assert (= 1 (length (window-list))))
         (cl-assert (equal (with-current-buffer source (buffer-string)) "unchanged"))
         (redisplay t)
-        (with-temp-file (getenv "EMACS_TUI_SMOKE_READY") (insert "1"))
-        (run-at-time 0.05 0.05 #'emacs-tui-test--table-resized))
+        (setq emacs-tui-test--table-margin-timer
+              (run-at-time 0.05 0.05 #'emacs-tui-test--table-margins)))
     ((error quit) (emacs-tui-test--table-failure err))))
 
 (add-hook 'emacs-startup-hook

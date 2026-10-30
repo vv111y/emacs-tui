@@ -313,7 +313,10 @@ the live window's remaining width equally without mutating their descriptions.
 Earlier fill columns receive leftover columns after division; each retains at
 least one column when fixed columns already overflow. The catalog demonstrates
 this with Name and Description alongside fixed Type and KiB columns on current
-main. Fixed beta6 supports only one fill column. Wide characters are clipped
+main. Native window-margin changes refit ordinary-window tables in place, preserving
+the margins and sibling views without rebuilding the layout. Fixed beta6 has
+only one fill column and does not include this margin refitting. Popup viewport
+changes still use full reflow. Wide characters are clipped
 at cell boundaries, and tabs/newlines display as spaces. Fixed overflow can be
 scrolled horizontally with ordinary Emacs commands. Headers occupy the first
 buffer line; they are not sticky while scrolling. Table rows use their columns
