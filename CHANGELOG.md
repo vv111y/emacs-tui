@@ -1,5 +1,29 @@
 # Changelog
 
+## 0.1.0-beta7 — 2026-10-30
+
+- Multiple `:width 'fill` table columns share spare display columns equally;
+  earlier columns receive any remainder, and each retains at least one column.
+  Single-fill behavior is preserved. The catalog shares width between Name and
+  Description while keeping Type and KiB fixed.
+- Native window-margin changes refit ordinary-window tables in place, keeping
+  their margins, selection/marks and sibling views. Popup viewport changes
+  retain full reflow; this does not promise preservation of all window
+  decorations across full layout rebuilds.
+- Before/after-change hooks that switch buffers no longer redirect subsequent
+  renderer writes into unrelated text. Native hooks still run, errors propagate
+  and temporary guards are removed. Hook side effects themselves are not undone.
+- Interactive regression coverage exercises render-hook buffer switches and
+  native margin changes. Showcase failure reports now preserve Unicode under
+  ASCII-selected output; this diagnostic fix does not resolve earlier
+  intermittent resize failures.
+
+All twelve gallery entries and public signatures remain unchanged. Use the
+fixed `release/0.1.0-beta7` runtime with its matching checkout. Beta1–beta6 refs
+stay fixed. The API remains experimental, and physical display/use feedback and
+MELPA review remain outstanding. There is no claim of a uniform performance
+improvement; retained filtering measurements describe workload-specific results.
+
 ## 0.1.0-beta6 — 2026-10-28
 
 - Explicit commit rejects a retained session after its query or results window
