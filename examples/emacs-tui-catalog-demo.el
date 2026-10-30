@@ -6,8 +6,8 @@
 ;; SPDX-License-Identifier: GPL-3.0-or-later
 
 ;;; Commentary:
-;; A self-contained table application: native search, numeric sorting, a fill
-;; column, hidden marks, explicit batch actions and formatted object previews.
+;; A self-contained table application: native search, numeric sorting, equal fill
+;; columns, hidden marks, explicit batch actions and formatted object previews.
 ;; The collection is session-local; no files, network or clipboard are changed.
 
 ;;; Code:
@@ -55,6 +55,8 @@ it.  Use the table's actions menu to collect items or clear the collection."
        :id 'catalog :title "Catalog | RET inspect | C-c C-m mark | s sort | a actions"
        :items emacs-tui-catalog-demo--items :multi-select t
        :columns (list (emacs-tui-column :id 'name :title "Name" :width 'fill :value :label)
+                      (emacs-tui-column :id 'description :title "Description"
+                                        :width 'fill :value :description)
                       (emacs-tui-column :id 'kind :title "Type" :width 6 :value :kind)
                       (emacs-tui-column :id 'size :title "KiB" :width 5 :value :size :align 'right))
        :on-select #'emacs-tui-catalog-demo--preview

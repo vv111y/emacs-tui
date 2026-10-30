@@ -202,7 +202,7 @@ SOURCE is unrelated host text which must remain unchanged."
                       :columns (list (emacs-tui-column :id 'name :title "Name"
                                                        :width 'fill :value #'identity)
                                      (emacs-tui-column :id 'size :title "Size"
-                                                       :width 6 :value #'length :align 'right))
+                                                       :width 'fill :value #'length :align 'right))
                       :on-select (lambda (_app _item)
                                    (cl-incf emacs-tui-test--table-actions)))
                :on-close (lambda (_) (cl-incf emacs-tui-test--table-closed))))

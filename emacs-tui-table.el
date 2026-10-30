@@ -18,9 +18,10 @@
 
 (cl-defun emacs-tui-column (&key id title (width 16) value (align 'left) lessp)
   "Describe a table column with unique ID and optional TITLE.
-WIDTH is a positive number of display columns or `fill'.  One fill column per
-table uses the display space left after fixed columns, separators and native
-line-end indicators, with a minimum width of one.  ALIGN is `left' or `right'.
+WIDTH is a positive number of display columns or `fill'.  Fill columns share
+equally the space left after fixed columns, separators and native line-end
+indicators, with a minimum width of one.  Earlier fill columns receive any
+remainder columns.  ALIGN is `left' or `right'.
 VALUE is a plist keyword or a pure one-argument item projection function.
 LESSP optionally compares two projected values.  The default orders numbers
 numerically before other values, then compares displayed strings.  Line breaks
@@ -45,29 +46,31 @@ promptly."
     (error "Columns must be a list of emacs-tui-column descriptions"))
   (let ((ids (mapcar #'emacs-tui--column-id columns)))
     (unless (= (length ids) (length (delete-dups (copy-sequence ids))))
-      (error "Column IDs must be unique")))
-  (when (> (cl-count 'fill columns :key #'emacs-tui--column-width) 1)
-    (error "Only one table column may use fill width")))
+      (error "Column IDs must be unique"))))
 
 (defun emacs-tui--table-resolve-columns (columns width)
   "Return COLUMNS with a `fill' column resolved for display WIDTH.
 Do not copy or mutate fixed-only descriptions.  WIDTH includes two-column
 separators but excludes any selection mark prefix."
-  (let ((fill (cl-find 'fill columns :key #'emacs-tui--column-width)))
-    (if fill
-        (let* ((separators (* 2 (max 0 (1- (length columns)))))
-               (fixed (cl-loop for column in columns
-                               for value = (emacs-tui--column-width column)
-                               when (integerp value) sum value))
-               (resolved (max 1 (- (max 1 (or width 16)) fixed separators))))
-          (mapcar (lambda (column)
-                    (if (eq column fill)
-                        (let ((copy (copy-emacs-tui--column column)))
-                          (setf (emacs-tui--column-width copy) resolved)
-                          copy)
-                      column))
-                  columns))
-      columns)))
+  (let ((count (cl-count 'fill columns :key #'emacs-tui--column-width)))
+    (if (zerop count)
+        columns
+      (let* ((separators (* 2 (max 0 (1- (length columns)))))
+             (fixed (cl-loop for column in columns
+                             for value = (emacs-tui--column-width column)
+                             when (integerp value) sum value))
+             (space (max count (- (max 1 (or width 16)) fixed separators)))
+             (share (/ space count))
+             (remainder (% space count)))
+        (mapcar (lambda (column)
+                  (if (eq (emacs-tui--column-width column) 'fill)
+                      (let ((copy (copy-emacs-tui--column column)))
+                        (setf (emacs-tui--column-width copy)
+                              (+ share (if (> remainder 0) 1 0)))
+                        (setq remainder (max 0 (1- remainder)))
+                        copy)
+                    column))
+                columns)))))
 
 (defun emacs-tui--table-value (column item)
   "Project COLUMN's value from ITEM."
