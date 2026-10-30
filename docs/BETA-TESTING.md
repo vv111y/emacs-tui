@@ -7,13 +7,13 @@ that these environments have passed.
 
 ## Choose a matching checkout
 
-The reproducible community snapshot is `release/0.1.0-beta6`. It contains the
+The reproducible community snapshot is `release/0.1.0-beta7`. It contains the
 runtime and all twelve matching gallery entries. The examples are not installed
 by the straight.el runtime recipe; run them from a checkout:
 
 ```sh
-git clone --branch release/0.1.0-beta6 https://github.com/vv111y/emacs-tui.git emacs-tui-beta6
-cd emacs-tui-beta6
+git clone --branch release/0.1.0-beta7 https://github.com/vv111y/emacs-tui.git emacs-tui-beta7
+cd emacs-tui-beta7
 git rev-parse HEAD
 make gallery
 ```
@@ -28,7 +28,7 @@ emacs -Q -L . -l examples/emacs-tui-gallery.el -f emacs-tui-gallery
 
 For development fixes, use a separate main checkout and record its exact
 `git rev-parse HEAD`. Do not mix checkout examples with another loaded runtime.
-Beta6 retains Details pinning (`C-c C-d`) and horizontal panning (`C-c <` /
+Beta7 retains Details pinning (`C-c C-d`) and horizontal panning (`C-c <` /
 `C-c >`); older fixed beta4 does not. See [DEMOS.md](DEMOS.md) for the full tour
 and the [API policy](API-STABILITY.md) for compatibility limits.
 
@@ -38,9 +38,10 @@ unsupported terminal, the gallery should report that requirement and remain
 open without splitting your source window. A version number alone does not
 establish native terminal child-frame support.
 
-Beta6 also packages commit/maximize surface checks, cleanup failure isolation
-and rendering buffer isolation. There are no new demo hotkeys or public
-signature changes from beta5. Prior beta refs remain fixed.
+Beta7 adds multiple fill-width columns, in-place ordinary-table margin refitting
+and protection against buffer-switching rendering hooks. Prior commit/maximize
+surface checks and cleanup protections remain included. There are no new demo
+hotkeys or public signature changes from beta6. Prior beta refs remain fixed.
 
 ## Three short checks
 
@@ -60,7 +61,7 @@ input-method composition. Report lost characters, duplicated text, unexpected pr
 jumps or broken undo separately from the expected
 single-line Name validation. Revert intentionally resets undo for changed fields.
 
-In beta6, pin Details with `C-c C-d`, browse with `M-n`, then release the
+In beta7, pin Details with `C-c C-d`, browse with `M-n`, then release the
 pin. The pinned object's text should stay until release; source typing remains
 independent. Horizontal panning should survive movement/resizing and reset
 when the displayed text changes.
@@ -80,6 +81,15 @@ source buffer. It does not bind `C-c C-q`. Floating panels should disappear
 and ordinary source editing should work. In the multi-popup demo, `C-g` only hides panels;
 it deliberately keeps its toggle bindings active. Hiding and reopening resets
 Details' reading position but retains its requested size/placement.
+
+To explore the table changes, run `make catalog-demo`. Name and Description
+share spare table width while Type and KiB remain fixed. Resize the terminal,
+mark a row, change the search and use Collect; hidden marks remain available to
+the explicit action. On an ordinary-window backend, focus the Objects table and
+evaluate `(set-window-margins nil 2 2)` with `M-:`. Its columns should refit
+without losing selection/marks or rebuilding sibling views. Evaluate
+`(set-window-margins nil 0 0)` to clear the margins. Popup viewport changes
+still use full reflow.
 
 ## Report the smallest useful reproduction
 

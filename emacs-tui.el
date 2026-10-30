@@ -5,7 +5,7 @@
 ;; Assisted-by: Codex:GPT-6
 ;; Assisted-by: Codex:gpt-6.1-sol-wm
 ;; URL: https://github.com/vv111y/emacs-tui
-;; Version: 0.1.0-beta6
+;; Version: 0.1.0-beta7
 ;; Package-Requires: ((emacs "28.1"))
 ;; Keywords: convenience, terminals
 

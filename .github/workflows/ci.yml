@@ -81,7 +81,7 @@ jobs:
         env:
           EMACS_TUI_PACKAGE_OUTPUT: ${{ runner.temp }}/emacs-tui-package
           EMACS_TUI_EXPECT_VERSION: '31.1'
-          EMACS_TUI_EXPECT_PACKAGE_VERSION: '0.1.0-beta6'
+          EMACS_TUI_EXPECT_PACKAGE_VERSION: '0.1.0-beta7'
         run: make package-check
       - name: Install identical archive in clean Emacs 28.1
         env:
