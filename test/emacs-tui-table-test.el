@@ -287,6 +287,66 @@
               (should-not (cl-some #'buffer-live-p buffers)))
           (when session (emacs-tui-close session)))))))
 
+(ert-deftest emacs-tui-table-reflow-preserves-repurposed-window ()
+  ;; Native modification hooks can yield to window-changing application code.
+  ;; Test both the margin fast path and the ordinary explicit refresh path.
+  (dolist (refit '(margins refresh))
+    (save-window-excursion
+      (delete-other-windows)
+      (let ((foreign (generate-new-buffer " *table foreign window*"))
+            session window replaced buffer (closed 0))
+        (unwind-protect
+            (progn
+              (with-current-buffer foreign
+                (insert (make-string 200 ?x) "\n" (make-string 200 ?y) "\n")
+                (goto-char 220)
+                (set-buffer-modified-p nil))
+              (setq session
+                    (emacs-tui-mount
+                     :on-close (lambda (_) (cl-incf closed))
+                     :views (list (emacs-tui-view
+                                   :id 'rows :items '("alpha" "beta")
+                                   :columns (list (emacs-tui-column
+                                                   :id 'name :width 'fill
+                                                   :value #'identity))))))
+              (let ((view (car (emacs-tui--workspace-views session))))
+                (setq window (emacs-tui--view-window view)
+                      buffer (emacs-tui--view-buffer view))
+                (with-current-buffer buffer
+                  (add-hook 'after-change-functions
+                            (lambda (&rest _)
+                              (unless replaced
+                                (setq replaced t)
+                                (set-window-buffer window foreign)
+                                (set-window-start window 202 t)
+                                (set-window-point window 220)
+                                (set-window-hscroll window 6)))
+                            nil t))
+                (if (eq refit 'margins)
+                    (progn
+                      (set-window-margins window 3 4)
+                      (emacs-tui--window-state-changed))
+                  (emacs-tui-refresh session))
+                (should replaced)
+                (should (window-live-p window))
+                (should (eq (window-buffer window) foreign))
+                (should (= 202 (window-start window)))
+                (should (= 220 (window-point window)))
+                (should (= 6 (window-hscroll window)))
+                (with-current-buffer foreign
+                  (should (equal (buffer-string)
+                                 (concat (make-string 200 ?x) "\n"
+                                         (make-string 200 ?y) "\n")))
+                  (should-not (buffer-modified-p)))
+                (should-not (emacs-tui-live-p session))
+                (should-not (memq session emacs-tui--sessions))
+                (should-not (buffer-live-p buffer))
+                (should (= closed 1))
+                (emacs-tui--window-state-changed)
+                (should (= closed 1))))
+          (when session (emacs-tui-close session))
+          (kill-buffer foreign))))))
+
 (ert-deftest emacs-tui-table-comparison-failure-keeps-previous-order ()
   (emacs-tui-table-test--session ()
     (let ((view (car (emacs-tui--workspace-views session))))
