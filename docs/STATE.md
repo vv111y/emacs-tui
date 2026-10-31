@@ -74,8 +74,8 @@ review covers PR115 head `f17b1d479c79518cd9f1d36a68123c66e6689d57`
 all thirteen hosted checks passed before integration
 `b1e097a1217df679fd51ce1a8c2a2b4a4ce0a7bd`. Reviewed head, tested merge
 `c9288f655deecb6ae04cc221533a3d4f0c23c37d` and integration share the same
-tree. No native popup or
-physical-emulator result is inferred from the ordinary-window regression.
+tree. No native popup or physical-emulator result is inferred from the
+ordinary-window regression.
 
 The follow-up terminal fixture extends the same real table journey after its
 existing margin/actions/resize checks. A native modification hook replaces a
@@ -107,8 +107,18 @@ hook cases cover first/known provider views, newer publications and hook errors;
 additional tests cover repair failure and interruption by a current stream,
 with exact-once closure/cancellation. The original two regressions fail on the
 previous runtime. Independent review identified the same-generation repair
-race; its regression now passes. Final exact-head review and hosted checks are
-still required before integration. No fixed beta ref has moved.
+race; its regression now passes. Independent exact-head review 5720035608
+covers PR [#117](https://github.com/vv111y/emacs-tui/pull/117) head
+`6ccb6e2521917faf5c207d00fe2e6e035998e331`. All thirteen applicable hosted
+checks passed before integration `25572b7ab422d7e706bac9b637423cc5acc81aa8`:
+CI [41149097182](https://github.com/vv111y/emacs-tui/actions/runs/41149097182)
+(seven runtime jobs plus package), GTK 41149096994, Linux/macOS tmux
+41149097121 and movement 41149097060. Logs on minimum Emacs 28.1 and 31.1
+confirm all 461 ERT, including the new generation/repair regressions, executed
+successfully. Reviewed head, tested merge
+`ebf0b721978592b54e3fe221b36efce12b008ce8` and actual integration share tree
+`738f9641fcec73f725829ca22c458f6f3cd7460e`. This correction is on main;
+no fixed beta ref has moved.
 
 An unmodified local TTY showcase failed phase 4, with a native compiler warning
 and invalid-subtree disposal in its transcript. This remains a failed run; no
