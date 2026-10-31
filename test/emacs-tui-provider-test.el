@@ -171,6 +171,145 @@
       (should (= 1 cancelled))
       (should (equal "Valid" (emacs-tui-current-item session))))))
 
+(ert-deftest emacs-tui-provider-superseded-during-render-keeps-current-generation ()
+  (dolist (prior '(nil t))
+    (dolist (newer '(nil t))
+      (dolist (hook-error '(nil t))
+        (let (publish changed (cancelled 0))
+          (emacs-tui-provider-test--workspace
+              (:debounce 60
+               :provider (lambda (_ _query emit _fail)
+                           (setq publish emit)
+                           (lambda () (cl-incf cancelled))))
+            (emacs-tui-provider-test--deliver session)
+            (when prior (funcall publish 'results :items '("previous")))
+            (let* ((old-publish publish)
+                   (request (emacs-tui--workspace-request session))
+                   (query (emacs-tui--workspace-query-buffer session))
+                   (view (car (emacs-tui--workspace-views session))))
+              (setf (emacs-tui--view-multi-select view) t)
+              (with-current-buffer (emacs-tui--view-buffer view)
+                (add-hook 'after-change-functions
+                          (lambda (&rest _)
+                            (unless changed
+                              (setq changed t)
+                              (with-current-buffer query
+                                ;; Cross-buffer notification deliberately runs
+                                ;; the query's own native modification hooks.
+                                (let ((inhibit-modification-hooks nil))
+                                  (insert "new query")))
+                              (when newer
+                                (emacs-tui-provider-test--deliver session)
+                                (should (funcall publish 'results :items '("newest" "selected")
+                                                 :title "New title"))
+                                (emacs-tui-set-selection session 'results "selected")
+                                (emacs-tui-toggle-mark session))
+                              (when hook-error (error "Interrupted old publication"))))
+                          nil t))
+              (should-not (funcall old-publish 'results :items '("obsolete")
+                                  :title "Obsolete title"))
+              (should changed)
+              (should-not (emacs-tui--request-current-p request))
+              (should (emacs-tui-live-p session))
+              (should (equal (emacs-tui-query session) "new query"))
+              (should (equal (emacs-tui-current-item session) (and newer "selected")))
+              (should (equal (emacs-tui--view-title view) (if newer "New title" "results")))
+              (with-current-buffer (emacs-tui--view-buffer view)
+                (should (equal (buffer-string) (if newer "[ ] newest\n[x] selected\n" ""))))
+              (should (equal (emacs-tui-marked-items session 'results)
+                             (and newer '("selected"))))
+              (should (= cancelled 1))
+              ;; The replacement generation remains usable after recovery.
+              (unless newer (emacs-tui-provider-test--deliver session))
+              (should (funcall publish 'results :items '("latest")))
+              (should (equal (emacs-tui-current-item session) "latest"))
+              (with-current-buffer source (should (equal (buffer-string) "origin"))))))))))
+
+(ert-deftest emacs-tui-provider-failed-display-recovery-disposes-once ()
+  (let (publish changed fail-recovery (cancelled 0) (closed 0))
+    (emacs-tui-provider-test--workspace
+        (:debounce 60 :on-close (lambda (_) (cl-incf closed))
+         :provider (lambda (_ _query emit _fail)
+                     (setq publish emit)
+                     (lambda () (cl-incf cancelled))))
+      (emacs-tui-provider-test--deliver session)
+      (let* ((old-publish publish)
+             (query (emacs-tui--workspace-query-buffer session))
+             (view (car (emacs-tui--workspace-views session)))
+             (buffers (cons query (mapcar #'emacs-tui--view-buffer
+                                         (emacs-tui--workspace-views session)))))
+        (setf (emacs-tui--view-columns view)
+              (list (emacs-tui-column
+                     :id 'name :width 'fill
+                     :value (lambda (item)
+                              (when fail-recovery (error "Recovery projection failed"))
+                              item))))
+        (with-current-buffer (emacs-tui--view-buffer view)
+          (add-hook 'after-change-functions
+                    (lambda (&rest _)
+                      (unless changed
+                        (setq changed t)
+                        (with-current-buffer query
+                          (let ((inhibit-modification-hooks nil)) (insert "next")))
+                        (emacs-tui-provider-test--deliver session)
+                        (should (funcall publish 'results :items '("newest")))
+                        (setq fail-recovery t)))
+                    nil t))
+        (should-not (funcall old-publish 'results :items '("obsolete")))
+        (should-not (emacs-tui-live-p session))
+        (should-not (emacs-tui--workspace-request session))
+        (should-not (cl-some #'buffer-live-p buffers))
+        (should (= cancelled 2))
+        (should (= closed 1))
+        (emacs-tui-close session)
+        (should (= closed 1))
+        (with-current-buffer source (should (equal (buffer-string) "origin")))))))
+
+(ert-deftest emacs-tui-provider-recovery-interrupted-by-current-stream-closes ()
+  (let (publish changed streamed recovering (closed 0) (cancelled 0))
+    (emacs-tui-provider-test--workspace
+        (:debounce 60 :on-close (lambda (_) (cl-incf closed))
+         :provider (lambda (_ _query emit _fail)
+                     (setq publish emit)
+                     (lambda () (cl-incf cancelled))))
+      (emacs-tui-provider-test--deliver session)
+      (funcall publish 'results :items '("initial"))
+      (let* ((old-publish publish)
+             (query (emacs-tui--workspace-query-buffer session))
+             (view (car (emacs-tui--workspace-views session)))
+             (buffer (emacs-tui--view-buffer view))
+             (observe (lambda (original &rest args)
+                        ;; Observe the recovery boundary without replacing
+                        ;; its work; the race still comes from a native hook.
+                        (setq recovering t)
+                        (unwind-protect (apply original args) (setq recovering nil)))))
+        (unwind-protect
+            (progn
+              (advice-add 'emacs-tui--restore-provider-view :around observe)
+              (with-current-buffer buffer
+                (add-hook 'after-change-functions
+                          (lambda (&rest _)
+                            (cond
+                             ((and recovering (not streamed))
+                              (setq streamed t)
+                              (should (funcall publish 'results :items '("newest2"))))
+                             ((not changed)
+                              (setq changed t)
+                              (with-current-buffer query
+                                (let ((inhibit-modification-hooks nil)) (insert "next")))
+                              (emacs-tui-provider-test--deliver session)
+                              (should (funcall publish 'results :items '("newest1"))))))
+                          nil t))
+              (should-not (funcall old-publish 'results :items '("obsolete")))
+              (should streamed)
+              (should-not (emacs-tui-live-p session))
+              (should-not (buffer-live-p buffer))
+              (should-not (buffer-live-p query))
+              (should (= closed 1))
+              (should (= cancelled 2))
+              (should-not (emacs-tui--workspace-request session)))
+          (advice-remove 'emacs-tui--restore-provider-view observe))))))
+
 (ert-deftest emacs-tui-provider-reentrant-query-disposes-returned-cancel ()
   (let ((cancelled 0))
     (emacs-tui-provider-test--workspace
