@@ -52,6 +52,26 @@ prerelease/tag or MELPA acceptance.
   and actual integration `e8cce3adbf6066954537dc4a2b4cb6fd736f73fd` have that
   same tree. No failing hosted check was bypassed.
 
+## Post-beta7 ownership correction
+
+Native modification hooks can replace a table window during rendering. Before
+this correction, cached view restoration changed the replacement buffer's
+window-start and horizontal scroll; the margin-only refit also left the invalid
+session active. Restoration now requires the view buffer to still occupy its
+window, and margin refitting rechecks the session surface after each render.
+Invalidated surfaces use the existing disposal path, preserving unrelated text
+and viewport. This does not undo application-hook side effects or promise
+arbitrary reentrant rendering transactions. Fixed beta7 retains its original
+contents; this correction is intended for main and a future snapshot.
+
+The regression uses a native after-change hook and covers automatic margin
+refitting and explicit refresh, unchanged foreign text/point/start/hscroll,
+released owned buffers and exactly one close callback. It fails on beta7 with
+window-start 202 becoming 1. Local Emacs 29.3 passes 458 ERT, strict compilation,
+checkdoc and the real TTY table/margins/actions/resize journey. Independent
+review and fresh hosted CI are required before integration; no native popup or
+physical-emulator result is inferred from the ordinary-window regression.
+
 ## Terminal findings and limits
 
 The additional local full `make tty-smoke` passed through graph, then failed
