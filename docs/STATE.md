@@ -69,8 +69,21 @@ refitting and explicit refresh, unchanged foreign text/point/start/hscroll,
 released owned buffers and exactly one close callback. It fails on beta7 with
 window-start 202 becoming 1. Local Emacs 29.3 passes 458 ERT, strict compilation,
 checkdoc and the real TTY table/margins/actions/resize journey. Independent
-review and fresh hosted CI are required before integration; no native popup or
+review covers PR115 head `f17b1d479c79518cd9f1d36a68123c66e6689d57`
+(tree `eae12bc3c070d92bf28fcaa1a5fc1073ba7bbdaf`), review 5719969086;
+all thirteen hosted checks passed before integration
+`b1e097a1217df679fd51ce1a8c2a2b4a4ce0a7bd`. Reviewed head, tested merge
+`c9288f655deecb6ae04cc221533a3d4f0c23c37d` and integration share the same
+tree. No native popup or
 physical-emulator result is inferred from the ordinary-window regression.
+
+The follow-up terminal fixture extends the same real table journey after its
+existing margin/actions/resize checks. A native modification hook replaces a
+borrowed table window during an automatically delivered margin refit. It checks
+foreign text, point, start and horizontal scroll, released owned buffers and one
+close callback. Local Emacs 29.3 passes; the identical fixture on beta7 fails its
+window-start assertion. No refresh call, direct hook invocation, relaxed bounds
+or altered driver is used. Hosted supported-version execution remains pending.
 
 ## Terminal findings and limits
 
