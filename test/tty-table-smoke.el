@@ -20,6 +20,10 @@
 (defvar emacs-tui-test--table-command-session nil)
 (defvar emacs-tui-test--table-margin-phase 0)
 (defvar emacs-tui-test--table-margin-timer nil)
+(defvar emacs-tui-test--table-replacement nil)
+(defvar emacs-tui-test--table-replaced nil)
+(defvar emacs-tui-test--table-replacement-buffer nil)
+(defvar emacs-tui-test--table-replacement-closed 0)
 
 (defun emacs-tui-test--table-margins ()
   "Wait for native redisplay to refit a table after margin changes."
@@ -69,11 +73,15 @@
   (kill-emacs 1))
 
 (defun emacs-tui-test--table-resized ()
+  (if (eq emacs-tui-test--table-phase 'ownership)
+      (emacs-tui-test--table-ownership-settled)
+    (emacs-tui-test--table-resize-step)))
+
+(defun emacs-tui-test--table-resize-step ()
   (condition-case err
       (let* ((session emacs-tui-test--table-session)
              (parent (emacs-tui--workspace-origin-frame session))
              (child (emacs-tui--workspace-frame session))
-             (backend (emacs-tui--workspace-backend session))
              (phase emacs-tui-test--table-phase)
              (width (if (= phase 1) 90 140))
              (height (if (= phase 1) 30 45)))
@@ -144,10 +152,74 @@
                            (window-buffer emacs-tui-test--table-window)))
             (cl-assert (equal (with-current-buffer emacs-tui-test--table-host
                                 (buffer-string)) "unchanged"))
-            (with-temp-file (getenv "EMACS_TUI_SMOKE_REPORT")
-              (insert (format "PASS Emacs %s; real TTY; backend=%s; lifecycle=table; margin refits=2; rightmost numeric payload visible; modification-hook commands=8; actions=2; resize=120x40->90x30->140x45\n"
-                              emacs-version backend)))
-            (kill-emacs 0))))
+            (setq emacs-tui-test--table-phase 'ownership
+                  emacs-tui-test--table-attempts 0)
+            (emacs-tui-test--table-ownership-start))))
+    ((error quit) (emacs-tui-test--table-failure err))))
+
+(defun emacs-tui-test--table-ownership-start ()
+  "Refit a borrowed table whose native hook replaces its window."
+  (setq emacs-tui-test--table-replacement
+        (get-buffer-create "*Table replacement viewport*"))
+  (with-current-buffer emacs-tui-test--table-replacement
+    (erase-buffer)
+    (insert (make-string 200 ?x) "\n" (make-string 200 ?y) "\n")
+    (setq-local truncate-lines t)
+    (set-buffer-modified-p nil))
+  (setq emacs-tui-test--table-session
+        (emacs-tui-embed
+         :window emacs-tui-test--table-window
+         :on-close (lambda (_) (cl-incf emacs-tui-test--table-replacement-closed))
+         :view (emacs-tui-view
+                :id 'items :items '("alpha" "beta")
+                :columns (list (emacs-tui-column :id 'name :width 'fill
+                                                 :value #'identity)))))
+  (setq emacs-tui-test--table-replacement-buffer
+        (emacs-tui--view-buffer
+         (car (emacs-tui--workspace-views emacs-tui-test--table-session))))
+  (with-current-buffer emacs-tui-test--table-replacement-buffer
+    (add-hook 'after-change-functions
+              (lambda (&rest _)
+                (unless emacs-tui-test--table-replaced
+                  (setq emacs-tui-test--table-replaced t)
+                  (set-window-buffer emacs-tui-test--table-window
+                                     emacs-tui-test--table-replacement)
+                  (set-window-start emacs-tui-test--table-window 202 t)
+                  (set-window-point emacs-tui-test--table-window 220)
+                  (set-window-hscroll emacs-tui-test--table-window 6)))
+              nil t))
+  ;; Let the command loop deliver the actual window-state-change hook.
+  (set-window-margins emacs-tui-test--table-window 3 4))
+
+(defun emacs-tui-test--table-ownership-settled ()
+  "Verify native refitting disposed the interface but kept the foreign view."
+  (condition-case err
+      (progn
+        (cl-incf emacs-tui-test--table-attempts)
+        (when (> emacs-tui-test--table-attempts 100)
+          (error "Table replacement hook was not delivered"))
+        (when emacs-tui-test--table-replaced
+          (let ((window emacs-tui-test--table-window))
+            (cl-assert (window-live-p window))
+            (cl-assert (eq (window-buffer window) emacs-tui-test--table-replacement))
+            (cl-assert (= (window-start window) 202))
+            (cl-assert (= (window-point window) 220))
+            (cl-assert (= (window-hscroll window) 6)))
+          (with-current-buffer emacs-tui-test--table-replacement
+            (cl-assert (equal (buffer-string)
+                              (concat (make-string 200 ?x) "\n"
+                                      (make-string 200 ?y) "\n")))
+            (cl-assert (not (buffer-modified-p))))
+          (cl-assert (not (emacs-tui-live-p emacs-tui-test--table-session)))
+          (cl-assert (not (buffer-live-p emacs-tui-test--table-replacement-buffer)))
+          (cl-assert (= emacs-tui-test--table-replacement-closed 1))
+          (cl-assert (null emacs-tui--sessions))
+          (cl-assert (equal (with-current-buffer emacs-tui-test--table-host
+                              (buffer-string)) "unchanged"))
+          (with-temp-file (getenv "EMACS_TUI_SMOKE_REPORT")
+            (insert (format "PASS Emacs %s; real TTY; backend=embedded; lifecycle=table; margin refits=2; rightmost numeric payload visible; modification-hook commands=8; actions=2; resize=120x40->90x30->140x45; repurposed window viewport preserved\n"
+                            emacs-version)))
+          (kill-emacs 0)))
     ((error quit) (emacs-tui-test--table-failure err))))
 
 (defun emacs-tui-test--table-render-hooks (session source)
