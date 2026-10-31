@@ -83,7 +83,40 @@ borrowed table window during an automatically delivered margin refit. It checks
 foreign text, point, start and horizontal scroll, released owned buffers and one
 close callback. Local Emacs 29.3 passes; the identical fixture on beta7 fails its
 window-start assertion. No refresh call, direct hook invocation, relaxed bounds
-or altered driver is used. Hosted supported-version execution remains pending.
+or altered driver is used. Independent review 5720003732 covers PR116 head
+`a84f72d4533a81a5f5dbccaea3998eeb41e5a6d8`. All eleven applicable hosted
+checks passed before integration `d8e5391dde0937aa2131565a4947e561e5295df8`.
+Reviewed head, tested merge `7d46bf0cf3e606e522633ed4d3fe6cb437564a22` and
+integration share tree `594c01b4651cd5df303e38a4aa8d4ee604e8d1a0`.
+
+## Provider publication generation fence
+
+A native modification hook can edit the query during provider publication,
+superseding its request before the staged view model is assigned. The old path
+still accepted the publication and could make an obsolete item selectable,
+even after a newer request had published. Each supplied publication now captures
+a private request fence for only its own update; nested query clearing and newer
+publications keep their own context. A superseded update cannot assign its
+staged model. One bounded display repair uses the latest canonical model after
+native rollback, retaining newer selection, marks and title. A target-view
+update during repair, including same-generation streaming, invalidates repair
+and closes safely; no unbounded retry or arbitrary transaction is promised.
+
+Local Emacs 29.3 passes 461 ERT, strict compilation and checkdoc. Eight native
+hook cases cover first/known provider views, newer publications and hook errors;
+additional tests cover repair failure and interruption by a current stream,
+with exact-once closure/cancellation. The original two regressions fail on the
+previous runtime. Independent review identified the same-generation repair
+race; its regression now passes. Final exact-head review and hosted checks are
+still required before integration. No fixed beta ref has moved.
+
+An unmodified local TTY showcase failed phase 4, with a native compiler warning
+and invalid-subtree disposal in its transcript. This remains a failed run; no
+new causal diagnosis is claimed. A separate controlled run that logged native
+compiler warnings without displaying their window passed the full unchanged
+showcase, including stream failure/recovery and cleanup. It does not substitute
+for the failed default-environment run. Hosted checks must cover the release
+matrix independently.
 
 ## Terminal findings and limits
 

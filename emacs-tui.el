@@ -83,6 +83,12 @@
 (defvar emacs-tui--refreshing nil
   "Non-nil while workspace geometry is being changed.")
 
+(defvar emacs-tui--recovering-provider-view nil
+  "Recovery token (SESSION ID INVALIDATED) for one provider view repair.")
+
+(defvar emacs-tui--publishing-request nil
+  "Provider request whose next update must remain current through publication.")
+
 (defvar emacs-tui--rendering nil
   "Non-nil while rendering, suppressing editable-view change callbacks.")
 
@@ -921,58 +927,68 @@ TITLE, when supplied, must be a string (empty clears it).  Title-only updates
 change the header without filtering, projecting or editing view contents.
 Combined updates commit the title only after successful rendering.
 Return SESSION."
-  (emacs-tui--require-session session)
-  (let ((view (cl-find id (emacs-tui--workspace-views session)
-                       :key #'emacs-tui--view-id :test #'equal)))
-    (unless view (error "Unknown view: %S" id))
-    (when (and (emacs-tui--view-editable view)
-               (or items-p (and text-p (not (stringp text)))))
-      (error "Editable views accept only string TEXT updates"))
-    (when (and (emacs-tui--view-tree view) text-p text)
-      (error "Tree views accept item updates, not text previews"))
-    (when items-p
-      (emacs-tui--validate-items items (emacs-tui--view-multi-select view)))
-    (when (and text-p (not (or (null text) (stringp text))))
-      (error "TEXT must be a string or nil"))
-    (when (and title-p (not (stringp title)))
-      (error "TITLE must be a string"))
-    (emacs-tui--capture-input view)
-    (let ((candidate (copy-emacs-tui--view view)))
-      (when title-p (setf (emacs-tui--view-title candidate) title))
+  (let ((request emacs-tui--publishing-request)
+        (emacs-tui--publishing-request nil))
+    (when (and emacs-tui--recovering-provider-view
+               (eq session (nth 0 emacs-tui--recovering-provider-view))
+               (equal id (nth 1 emacs-tui--recovering-provider-view)))
+      (setf (nth 2 emacs-tui--recovering-provider-view) t))
+    (emacs-tui--require-session session)
+    (let ((view (cl-find id (emacs-tui--workspace-views session)
+                         :key #'emacs-tui--view-id :test #'equal)))
+      (unless view (error "Unknown view: %S" id))
+      (when (and (emacs-tui--view-editable view)
+                 (or items-p (and text-p (not (stringp text)))))
+        (error "Editable views accept only string TEXT updates"))
+      (when (and (emacs-tui--view-tree view) text-p text)
+        (error "Tree views accept item updates, not text previews"))
       (when items-p
-        (when (emacs-tui--view-tree view)
-          (let ((data (emacs-tui--tree-index items (emacs-tui--view-children view)
-                                             (emacs-tui--view-tree view))))
-            (setf (emacs-tui--view-tree candidate) data)
-            (setq items (emacs-tui--tree-data-items data))))
-        (setf (emacs-tui--view-items candidate) items))
-      (when text-p (setf (emacs-tui--view-text candidate) text))
-      (if (and title-p (not items-p) (not text-p))
-          (with-current-buffer (emacs-tui--view-buffer view)
-            (setq header-line-format (emacs-tui--view-header session candidate)))
-        (progn
-          (when (emacs-tui--view-marks candidate)
-	    (if (emacs-tui--view-text candidate)
-                (setf (emacs-tui--view-marks candidate) nil)
-              (when items-p
-                (let ((marks (make-hash-table :test #'equal)))
-                  (dolist (item items)
-		    (when (emacs-tui--marked-p view item)
-                      (puthash (emacs-tui--item-id item) t marks)))
-                  (setf (emacs-tui--view-marks candidate) marks)))))
-          (emacs-tui--filter session candidate)
-          (emacs-tui--render-view session candidate)))
-      (setf (emacs-tui--view-title view) (emacs-tui--view-title candidate)
-            (emacs-tui--view-items view) (emacs-tui--view-items candidate)
-            (emacs-tui--view-tree view) (emacs-tui--view-tree candidate)
-            (emacs-tui--view-tree-open view) (emacs-tui--view-tree-open candidate)
-            (emacs-tui--view-tree-search view) (emacs-tui--view-tree-search candidate)
-            (emacs-tui--view-text view) (emacs-tui--view-text candidate)
-            (emacs-tui--view-display-state view) (emacs-tui--view-display-state candidate)
-            (emacs-tui--view-marks view) (emacs-tui--view-marks candidate)
-            (emacs-tui--view-visible-items view) (emacs-tui--view-visible-items candidate)
-            (emacs-tui--view-selected view) (emacs-tui--view-selected candidate))))
-  session)
+        (emacs-tui--validate-items items (emacs-tui--view-multi-select view)))
+      (when (and text-p (not (or (null text) (stringp text))))
+        (error "TEXT must be a string or nil"))
+      (when (and title-p (not (stringp title)))
+        (error "TITLE must be a string"))
+      (emacs-tui--capture-input view)
+      (let ((candidate (copy-emacs-tui--view view)))
+        (when title-p (setf (emacs-tui--view-title candidate) title))
+        (when items-p
+          (when (emacs-tui--view-tree view)
+            (let ((data (emacs-tui--tree-index items (emacs-tui--view-children view)
+                                               (emacs-tui--view-tree view))))
+              (setf (emacs-tui--view-tree candidate) data)
+              (setq items (emacs-tui--tree-data-items data))))
+          (setf (emacs-tui--view-items candidate) items))
+        (when text-p (setf (emacs-tui--view-text candidate) text))
+        (if (and title-p (not items-p) (not text-p))
+            (with-current-buffer (emacs-tui--view-buffer view)
+              (setq header-line-format (emacs-tui--view-header session candidate)))
+          (progn
+            (when (emacs-tui--view-marks candidate)
+              (if (emacs-tui--view-text candidate)
+                  (setf (emacs-tui--view-marks candidate) nil)
+                (when items-p
+                  (let ((marks (make-hash-table :test #'equal)))
+                    (dolist (item items)
+                      (when (emacs-tui--marked-p view item)
+                        (puthash (emacs-tui--item-id item) t marks)))
+                    (setf (emacs-tui--view-marks candidate) marks)))))
+            (emacs-tui--filter session candidate)
+            (when (and request (not (emacs-tui--request-current-p request)))
+              (user-error "Provider publication was superseded"))
+            (emacs-tui--render-view session candidate)))
+        (when (and request (not (emacs-tui--request-current-p request)))
+          (user-error "Provider publication was superseded"))
+        (setf (emacs-tui--view-title view) (emacs-tui--view-title candidate)
+              (emacs-tui--view-items view) (emacs-tui--view-items candidate)
+              (emacs-tui--view-tree view) (emacs-tui--view-tree candidate)
+              (emacs-tui--view-tree-open view) (emacs-tui--view-tree-open candidate)
+              (emacs-tui--view-tree-search view) (emacs-tui--view-tree-search candidate)
+              (emacs-tui--view-text view) (emacs-tui--view-text candidate)
+              (emacs-tui--view-display-state view) (emacs-tui--view-display-state candidate)
+              (emacs-tui--view-marks view) (emacs-tui--view-marks candidate)
+              (emacs-tui--view-visible-items view) (emacs-tui--view-visible-items candidate)
+              (emacs-tui--view-selected view) (emacs-tui--view-selected candidate))))
+    session))
 
 (defun emacs-tui--request-current-p (request)
   "Return non-nil if REQUEST may still publish into its live session."
@@ -1023,10 +1039,38 @@ terminates the request without partially applying update arguments."
     (let ((session (emacs-tui--request-session request)))
       (condition-case err
           (progn
-            (apply #'emacs-tui-update session id keywords)
+            (let ((emacs-tui--publishing-request request))
+              (apply #'emacs-tui-update session id keywords))
             (cl-pushnew id (emacs-tui--workspace-provider-views session) :test #'equal)
             t)
-        ((error quit) (emacs-tui--provider-fail request err) nil)))))
+        ((error quit)
+         (if (emacs-tui--request-current-p request)
+             (emacs-tui--provider-fail request err)
+           (when (emacs-tui-live-p session)
+             (emacs-tui--restore-provider-view session id)))
+         nil)))))
+
+(defun emacs-tui--restore-provider-view (session id)
+  "Restore SESSION's current view ID after a superseded publication.
+Use the canonical model, which may already contain a newer publication.
+Attempt recovery once; close if recovery fails or is itself superseded."
+  (let ((request (emacs-tui--workspace-request session))
+        (emacs-tui--recovering-provider-view (list session id nil))
+        complete)
+    (unwind-protect
+        (condition-case err
+            (let ((view (emacs-tui--resolve-view session id)))
+              (emacs-tui--render-view session view)
+              (unless (and (emacs-tui-live-p session)
+                           (not (nth 2 emacs-tui--recovering-provider-view))
+                           (eq request (emacs-tui--workspace-request session))
+                           (emacs-tui--subtree session))
+                (error "Provider display recovery was invalidated"))
+              (setq complete t))
+          ((error quit)
+           (message "emacs-tui closed during provider recovery: %s"
+                    (error-message-string err))))
+      (unless complete (emacs-tui-close session)))))
 
 (defun emacs-tui--start-provider (request)
   "Start REQUEST after debounce, with generation-bound publishing callbacks."

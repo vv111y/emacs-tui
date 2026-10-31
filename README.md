@@ -839,6 +839,13 @@ published by the provider are cleared immediately so old results cannot be
 selected or committed for a new query; untouched static views remain. Closing
 the workspace also invalidates callbacks and cancels outstanding work.
 
+If a native buffer hook changes the query during publication, the superseded
+update cannot replace the current model. The display is restored from the
+current model, retaining any newer accepted publication. Recovery is bounded:
+if it fails or another update interrupts recovery of that same view, the
+interface closes and releases its owned resources. Arbitrary application-hook
+side effects and cross-view transactions are not rolled back.
+
 Call `fail` with a message string or an Emacs error condition to end the current
 request and report an error. The workspace remains editable and later queries
 can recover. Providers must start asynchronous work and return promptly: a
