@@ -1,5 +1,6 @@
 # Copyright (C) 2026 Willy Rempel
 # Assisted-by: Codex:gpt-6.1-sol-wm
+# Assisted-by: OpenAI Codex
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 import argparse, json, shutil
@@ -15,6 +16,10 @@ parser.add_argument("script", nargs="?", default="test/tty-smoke.el")
 args = parser.parse_args()
 if args.tmux and not shutil.which("tmux"):
     parser.error("--tmux requires tmux on PATH")
+
+# The protocol is UTF-8 independently of the operator's terminal encoding.
+# Preserve readable diagnostics on restricted stdout without masking a failure.
+sys.stdout.reconfigure(errors="backslashreplace")
 
 with tempfile.TemporaryDirectory() as directory:
     report = pathlib.Path(directory) / "result.txt"
@@ -44,7 +49,7 @@ with tempfile.TemporaryDirectory() as directory:
             if input_request.exists():
                 # Fixtures publish complete snapshots by atomic rename.  Keep
                 # requests idempotent while Emacs consumes real terminal bytes.
-                request = json.loads(input_request.read_text())
+                request = json.loads(input_request.read_text(encoding="utf-8"))
                 request_id, payload = request.get("id"), request.get("text")
                 if (not isinstance(request_id, str) or not request_id
                         or not isinstance(payload, str) or not payload
@@ -81,7 +86,7 @@ with tempfile.TemporaryDirectory() as directory:
             process.wait()
             result = 1
         if report.exists():
-            report_text = report.read_text()
+            report_text = report.read_text(encoding="utf-8")
             print(report_text, end="")
             # tmux client status does not propagate the pane command status.
             if not report_text.startswith("PASS "):

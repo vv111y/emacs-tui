@@ -1,6 +1,6 @@
 # Project state
 
-Updated 2026-10-30 (America/Toronto). This is the current handoff.
+Updated 2026-11-19 (America/Toronto). This is the current handoff.
 [STATE-BETA6-TO-BETA7.md](STATE-BETA6-TO-BETA7.md) preserves the complete beta6
 publication and subsequent implementation, review, checks and failure evidence.
 Earlier archives remain linked there.
@@ -152,6 +152,30 @@ probes could not start Emacs servers because Unix-socket creation returned
 Fresh hosted release checks must cover the supported matrix and these paths.
 Popup viewport changes retain full reflow; native margin preservation is not
 promised across full layout rebuilds or arbitrary external window replacement.
+
+## Terminal smoke driver: UTF-8 evidence
+
+PR [#119](https://github.com/vv111y/emacs-tui/pull/119) corrected the Python
+test harness, not the Emacs library. With a C locale and Python UTF-8 mode
+disabled, the driver rejected literal UTF-8 paste requests and lost UTF-8
+failure reports before printing them. It now reads both files as UTF-8.
+UTF-8 output retains the original characters; ASCII-only output escapes
+unprintable characters. The fixture's failure is still reported as a failure.
+
+The baseline failed the new paste case and both diagnostic-output variants.
+Using real PTYs with a Python fixture on Linux, all 13 Python tests passed on
+both 3.12.14 and 3.13.5; all eight TTY-driver tests also passed under strict
+ASCII. All eleven applicable hosted jobs passed: seven runtime jobs and
+[one package job](https://github.com/vv111y/emacs-tui/actions/runs/44519939196),
+[graphical smoke](https://github.com/vv111y/emacs-tui/actions/runs/44519939212)
+and [Linux/macOS tmux](https://github.com/vv111y/emacs-tui/actions/runs/44519939231).
+PR head `738cf22d602c3e3a0e1b46c28cc9420d504cadfe`, tested merge
+`8bb7bf8fb15a0d081baedd4e01eba24f1e162cc0` and main integration
+`c87dd1bfa4925224ac78c1aca526d05a08302afb` share tree
+`f2081b4c49c1d37d3020f898278f81b526f23a80`. Fixed beta7 remains at
+`fa186fe11f565fa6d41084ab4c2079728ebfe9a2`. This change preserves diagnostic
+evidence; it does not resolve the earlier showcase/resize failures or establish
+physical-terminal coverage.
 
 ## Release validation and remaining gates
 
